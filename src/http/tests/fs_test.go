@@ -111,7 +111,7 @@ Cases:
 			rng := rt.ranges[0]
 			wantContentRange = fmt.Sprintf("bytes %d-%d/%d", rng.start, rng.end-1, testFileLen)
 		}
-		cr := resp.Header.Get("Content-Range")
+		cr := resp.Header.Get(ContentRange)
 		if cr != wantContentRange {
 			t.Errorf("range=%q: Content-Range = %q, want %q", rt.r, cr, wantContentRange)
 		}
@@ -152,7 +152,7 @@ Cases:
 					continue Cases
 				}
 				wantContentRange = fmt.Sprintf("bytes %d-%d/%d", rng.start, rng.end-1, testFileLen)
-				if g, w := part.Header.Get("Content-Range"), wantContentRange; g != w {
+				if g, w := part.Header.Get(ContentRange), wantContentRange; g != w {
 					t.Errorf("range=%q: part Content-Range = %q; want %q", rt.r, g, w)
 				}
 				body, err := ioutil.ReadAll(part)
@@ -610,13 +610,13 @@ func TestDirectoryIfNotModified(t *testing.T) {
 	}
 	res.Body.Close()
 
-	lastMod := res.Header.Get("Last-Modified")
+	lastMod := res.Header.Get(LastModified)
 	if lastMod != fileModStr {
 		t.Fatalf("initial Last-Modified = %q; want %q", lastMod, fileModStr)
 	}
 
 	req, _ := NewRequest(GET, ts.URL, nil)
-	req.Header.Set("If-Modified-Since", lastMod)
+	req.Header.Set(IfModifiedSince, lastMod)
 
 	c := ts.Client()
 	res, err = c.Do(req)
@@ -696,7 +696,7 @@ func TestServeContent(t *testing.T) {
 			serveETag: `"foo"`, // Last-Modified sent only when no ETag
 			modtime:   htmlModTime,
 			reqHeader: map[string]string{
-				"If-Modified-Since": htmlModTime.UTC().Format(TimeFormat),
+				IfModifiedSince: htmlModTime.UTC().Format(TimeFormat),
 			},
 			wantStatus: 304,
 		},
@@ -706,7 +706,7 @@ func TestServeContent(t *testing.T) {
 			serveETag:        `"foo"`,    // Last-Modified sent only when no ETag
 			modtime:          htmlModTime,
 			reqHeader: map[string]string{
-				"If-Modified-Since": htmlModTime.UTC().Format(TimeFormat),
+				IfModifiedSince: htmlModTime.UTC().Format(TimeFormat),
 			},
 			wantStatus: 304,
 		},
@@ -714,7 +714,7 @@ func TestServeContent(t *testing.T) {
 			file:      "testdata/style.css",
 			serveETag: `"foo"`,
 			reqHeader: map[string]string{
-				"If-None-Match": `"foo"`,
+				IfNoneMatch: `"foo"`,
 			},
 			wantStatus: 304,
 		},
@@ -722,7 +722,7 @@ func TestServeContent(t *testing.T) {
 			content:   panicOnSeek{nil}, // should never be called
 			serveETag: `W/"foo"`,        // If-None-Match uses weak ETag comparison
 			reqHeader: map[string]string{
-				"If-None-Match": `"baz", W/"foo"`,
+				IfNoneMatch: `"baz", W/"foo"`,
 			},
 			wantStatus: 304,
 		},
@@ -730,7 +730,7 @@ func TestServeContent(t *testing.T) {
 			file:      "testdata/style.css",
 			serveETag: `"foo"`,
 			reqHeader: map[string]string{
-				"If-None-Match": `"Foo"`,
+				IfNoneMatch: `"Foo"`,
 			},
 			wantStatus:      200,
 			wantContentType: "text/css; charset=utf-8",
@@ -917,10 +917,10 @@ func TestServeContent(t *testing.T) {
 		if g, e := res.Header.Get(ContentType), tt.wantContentType; g != e {
 			t.Errorf("test %q: content-type = %q, want %q", testName, g, e)
 		}
-		if g, e := res.Header.Get("Content-Range"), tt.wantContentRange; g != e {
+		if g, e := res.Header.Get(ContentRange), tt.wantContentRange; g != e {
 			t.Errorf("test %q: content-range = %q, want %q", testName, g, e)
 		}
-		if g, e := res.Header.Get("Last-Modified"), tt.wantLastMod; g != e {
+		if g, e := res.Header.Get(LastModified), tt.wantLastMod; g != e {
 			t.Errorf("test %q: last-modified = %q, want %q", testName, g, e)
 		}
 	}

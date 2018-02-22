@@ -31,8 +31,8 @@ func BenchmarkHeaderWriteSubset(b *testing.B) {
 	var testHeader = Header{
 		ContentLength: {"123"},
 		ContentType:   {"text/plain"},
-		"Date":        {"some date at some time Z"},
-		"Server":      {DefaultUserAgent},
+		Date:          {"some date at some time Z"},
+		ServerHeader:  {DefaultUserAgent},
 	}
 
 	b.ReportAllocs()

@@ -453,11 +453,11 @@ type (
 	}
 
 	// gzipReader wraps a response body so it can lazily
-	// call gzip.NewReader on the first call to Read
+	// call gzip.NewHeaderReader on the first call to Read
 	gzipReader struct {
 		body *bodyEOFSignal // underlying HTTP/1 response body framing
 		zr   *gzip.Reader   // lazily-initialized gzip reader
-		zerr error          // any error from gzip.NewReader; sticky
+		zerr error          // any error from gzip.NewHeaderReader; sticky
 	}
 
 	tlsHandshakeTimeoutError struct{}

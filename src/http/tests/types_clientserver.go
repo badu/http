@@ -25,7 +25,7 @@ var (
 		ts.Config.ErrorLog = log.New(ioutil.Discard, "", 0)
 	}
 	robotsTxtHandler = HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set("Last-Modified", "sometime")
+		w.Header().Set(LastModified, "sometime")
 		fmt.Fprintf(w, "User-agent: go\nDisallow: /something/")
 	})
 

@@ -11,7 +11,6 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"net/textproto"
 	"os"
 	"runtime"
 	"sort"
@@ -96,8 +95,8 @@ func (tt runWrapper) normalizeRes(t *testing.T, res *Response) {
 		body:       slurp,
 		err:        err,
 	}
-	for i, v := range res.Header["Date"] {
-		res.Header["Date"][i] = strings.Repeat("x", len(v))
+	for i, v := range res.Header[Date] {
+		res.Header[Date][i] = strings.Repeat("x", len(v))
 	}
 	if res.Request == nil {
 		t.Errorf("for %s, no request", HTTP1_1)
@@ -124,7 +123,7 @@ func interestingGoroutines() (gs []string) {
 			// These only show up with GOTRACEBACK=2; Issue 5005 (comment 28)
 			strings.Contains(stack, "runtime.goexit") ||
 			strings.Contains(stack, "created by runtime.gc") ||
-			strings.Contains(stack, "net/ehttp/tests.interestingGoroutines") ||
+			strings.Contains(stack, "http/tests.interestingGoroutines") ||
 			strings.Contains(stack, "runtime.MHeap_Scavenger") {
 			continue
 		}
@@ -192,12 +191,12 @@ func afterTest(t testing.TB) {
 	}
 	var bad string
 	badSubstring := map[string]string{
-		").readLoop(":                                  "a Transport",
-		").writeLoop(":                                 "a Transport",
-		"created by net/http/httptest.(*Server).Start": "an httptest.Server",
-		"timeoutHandler":                               "a TimeoutHandler",
-		"net.(*netFD).connect(":                        "a timing out dial",
-		").noteClientGone(":                            "a closenotifier sender",
+		").readLoop(":                              "a Transport",
+		").writeLoop(":                             "a Transport",
+		"created by http/httptest.(*Server).Start": "an httptest.Server",
+		"timeoutHandler":                           "a TimeoutHandler",
+		"net.(*netFD).connect(":                    "a timing out dial",
+		").noteClientGone(":                        "a closenotifier sender",
 	}
 	var stacks string
 	for i := 0; i < 4; i++ {
@@ -259,7 +258,7 @@ func ResetCachedEnvironment() {
 // foreachHeaderElement splits v according to the "#rule" construction
 // in RFC 2616 section 2.1 and calls fn for each non-empty element.
 func foreachHeaderElement(v string, fn func(string)) {
-	v = textproto.TrimString(v)
+	v = TrimString(v)
 	if v == "" {
 		return
 	}
@@ -268,7 +267,7 @@ func foreachHeaderElement(v string, fn func(string)) {
 		return
 	}
 	for _, f := range strings.Split(v, ",") {
-		if f = textproto.TrimString(f); f != "" {
+		if f = TrimString(f); f != "" {
 			fn(f)
 		}
 	}

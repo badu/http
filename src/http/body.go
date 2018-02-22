@@ -10,7 +10,6 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"net/textproto"
 )
 
 func (b *body) Read(p []byte) (n int, err error) {
@@ -87,7 +86,7 @@ func (b *body) readTrailer() error {
 
 	// Make sure there's a header terminator coming up, to prevent
 	// a DoS with an unbounded size Trailer. It's not easy to
-	// slip in a LimitReader here, as textproto.NewReader requires
+	// slip in a LimitReader here, as NewHeaderReader requires
 	// a concrete *bufio.Reader. Also, we can't get all the way
 	// back up to our conn's LimitedReader that *might* be backing
 	// this bufio.Reader. Instead, a hack: we iteratively Peek up
@@ -97,7 +96,7 @@ func (b *body) readTrailer() error {
 		return errors.New("http: suspiciously long trailer after chunked body")
 	}
 
-	hdr, err := textproto.NewReader(b.r).ReadMIMEHeader()
+	hdr, err := NewHeaderReader(b.r).ReadHeader()
 	if err != nil {
 		if err == io.EOF {
 			return errTrailerEOF

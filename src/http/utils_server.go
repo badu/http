@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/textproto"
 	"os"
 	"strconv"
 	"strings"
@@ -127,7 +126,7 @@ func http1ServerSupportsRequest(req *Request) bool {
 // foreachHeaderElement splits v according to the "#rule" construction
 // in RFC 2616 section 2.1 and calls fn for each non-empty element.
 func foreachHeaderElement(v string, fn func(string)) {
-	v = textproto.TrimString(v)
+	v = TrimString(v)
 	if v == "" {
 		return
 	}
@@ -136,7 +135,7 @@ func foreachHeaderElement(v string, fn func(string)) {
 		return
 	}
 	for _, f := range strings.Split(v, ",") {
-		if f = textproto.TrimString(f); f != "" {
+		if f = TrimString(f); f != "" {
 			fn(f)
 		}
 	}

@@ -189,7 +189,7 @@ func defaultCheckRedirect(req *Request, via []*Request) error {
 
 func shouldCopyHeaderOnRedirect(headerKey string, initial, dest *url.URL) bool {
 	switch CanonicalHeaderKey(headerKey) {
-	case Authorization, "Www-Authenticate", "Cookie", "Cookie2":
+	case Authorization, "Www-Authenticate", CookieHeader, "Cookie2":
 		// Permit sending auth/cookie headers from "foo.com"
 		// to "sub.foo.com".
 
@@ -462,7 +462,7 @@ func ascii(s string) bool {
 // if filter isn't empty, only cookies of that name are returned
 func readCookies(h Header, filter string) []*Cookie {
 	var result []*Cookie
-	lines, ok := h["Cookie"]
+	lines, ok := h[CookieHeader]
 	if !ok {
 		return result
 	}
@@ -503,12 +503,12 @@ func readCookies(h Header, filter string) []*Cookie {
 // readSetCookies parses all "Set-Cookie" values from
 // the header h and returns the successfully parsed Cookies.
 func readSetCookies(h Header) []*Cookie {
-	cookieCount := len(h["Set-Cookie"])
+	cookieCount := len(h[SetCookieHeader])
 	if cookieCount == 0 {
 		return []*Cookie{}
 	}
 	cookies := make([]*Cookie, 0, cookieCount)
-	for _, line := range h["Set-Cookie"] {
+	for _, line := range h[SetCookieHeader] {
 		parts := strings.Split(strings.TrimSpace(line), ";")
 		if len(parts) == 1 && parts[0] == "" {
 			continue

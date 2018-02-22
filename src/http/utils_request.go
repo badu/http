@@ -13,7 +13,6 @@ import (
 	"io/ioutil"
 	"mime"
 	"net"
-	"net/textproto"
 	"net/url"
 	"strings"
 
@@ -191,17 +190,17 @@ func parseRequestLine(line string) (string, string, string, bool) {
 	return line[:s1], line[s1+1 : s2], line[s2+1:], true
 }
 
-func newTextprotoReader(br *bufio.Reader) *textproto.Reader {
-	// @comment : getting textproto.Reader from the pool
+func newTextprotoReader(br *bufio.Reader) *HeaderReader {
+	// @comment : getting Reader from the pool
 	if v := textprotoReaderPool.Get(); v != nil {
-		tr := v.(*textproto.Reader)
+		tr := v.(*HeaderReader)
 		tr.R = br
 		return tr
 	}
-	return textproto.NewReader(br)
+	return NewHeaderReader(br)
 }
 
-func putTextprotoReader(r *textproto.Reader) {
+func putTextprotoReader(r *HeaderReader) {
 	r.R = nil
 	textprotoReaderPool.Put(r)
 }
@@ -217,7 +216,7 @@ func readRequest(b *bufio.Reader, deleteHostHeader bool) (*Request, error) {
 	if s, err = tp.ReadLine(); err != nil {
 		return nil, err
 	}
-	// @comment : storing textproto.Reader into the pool
+	// @comment : storing Reader into the pool
 	defer func() {
 		putTextprotoReader(tp)
 		if err == io.EOF {
@@ -262,12 +261,12 @@ func readRequest(b *bufio.Reader, deleteHostHeader bool) (*Request, error) {
 	}
 
 	// Subsequent lines: Key: value.
-	mimeHeader, err := tp.ReadMIMEHeader()
+	mimeHeader, err := tp.ReadHeader()
 	if err != nil {
 		return nil, err
 	}
-	// @comment : since ReadMIMEHeader returns MIMEHeader map[string][]string, we're converting it to Header
-	// TODO : @badu - for different approach, might need to rewrite textproto.Reader as well
+	// @comment : since ReadHeader returns MIMEHeader map[string][]string, we're converting it to Header
+	// TODO : @badu - for different approach, might need to rewrite Reader as well
 	req.Header = Header(mimeHeader)
 
 	// RFC 2616: Must treat

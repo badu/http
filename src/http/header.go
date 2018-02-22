@@ -7,31 +7,38 @@ package http
 
 import (
 	"io"
-	"net/textproto"
 	"sort"
 )
 
 // Add adds the key, value pair to the header.
 // It appends to any existing values associated with key.
 func (h Header) Add(key, value string) {
-	textproto.MIMEHeader(h).Add(key, value)
+	key = CanonicalHeaderKey(key)
+	h[key] = append(h[key], value)
 }
 
 // Set sets the header entries associated with key to
 // the single element value. It replaces any existing
 // values associated with key.
 func (h Header) Set(key, value string) {
-	textproto.MIMEHeader(h).Set(key, value)
+	h[CanonicalHeaderKey(key)] = []string{value}
 }
 
 // Get gets the first value associated with the given key.
-// It is case insensitive; textproto.CanonicalMIMEHeaderKey is used
+// It is case insensitive; CanonicalHeaderKey is used
 // to canonicalize the provided key.
 // If there are no values associated with the key, Get returns "".
 // To access multiple values of a key, or to use non-canonical keys,
 // access the map directly.
 func (h Header) Get(key string) string {
-	return textproto.MIMEHeader(h).Get(key)
+	if h == nil {
+		return ""
+	}
+	v := h[CanonicalHeaderKey(key)]
+	if len(v) == 0 {
+		return ""
+	}
+	return v[0]
 }
 
 // get is like Get, but key must already be in CanonicalHeaderKey form.
@@ -44,7 +51,7 @@ func (h Header) get(key string) string {
 
 // Del deletes the values associated with key.
 func (h Header) Del(key string) {
-	textproto.MIMEHeader(h).Del(key)
+	delete(h, CanonicalHeaderKey(key))
 }
 
 // Write writes a header in wire format.
@@ -67,7 +74,8 @@ func (h Header) Clone() Header {
 func (h Header) CopyFromHeader(src Header) {
 	for k, vv := range src {
 		for _, v := range vv {
-			textproto.MIMEHeader(h).Add(k, v)
+			key := CanonicalHeaderKey(k)
+			h[key] = append(h[key], v)
 		}
 	}
 }
@@ -102,7 +110,7 @@ func (h Header) WriteSubset(w io.Writer, exclude map[string]bool) error {
 	for _, kv := range kvs {
 		for _, v := range kv.values {
 			v = headerNewlineToSpace.Replace(v)
-			v = textproto.TrimString(v)
+			v = TrimString(v)
 			for _, s := range []string{kv.key, ": ", v, "\r\n"} {
 				if _, err := ws.WriteString(s); err != nil {
 					return err

@@ -40,7 +40,7 @@ func TestHeaderWrite(t *testing.T) {
 		},
 		{
 			Header{
-				"Expires":       {"-1"},
+				Expires:         {"-1"},
 				ContentLength:   {"0"},
 				ContentEncoding: {"gzip"},
 			},
@@ -49,7 +49,7 @@ func TestHeaderWrite(t *testing.T) {
 		},
 		{
 			Header{
-				"Expires":       {"-1"},
+				Expires:         {"-1"},
 				ContentLength:   {"0", "1", "2"},
 				ContentEncoding: {"gzip"},
 			},
@@ -58,11 +58,11 @@ func TestHeaderWrite(t *testing.T) {
 		},
 		{
 			Header{
-				"Expires":       {"-1"},
+				Expires:         {"-1"},
 				ContentLength:   {"0"},
 				ContentEncoding: {"gzip"},
 			},
-			map[string]bool{ContentLength: true, "Expires": true, ContentEncoding: true},
+			map[string]bool{ContentLength: true, Expires: true, ContentEncoding: true},
 			"",
 		},
 		{
@@ -109,17 +109,17 @@ func TestParseTime(t *testing.T) {
 		h   Header
 		err bool
 	}{
-		{Header{"Date": {""}}, true},
-		{Header{"Date": {"invalid"}}, true},
-		{Header{"Date": {"1994-11-06T08:49:37Z00:00"}}, true},
-		{Header{"Date": {"Sun, 06 Nov 1994 08:49:37 GMT"}}, false},
-		{Header{"Date": {"Sunday, 06-Nov-94 08:49:37 GMT"}}, false},
-		{Header{"Date": {"Sun Nov  6 08:49:37 1994"}}, false},
+		{Header{Date: {""}}, true},
+		{Header{Date: {"invalid"}}, true},
+		{Header{Date: {"1994-11-06T08:49:37Z00:00"}}, true},
+		{Header{Date: {"Sun, 06 Nov 1994 08:49:37 GMT"}}, false},
+		{Header{Date: {"Sunday, 06-Nov-94 08:49:37 GMT"}}, false},
+		{Header{Date: {"Sun Nov  6 08:49:37 1994"}}, false},
 	}
 
 	expect := time.Date(1994, 11, 6, 8, 49, 37, 0, time.UTC)
 	for i, test := range parseTimeTests {
-		d, err := ParseTime(test.h.Get("Date"))
+		d, err := ParseTime(test.h.Get(Date))
 		if err != nil {
 			if !test.err {
 				t.Errorf("#%d:\n got err: %v", i, err)
@@ -197,8 +197,8 @@ func TestHeaderWriteSubsetAllocs(t *testing.T) {
 	var testHeader = Header{
 		ContentLength: {"123"},
 		ContentType:   {"text/plain"},
-		"Date":        {"some date at some time Z"},
-		"Server":      {DefaultUserAgent},
+		Date:          {"some date at some time Z"},
+		ServerHeader:  {DefaultUserAgent},
 	}
 
 	n := testing.AllocsPerRun(100, func() {

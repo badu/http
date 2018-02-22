@@ -8,7 +8,6 @@ package http
 import (
 	"bufio"
 	"io"
-	"net/textproto"
 	"strconv"
 	"strings"
 )
@@ -20,7 +19,7 @@ import (
 // After that call, clients can inspect resp.Trailer to find key/value
 // pairs included in the response trailer.
 func ReadResponse(r *bufio.Reader, req *Request) (*Response, error) {
-	tp := textproto.NewReader(r)
+	tp := NewHeaderReader(r)
 	resp := &Response{
 		Request: req,
 	}
@@ -56,7 +55,7 @@ func ReadResponse(r *bufio.Reader, req *Request) (*Response, error) {
 	}
 
 	// Parse the response headers.
-	mimeHeader, err := tp.ReadMIMEHeader()
+	mimeHeader, err := tp.ReadHeader()
 	if err != nil {
 		if err == io.EOF {
 			err = io.ErrUnexpectedEOF

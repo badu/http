@@ -637,7 +637,7 @@ func TestRoundTripGzip(t *testing.T) {
 			var r *gzip.Reader
 			r, err = gzip.NewReader(res.Body)
 			if err != nil {
-				t.Errorf("%d. gzip NewReader: %v", i, err)
+				t.Errorf("%d. gzip NewHeaderReader: %v", i, err)
 				continue
 			}
 			body, err = ioutil.ReadAll(r)

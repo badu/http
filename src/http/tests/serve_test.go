@@ -1688,7 +1688,7 @@ func TestServerWriteHijackZeroBytes(t *testing.T) {
 	}
 }
 
-func TestServerNoDate(t *testing.T) { testServerNoHeader(t, "Date") }
+func TestServerNoDate(t *testing.T) { testServerNoHeader(t, Date) }
 
 func TestServerNoContentType(t *testing.T) { testServerNoHeader(t, ContentType) }
 

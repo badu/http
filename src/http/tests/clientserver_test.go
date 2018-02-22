@@ -413,7 +413,7 @@ func testTrailersServerToClient(t *testing.T, flush bool) {
 		t.Errorf("ContentLength = %v; want %v", res.ContentLength, wantLen)
 	}
 
-	delete(res.Header, "Date") // irrelevant for test
+	delete(res.Header, Date) // irrelevant for test
 	if !reflect.DeepEqual(res.Header, wantHeader) {
 		t.Errorf("Header = %v; want %v", res.Header, wantHeader)
 	}
@@ -978,7 +978,7 @@ func TestServerUndeclaredTrailers(t *testing.T) {
 		t.Fatal(err)
 	}
 	res.Body.Close()
-	delete(res.Header, "Date")
+	delete(res.Header, Date)
 	delete(res.Header, ContentType)
 
 	if want := (Header{"Foo": {"Bar"}}); !reflect.DeepEqual(res.Header, want) {

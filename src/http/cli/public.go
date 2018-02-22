@@ -145,10 +145,10 @@ func GetCookie(name string, fromReq *Request) (*Cookie, error) {
 // separated by semicolon.
 func AddCookie(c *Cookie, toReq *Request) {
 	s := fmt.Sprintf("%s=%s", sanitizeCookieName(c.Name), sanitizeCookieValue(c.Value))
-	if c := toReq.Header.Get("Cookie"); c != "" {
-		toReq.Header.Set("Cookie", c+"; "+s)
+	if c := toReq.Header.Get(CookieHeader); c != "" {
+		toReq.Header.Set(CookieHeader, c+"; "+s)
 	} else {
-		toReq.Header.Set("Cookie", s)
+		toReq.Header.Set(CookieHeader, s)
 	}
 }
 
@@ -157,6 +157,6 @@ func AddCookie(c *Cookie, toReq *Request) {
 // silently dropped.
 func SetCookie(w ResponseWriter, cookie *Cookie) {
 	if v := cookie.String(); v != "" {
-		w.Header().Add("Set-Cookie", v)
+		w.Header().Add(SetCookieHeader, v)
 	}
 }

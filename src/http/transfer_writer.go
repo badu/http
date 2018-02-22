@@ -27,7 +27,7 @@ import (
 // servers. See Issue 18257, as one example.
 //
 // The only reason we'd send such a request is if the user set the Body to a
-// non-nil value (say, ioutil.NopCloser(bytes.NewReader(nil))) and didn't
+// non-nil value (say, ioutil.NopCloser(bytes.NewHeaderReader(nil))) and didn't
 // set ContentLength, or NewRequest set it to -1 (unknown), so then we assume
 // there's bytes to send.
 //

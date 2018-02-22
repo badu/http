@@ -278,7 +278,7 @@ func (c *Client) makeHeadersCopier(ireq *Request) func(*Request) {
 		ireqhdr  = ireq.Header.Clone()
 		icookies map[string][]*Cookie
 	)
-	if c.Jar != nil && ireq.Header.Get("Cookie") != "" {
+	if c.Jar != nil && ireq.Header.Get(CookieHeader) != "" {
 		icookies = make(map[string][]*Cookie)
 		for _, c := range ReqCookies(ireq) {
 			icookies[c.Name] = append(icookies[c.Name], c)
@@ -308,7 +308,7 @@ func (c *Client) makeHeadersCopier(ireq *Request) func(*Request) {
 				}
 			}
 			if changed {
-				ireqhdr.Del("Cookie")
+				ireqhdr.Del(CookieHeader)
 				var ss []string
 				for _, cs := range icookies {
 					for _, c := range cs {
@@ -316,7 +316,7 @@ func (c *Client) makeHeadersCopier(ireq *Request) func(*Request) {
 					}
 				}
 				sort.Strings(ss) // Ensure deterministic headers
-				ireqhdr.Set("Cookie", strings.Join(ss, "; "))
+				ireqhdr.Set(CookieHeader, strings.Join(ss, "; "))
 			}
 		}
 

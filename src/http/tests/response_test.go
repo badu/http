@@ -391,10 +391,10 @@ some body`,
 			ProtoMinor: 1,
 			Request:    dummyReq(GET),
 			Header: Header{
-				"Accept-Ranges": []string{"bytes"},
-				ContentLength:   []string{"6"},
-				ContentType:     []string{"text/plain; charset=utf-8"},
-				"Content-Range": []string{"bytes 0-5/1862"},
+				AcceptRanges:  []string{"bytes"},
+				ContentLength: []string{"6"},
+				ContentType:   []string{"text/plain; charset=utf-8"},
+				ContentRange:  []string{"bytes 0-5/1862"},
 			},
 			ContentLength: 6,
 		},
@@ -691,7 +691,7 @@ func TestReadResponseCloseInMiddle(t *testing.T) {
 		}
 		if test.compressed {
 			gzReader, err := gzip.NewReader(resp.Body)
-			checkErr(err, "gzip.NewReader")
+			checkErr(err, "gzip.NewHeaderReader")
 			resp.Body = &readerAndCloser{gzReader, resp.Body}
 		}
 
@@ -1284,14 +1284,14 @@ func TestReadRequest(t *testing.T) {
 				ProtoMajor: 1,
 				ProtoMinor: 1,
 				Header: Header{
-					"Accept":          {"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"},
-					"Accept-Language": {"en-us,en;q=0.5"},
-					AcceptEncoding:    {"gzip,deflate"},
-					"Accept-Charset":  {"ISO-8859-1,utf-8;q=0.7,*;q=0.7"},
-					KeepAlive:         {"300"},
-					ProxyConnection:   {DoKeepAlive},
-					ContentLength:     {"7"},
-					UserAgent:         {"Fake"},
+					Accept:          {"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"},
+					AcceptLanguage:  {"en-us,en;q=0.5"},
+					AcceptEncoding:  {"gzip,deflate"},
+					AcceptCharset:   {"ISO-8859-1,utf-8;q=0.7,*;q=0.7"},
+					KeepAlive:       {"300"},
+					ProxyConnection: {DoKeepAlive},
+					ContentLength:   {"7"},
+					UserAgent:       {"Fake"},
 				},
 				Close:         false,
 				ContentLength: 7,
@@ -1522,7 +1522,7 @@ func TestReadRequest(t *testing.T) {
 				ProtoMajor: 1,
 				ProtoMinor: 1,
 				Header: Header{
-					"Server": []string{"foo"},
+					ServerHeader: []string{"foo"},
 				},
 				Close:         false,
 				ContentLength: 0,
@@ -1546,7 +1546,7 @@ func TestReadRequest(t *testing.T) {
 				ProtoMajor: 1,
 				ProtoMinor: 1,
 				Header: Header{
-					"Server": []string{"foo"},
+					ServerHeader: []string{"foo"},
 				},
 				Close:         false,
 				ContentLength: 0,

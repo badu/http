@@ -59,7 +59,7 @@ func TestClientHead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := r.Header["Last-Modified"]; !ok {
+	if _, ok := r.Header[LastModified]; !ok {
 		t.Error("Last-Modified header not found.")
 	}
 }
@@ -1136,7 +1136,7 @@ func TestClientCopyHeadersOnRedirect(t *testing.T) {
 	req, _ := NewRequest(GET, ts2.URL, nil)
 	req.Header.Add(UserAgent, ua)
 	req.Header.Add("X-Foo", xfoo)
-	req.Header.Add("Cookie", "foo=bar")
+	req.Header.Add(CookieHeader, "foo=bar")
 	req.Header.Add(Authorization, "secretpassword")
 	res, err := c.Do(req)
 	if err != nil {

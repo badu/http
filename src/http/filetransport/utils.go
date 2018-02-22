@@ -9,9 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mime"
-	"mime/multipart"
-	"net/textproto"
 	"net/url"
 	"os"
 	"path"
@@ -20,6 +17,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"http/mime"
 
 	. "http"
 	"http/sniff"
@@ -164,7 +163,7 @@ func serveContent(w ResponseWriter, r *Request, name string, modtime time.Time, 
 		ranges, err := parseRange(rangeReq, size)
 		if err != nil {
 			if err == errNoOverlap {
-				w.Header().Set("Content-Range", fmt.Sprintf("bytes */%d", size))
+				w.Header().Set(ContentRange, fmt.Sprintf("bytes */%d", size))
 			}
 			Error(w, err.Error(), StatusRequestedRangeNotSatisfiable)
 			return
@@ -196,13 +195,13 @@ func serveContent(w ResponseWriter, r *Request, name string, modtime time.Time, 
 			}
 			sendSize = ra.length
 			code = StatusPartialContent
-			w.Header().Set("Content-Range", ra.contentRange(size))
+			w.Header().Set(ContentRange, ra.contentRange(size))
 		case len(ranges) > 1:
 			sendSize = rangesMIMESize(ranges, ctype, size)
 			code = StatusPartialContent
 
 			pr, pw := io.Pipe()
-			mw := multipart.NewWriter(pw)
+			mw := mime.NewWriter(pw)
 			w.Header().Set(ContentType, "multipart/byteranges; boundary="+mw.Boundary())
 			sendContent = pr
 			defer pr.Close() // cause writing goroutine to fail and exit if CopyN doesn't finish.
@@ -227,7 +226,7 @@ func serveContent(w ResponseWriter, r *Request, name string, modtime time.Time, 
 			}()
 		}
 
-		w.Header().Set("Accept-Ranges", "bytes")
+		w.Header().Set(AcceptRanges, "bytes")
 		if w.Header().Get(ContentEncoding) == "" {
 			w.Header().Set(ContentLength, strconv.FormatInt(sendSize, 10))
 		}
@@ -244,7 +243,7 @@ func serveContent(w ResponseWriter, r *Request, name string, modtime time.Time, 
 // the ETag and remaining text after consuming ETag is returned. Otherwise,
 // it returns "", "".
 func scanETag(s string) (etag string, remain string) {
-	s = textproto.TrimString(s)
+	s = TrimString(s)
 	start := 0
 	if strings.HasPrefix(s, "W/") {
 		start = 2
@@ -290,7 +289,7 @@ func checkIfMatch(w ResponseWriter, r *Request) condResult {
 		return condNone
 	}
 	for {
-		im = textproto.TrimString(im)
+		im = TrimString(im)
 		if len(im) == 0 {
 			break
 		}
@@ -306,7 +305,7 @@ func checkIfMatch(w ResponseWriter, r *Request) condResult {
 			break
 		}
 
-		if etagStrongMatch(etag, w.Header().Get("Etag")) {
+		if etagStrongMatch(etag, w.Header().Get(Etag)) {
 			return condTrue
 		}
 		im = remain
@@ -332,13 +331,13 @@ func checkIfUnmodifiedSince(r *Request, modtime time.Time) condResult {
 }
 
 func checkIfNoneMatch(w ResponseWriter, r *Request) condResult {
-	inm := r.Header.Get("If-None-Match")
+	inm := r.Header.Get(IfNoneMatch)
 	if inm == "" {
 		return condNone
 	}
 	buf := inm
 	for {
-		buf = textproto.TrimString(buf)
+		buf = TrimString(buf)
 		if len(buf) == 0 {
 			break
 		}
@@ -353,7 +352,7 @@ func checkIfNoneMatch(w ResponseWriter, r *Request) condResult {
 			break
 		}
 
-		if etagWeakMatch(etag, w.Header().Get("Etag")) {
+		if etagWeakMatch(etag, w.Header().Get(Etag)) {
 			return condFalse
 		}
 		buf = remain
@@ -365,7 +364,7 @@ func checkIfModifiedSince(r *Request, modtime time.Time) condResult {
 	if r.Method != GET && r.Method != HEAD {
 		return condNone
 	}
-	ims := r.Header.Get("If-Modified-Since")
+	ims := r.Header.Get(IfModifiedSince)
 	if ims == "" || isZeroTime(modtime) {
 		return condNone
 	}
@@ -392,7 +391,7 @@ func checkIfRange(w ResponseWriter, r *Request, modtime time.Time) condResult {
 	}
 	etag, _ := scanETag(ir)
 	if etag != "" {
-		if etagStrongMatch(etag, w.Header().Get("Etag")) {
+		if etagStrongMatch(etag, w.Header().Get(Etag)) {
 			return condTrue
 		} else {
 			return condFalse
@@ -420,7 +419,7 @@ func isZeroTime(t time.Time) bool {
 
 func setLastModified(w ResponseWriter, modtime time.Time) {
 	if !isZeroTime(modtime) {
-		w.Header().Set("Last-Modified", modtime.UTC().Format(TimeFormat))
+		w.Header().Set(LastModified, modtime.UTC().Format(TimeFormat))
 	}
 }
 
@@ -433,8 +432,8 @@ func writeNotModified(w ResponseWriter) {
 	h := w.Header()
 	delete(h, ContentType)
 	delete(h, ContentLength)
-	if h.Get("Etag") != "" {
-		delete(h, "Last-Modified")
+	if h.Get(Etag) != "" {
+		delete(h, LastModified)
 	}
 	w.WriteHeader(StatusNotModified)
 }
@@ -550,7 +549,7 @@ func serveFile(w ResponseWriter, r *Request, fs FileSystem, name string, redirec
 			writeNotModified(w)
 			return
 		}
-		w.Header().Set("Last-Modified", d.ModTime().UTC().Format(TimeFormat))
+		w.Header().Set(LastModified, d.ModTime().UTC().Format(TimeFormat))
 		dirList(w, f)
 		return
 	}
@@ -721,7 +720,7 @@ func parseRange(s string, size int64) ([]httpRange, error) {
 // provided ranges as a multipart response.
 func rangesMIMESize(ranges []httpRange, contentType string, contentSize int64) (encSize int64) {
 	var w countingWriter
-	mw := multipart.NewWriter(&w)
+	mw := mime.NewWriter(&w)
 	for _, ra := range ranges {
 		mw.CreatePart(ra.mimeHeader(contentType, contentSize))
 		encSize += ra.length
