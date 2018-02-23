@@ -285,7 +285,7 @@ func (p *persistConn) readLoop() {
 			// Now that they've read from the unbuffered channel, they're safely
 			// out of the select that also waits on this goroutine to die, so
 			// we're allowed to exit now if needed (if alive is false)
-			TestEventsEmitter.Dispatch(ReadLoopBeforeNextReadEvent)
+			testEventsEmitter.dispatch(ReadLoopBeforeNextReadEvent)
 			continue
 		}
 
@@ -346,7 +346,7 @@ func (p *persistConn) readLoop() {
 			alive = false
 		}
 
-		TestEventsEmitter.Dispatch(ReadLoopBeforeNextReadEvent)
+		testEventsEmitter.dispatch(ReadLoopBeforeNextReadEvent)
 	}
 }
 
@@ -492,7 +492,7 @@ func (p *persistConn) wroteRequest() bool {
 func (p *persistConn) roundTrip(req *transportRequest) (*Response, error) {
 	var err error
 	//@comment : new way of letting tests know
-	TestEventsEmitter.Dispatch(EnterRoundTripEvent)
+	testEventsEmitter.dispatch(EnterRoundTripEvent)
 
 	if !p.t.replaceReqCanceler(req.Request, p.cancelRequest) {
 		p.t.putOrCloseIdleConn(p)
@@ -572,7 +572,7 @@ func (p *persistConn) roundTrip(req *transportRequest) (*Response, error) {
 
 	ctxDoneChan := req.Context().Done()
 	for {
-		TestEventsEmitter.Dispatch(WaitResLoopEvent)
+		testEventsEmitter.dispatch(WaitResLoopEvent)
 		select {
 		case err := <-writeErrCh:
 			if debugRoundTrip {

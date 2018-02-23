@@ -115,7 +115,7 @@ func (t *Transport) RoundTrip(req *Request) (*Response, error) {
 			return nil, err
 		}
 
-		TestEventsEmitter.Dispatch(RoundTripRetriedEvent)
+		testEventsEmitter.dispatch(RoundTripRetriedEvent)
 
 		// Rewind the body if we're able to.  (HTTP/2 does this itself so we only
 		// need to do it for HTTP/1.1 connections.)
@@ -452,12 +452,12 @@ func (t *Transport) getConn(treq *transportRequest, cm connectMethod) (*persistC
 	dialc := make(chan dialRes)
 
 	handlePendingDial := func() {
-		TestEventsEmitter.Dispatch(PrePendingDialEvent)
+		testEventsEmitter.dispatch(PrePendingDialEvent)
 		go func() {
 			if v := <-dialc; v.err == nil {
 				t.putOrCloseIdleConn(v.pc)
 			}
-			TestEventsEmitter.Dispatch(PostPendingDialEvent)
+			testEventsEmitter.dispatch(PostPendingDialEvent)
 		}()
 	}
 

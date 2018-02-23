@@ -199,7 +199,7 @@ func (s *Server) Serve(lsn net.Listener) error {
 	defer lsn.Close()
 
 	// @comment : new way of dispatching server Serve (so we got rid of the boilerplate)
-	TestEventsEmitter.Dispatch(ServerServe)
+	testEventsEmitter.dispatch(ServerServe)
 
 	s.trackListener(lsn, true)
 	defer s.trackListener(lsn, false)

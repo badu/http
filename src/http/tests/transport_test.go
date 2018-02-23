@@ -568,22 +568,10 @@ func TestTransportHeadChunkedResponse(t *testing.T) {
 	didRead := make(chan bool, 2)
 
 	// @comment : new way of waiting for server events
-	ch := TestEventsEmitter.On(ReadLoopBeforeNextReadEvent)
-	var wg sync.WaitGroup
-	go func() {
-		for i := 0; i < 2; i++ {
-			wg.Add(1) // we're waiting two of this events (didRead is read twice)
-			go func() {
-				defer wg.Done()
-				func() {
-					if <-ch == ReadLoopBeforeNextReadEvent {
-						didRead <- true
-					}
-				}()
-			}()
-		}
-		wg.Wait()
-	}()
+	handler := ListenTestEvent(ReadLoopBeforeNextReadEvent, func() {
+		didRead <- true
+	})
+	defer handler.Kill()
 
 	res1, err := c.Head(ts.URL)
 	<-didRead
@@ -1306,36 +1294,14 @@ func TestTransportConcurrency(t *testing.T) {
 	wg.Add(numReqs)
 
 	// @comment : new way of waiting for server events
-	go func() {
-		ch := TestEventsEmitter.Once(PrePendingDialEvent)
-		var iwg sync.WaitGroup
-		iwg.Add(1)
-
-		go func() {
-			defer iwg.Done()
-			func() {
-				if <-ch == PrePendingDialEvent {
-					wg.Add(1)
-				}
-			}()
-		}()
-		iwg.Wait()
-	}()
-	// @comment : new way of waiting for server events
-	go func() {
-		ch := TestEventsEmitter.Once(PostPendingDialEvent)
-		var iwg sync.WaitGroup
-		iwg.Add(1)
-		go func() {
-			defer iwg.Done()
-			func() {
-				if <-ch == PostPendingDialEvent {
-					wg.Done()
-				}
-			}()
-		}()
-		iwg.Wait()
-	}()
+	eventHandler := ListenTestEvent(PrePendingDialEvent, func() {
+		wg.Add(1)
+	})
+	eventHandler.Kill()
+	eventHandler2 := ListenTestEvent(PrePendingDialEvent, func() {
+		wg.Done()
+	})
+	eventHandler2.Kill()
 
 	c := ts.Client()
 	reqs := make(chan string)
@@ -1933,23 +1899,12 @@ func TestIdleConnChannelLeak(t *testing.T) {
 
 	const nReqs = 5
 	didRead := make(chan bool, nReqs)
+
 	// @comment : new way of waiting for server events
-	ch := TestEventsEmitter.On(ReadLoopBeforeNextReadEvent)
-	var wg sync.WaitGroup
-	go func() {
-		for i := 0; i < nReqs*2; i++ { // we have twice as many as nReq becasue disable keep
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				func() {
-					if <-ch == ReadLoopBeforeNextReadEvent {
-						didRead <- true
-					}
-				}()
-			}()
-		}
-		wg.Wait()
-	}()
+	eventHandler := ListenTestEvent(ReadLoopBeforeNextReadEvent, func() {
+		didRead <- true
+	})
+	defer eventHandler.Kill()
 
 	c := ts.Client()
 	tr := c.Transport.(*Transport)
@@ -2313,13 +2268,12 @@ func TestRetryRequestsOnError(t *testing.T) {
 			reqString: `POST / HTTP/1.1\r\nHost: fake.golang\r\nUser-Agent: Go-http-client/1.1\r\nContent-Length: 4\r\nAccept-Encoding: gzip\r\n\r\nfoo\n`,
 		},
 	}
-
-	//@comment : new way of waiting for server events
-	ch := TestEventsEmitter.On(RoundTripRetriedEvent)
-	var wg sync.WaitGroup
-	defer func() {
-		wg.Wait()
-	}()
+	var logf func(format string, args ...interface{})
+	// @comment : new way of waiting for server events
+	eventHandler := ListenTestEvent(RoundTripRetriedEvent, func() {
+		logf("Retried.")
+	})
+	defer eventHandler.Kill()
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
@@ -2330,20 +2284,12 @@ func TestRetryRequestsOnError(t *testing.T) {
 				logbuf bytes.Buffer
 			)
 
-			logf := func(format string, args ...interface{}) {
+			logf = func(format string, args ...interface{}) {
 				mu.Lock()
 				defer mu.Unlock()
 				fmt.Fprintf(&logbuf, format, args...)
 				logbuf.WriteByte('\n')
 			}
-
-			wg.Add(1)
-			go func() {
-				defer wg.Done()
-				if <-ch == RoundTripRetriedEvent {
-					logf("Retried.")
-				}
-			}()
 
 			ts := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 				logf("Handler")

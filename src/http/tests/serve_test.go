@@ -817,22 +817,12 @@ func TestServeTLS(t *testing.T) {
 	setParallel(t)
 	defer afterTest(t)
 	serving := make(chan bool, 1)
-	// @comment : new way of waiting for server events
-	go func() {
-		ch := TestEventsEmitter.Once(ServerServe)
-		var wg sync.WaitGroup
-		wg.Add(1)
 
-		go func() {
-			defer wg.Done()
-			func() {
-				if <-ch == ServerServe {
-					serving <- true
-				}
-			}()
-		}()
-		wg.Wait()
-	}()
+	// @comment : new way of waiting for server events
+	eventHandler := ListenTestEvent(ServerServe, func() {
+		serving <- true
+	})
+	defer eventHandler.Kill()
 
 	cert, err := tls.X509KeyPair(th.LocalhostCert, th.LocalhostKey)
 	if err != nil {

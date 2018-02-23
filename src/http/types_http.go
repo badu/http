@@ -82,21 +82,29 @@ type (
 		Push(target string, opts *PushOptions) error
 	}
 	/**
-	ServerEventEmitter : added to get rid of the dependencies on fakeLocker and all the test hooks
+	srvEvDispatcher : added to get rid of the dependencies on fakeLocker and all the test hooks
 	*/
-	ServerEventType    int
-	ServerEventEmitter struct {
-		lsns map[ServerEventType][]EventListner
+	ServerEventType int
+	srvEvDispatcher struct {
+		lsns map[ServerEventType][]srvEvListner
 		mu   sync.RWMutex
 	}
 
-	EventListner struct {
-		ch   chan ServerEventType
-		once bool
+	srvEvListner struct {
+		ch chan ServerEventType
+	}
+
+	ServerEventHandler struct {
+		sync.WaitGroup
+		ch          chan ServerEventType // channel for receiving events
+		handler     func()               // function which gets called if event is met
+		eventType   ServerEventType      // which kind of event we're listening to
+		willRemount bool                 // internal, so we can continuosly listen
 	}
 )
 
 const (
+	killListeners               ServerEventType = 0
 	ServerServe                 ServerEventType = 1
 	EnterRoundTripEvent         ServerEventType = 2
 	RoundTripRetriedEvent       ServerEventType = 3
@@ -107,5 +115,5 @@ const (
 )
 
 var (
-	TestEventsEmitter = &ServerEventEmitter{lsns: map[ServerEventType][]EventListner{}}
+	testEventsEmitter = &srvEvDispatcher{lsns: map[ServerEventType][]srvEvListner{}}
 )
