@@ -17,6 +17,7 @@ import (
 
 	. "http"
 	"http/cli"
+	. "http/tport"
 )
 
 // Start starts a server from NewUnstartedServer.

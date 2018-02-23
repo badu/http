@@ -15,6 +15,7 @@ import (
 	"time"
 
 	. "http"
+	. "http/tport"
 )
 
 // This is an API usage error - the local side is closed.

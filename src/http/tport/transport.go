@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
  */
 
-package http
+package tport
 
 import (
 	"bufio"
@@ -20,6 +20,8 @@ import (
 
 	"http/trc"
 
+	. "http"
+
 	"golang.org/x/net/lex/httplex"
 	"golang.org/x/net/proxy"
 )
@@ -33,11 +35,11 @@ func (t *Transport) RoundTrip(req *Request) (*Response, error) {
 	trace := trc.ContextClientTrace(ctx)
 
 	if req.URL == nil {
-		req.closeBody()
+		req.CloseBody()
 		return nil, errors.New("http: nil Request.URL")
 	}
 	if req.Header == nil {
-		req.closeBody()
+		req.CloseBody()
 		return nil, errors.New("http: nil Request.Header")
 	}
 	scheme := req.URL.Scheme
@@ -62,14 +64,14 @@ func (t *Transport) RoundTrip(req *Request) (*Response, error) {
 		}
 	}
 	if !isHTTP {
-		req.closeBody()
-		return nil, &badStringError{"unsupported protocol scheme", scheme}
+		req.CloseBody()
+		return nil, fmt.Errorf("unsupported protocol scheme : %v", scheme)
 	}
-	if req.Method != "" && !validMethod(req.Method) {
+	if req.Method != "" && !ValidMethod(req.Method) {
 		return nil, fmt.Errorf("net/http: invalid method %q", req.Method)
 	}
 	if req.URL.Host == "" {
-		req.closeBody()
+		req.CloseBody()
 		return nil, errors.New("http: no Host in request URL")
 	}
 
@@ -78,7 +80,7 @@ func (t *Transport) RoundTrip(req *Request) (*Response, error) {
 		treq := &transportRequest{Request: req, trace: trace}
 		cm, err := t.connectMethodForRequest(treq)
 		if err != nil {
-			req.closeBody()
+			req.CloseBody()
 			return nil, err
 		}
 
@@ -89,7 +91,7 @@ func (t *Transport) RoundTrip(req *Request) (*Response, error) {
 		pconn, err := t.getConn(treq, cm)
 		if err != nil {
 			t.setReqCanceler(req, nil)
-			req.closeBody()
+			req.CloseBody()
 			return nil, err
 		}
 
@@ -115,7 +117,7 @@ func (t *Transport) RoundTrip(req *Request) (*Response, error) {
 			return nil, err
 		}
 
-		testEventsEmitter.dispatch(RoundTripRetriedEvent)
+		TestEventsEmitter.Dispatch(RoundTripRetriedEvent)
 
 		// Rewind the body if we're able to.  (HTTP/2 does this itself so we only
 		// need to do it for HTTP/1.1 connections.)
@@ -452,12 +454,12 @@ func (t *Transport) getConn(treq *transportRequest, cm connectMethod) (*persistC
 	dialc := make(chan dialRes)
 
 	handlePendingDial := func() {
-		testEventsEmitter.dispatch(PrePendingDialEvent)
+		TestEventsEmitter.Dispatch(PrePendingDialEvent)
 		go func() {
 			if v := <-dialc; v.err == nil {
 				t.putOrCloseIdleConn(v.pc)
 			}
-			testEventsEmitter.dispatch(PostPendingDialEvent)
+			TestEventsEmitter.Dispatch(PostPendingDialEvent)
 		}()
 	}
 

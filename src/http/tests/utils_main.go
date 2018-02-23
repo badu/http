@@ -20,6 +20,7 @@ import (
 
 	. "http"
 	"http/cli"
+	. "http/tport"
 )
 
 func (c *rwTestConn) Close() error {
@@ -89,7 +90,7 @@ func (tt runWrapper) normalizeRes(t *testing.T, res *Response) {
 	}
 	slurp, err := ioutil.ReadAll(res.Body)
 
-	res.Body.Close()
+	res.CloseBody()
 	res.Body = slurpResult{
 		ReadCloser: ioutil.NopCloser(bytes.NewReader(slurp)),
 		body:       slurp,

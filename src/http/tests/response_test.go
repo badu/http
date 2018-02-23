@@ -704,7 +704,7 @@ func TestReadResponseCloseInMiddle(t *testing.T) {
 		if test.compressed == false && !bytes.Equal(bytes.Repeat([]byte{'x'}, 2500), rbuf) {
 			fatalf("ReadFull didn't read 2500 'x'; got %q", string(rbuf))
 		}
-		resp.Body.Close()
+		resp.CloseBody()
 
 		rest, err := ioutil.ReadAll(bufr)
 		checkErr(err, "ReadAll on remainder")

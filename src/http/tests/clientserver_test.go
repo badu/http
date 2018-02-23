@@ -26,6 +26,7 @@ import (
 	. "http"
 	"http/cli"
 	"http/th"
+	. "http/tport"
 	"http/util"
 )
 
@@ -68,7 +69,7 @@ func TestChunkedResponseHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get error: %v", err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 	if g, e := res.ContentLength, int64(-1); g != e {
 		t.Errorf("expected ContentLength of %d; got %d", e, g)
 	}
@@ -451,7 +452,7 @@ func TestResponseBodyReadAfterClose(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 	data, err := ioutil.ReadAll(res.Body)
 	if len(data) != 0 || err == nil {
 		t.Fatalf("ReadAll returned %q, %v; want error", data, err)
@@ -499,7 +500,7 @@ func TestConcurrentReadWriteReqBody(t *testing.T) {
 		t.Fatal(err)
 	}
 	data, err := ioutil.ReadAll(res.Body)
-	defer res.Body.Close()
+	defer res.CloseBody()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -550,7 +551,7 @@ func TestConnectRequest(t *testing.T) {
 			t.Errorf("%d. RoundTrip = %v", i, err)
 			continue
 		}
-		res.Body.Close()
+		res.CloseBody()
 		req := <-gotc
 		if req.Method != CONNECT {
 			t.Errorf("method = %q; want CONNECT", req.Method)
@@ -609,7 +610,7 @@ func TestTransportUserAgent(t *testing.T) {
 			continue
 		}
 		slurp, err := ioutil.ReadAll(res.Body)
-		res.Body.Close()
+		res.CloseBody()
 		if err != nil {
 			t.Errorf("%d. read body = %v", i, err)
 			continue
@@ -650,7 +651,7 @@ func testStarRequest(t *testing.T, method string) {
 	if err != nil {
 		t.Fatalf("RoundTrip = %v", err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 
 	wantFoo := "bar"
 	wantLen := int64(-1)
@@ -770,7 +771,7 @@ func TestTransportRejectsInvalidHeaders(t *testing.T) {
 		var body []byte
 		if err == nil {
 			body, _ = ioutil.ReadAll(res.Body)
-			res.Body.Close()
+			res.CloseBody()
 		}
 		var dialed bool
 		select {
@@ -842,7 +843,7 @@ func testInterruptWithPanic(t *testing.T, panicValue interface{}) {
 		t.Fatal(err)
 	}
 	gotHeaders <- true
-	defer res.Body.Close()
+	defer res.CloseBody()
 	slurp, err := ioutil.ReadAll(res.Body)
 	if string(slurp) != msg {
 		t.Errorf("client read %q; want %q", slurp, msg)
@@ -919,7 +920,7 @@ func TestCloseIdleConnections(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		res.Body.Close()
+		res.CloseBody()
 		v := res.Header.Get("X-Addr")
 		if v == "" {
 			t.Fatal("didn't get X-Addr")
@@ -954,7 +955,7 @@ func TestNoSniffExpectRequestBody(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 	if res.StatusCode != StatusUnauthorized {
 		t.Errorf("status code = %v; want %v", res.StatusCode, StatusUnauthorized)
 	}
@@ -977,7 +978,7 @@ func TestServerUndeclaredTrailers(t *testing.T) {
 	if _, err := io.Copy(ioutil.Discard, res.Body); err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 	delete(res.Header, Date)
 	delete(res.Header, ContentType)
 
@@ -1008,7 +1009,7 @@ func TestBadResponseAfterReadingBody(t *testing.T) {
 	closes := 0
 	res, err := cst.c.Post(cst.ts.URL, "text/plain", countCloseReader{&closes, strings.NewReader("hello")})
 	if err == nil {
-		res.Body.Close()
+		res.CloseBody()
 		t.Fatal("expected an error to be returned from Post")
 	}
 	if closes != 1 {

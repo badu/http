@@ -65,14 +65,14 @@ func hasToken(v, token string) bool {
 }
 
 // Return value if nonempty, def otherwise.
-func valueOrDefault(value, def string) string {
+func ValueOrDefault(value, def string) string {
 	if value != "" {
 		return value
 	}
 	return def
 }
 
-func idnaASCII(v string) (string, error) {
+func IdnaASCII(v string) (string, error) {
 	// TODO: Consider removing this check after verifying performance is okay.
 	// Right now punycode verification, length checks, context checks, and the
 	// permissible character tests are all omitted. It also prevents the ToASCII
@@ -107,13 +107,13 @@ func cleanHost(in string) string {
 	}
 	host, port, err := net.SplitHostPort(in)
 	if err != nil { // input was just a host
-		a, err := idnaASCII(in)
+		a, err := IdnaASCII(in)
 		if err != nil {
 			return in // garbage in, garbage out
 		}
 		return a
 	}
-	a, err := idnaASCII(host)
+	a, err := IdnaASCII(host)
 	if err != nil {
 		return in // garbage in, garbage out
 	}
@@ -142,7 +142,7 @@ func removeZone(host string) string {
 	return host[:j] + host[i:]
 }
 
-func validMethod(method string) bool {
+func ValidMethod(method string) bool {
 	/*
 	     Method         = "OPTIONS"                ; Section 9.2
 	                    | "GET"                    ; Section 9.3
@@ -229,7 +229,7 @@ func readRequest(b *bufio.Reader, deleteHostHeader bool) (*Request, error) {
 	if !ok {
 		return nil, &badStringError{"malformed HTTP request", s}
 	}
-	if !validMethod(req.Method) {
+	if !ValidMethod(req.Method) {
 		return nil, &badStringError{"invalid method", req.Method}
 	}
 	rawurl := req.RequestURI

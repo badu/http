@@ -5,7 +5,7 @@
 
 package http
 
-func (r *srvEvDispatcher) dispatch(event ServerEventType) {
+func (r *srvEvDispatcher) Dispatch(event ServerEventType) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 	for i := 0; i < len(r.lsns[event]); i++ {
@@ -51,7 +51,7 @@ func (h ServerEventHandler) Kill() {
 }
 
 func ListenTestEvent(eventType ServerEventType, f func()) ServerEventHandler {
-	wg := ServerEventHandler{ch: testEventsEmitter.on(eventType), handler: f, eventType: eventType, willRemount: true}
+	wg := ServerEventHandler{ch: TestEventsEmitter.on(eventType), handler: f, eventType: eventType, willRemount: true}
 	// first execution
 	go wg.Next()
 	return wg

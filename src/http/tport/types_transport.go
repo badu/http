@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
  */
 
-package http
+package tport
 
 import (
 	"bufio"
@@ -19,6 +19,7 @@ import (
 	"sync/atomic"
 	"time"
 
+	. "http"
 	"http/trc"
 )
 
@@ -429,9 +430,9 @@ type (
 		err     string
 		timeout bool
 	}
-	// tLogKey is a context WithValue key for test debugging contexts containing
+	// TLogKey is a context WithValue key for test debugging contexts containing
 	// a t.Logf func. See export_test.go's Request.WithT method.
-	tLogKey struct{}
+	TLogKey struct{}
 	// bodyEOFSignal is used by the HTTP/1 transport when reading response
 	// bodies to make sure we see the end of a response body before
 	// proceeding and reading on the connection again.

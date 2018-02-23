@@ -12,6 +12,7 @@ import (
 	"time"
 
 	. "http"
+	. "http/tport"
 )
 
 // A Client is an HTTP client. Its zero value (DefaultClient) is a

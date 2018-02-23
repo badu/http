@@ -18,6 +18,7 @@ import (
 
 	. "http"
 	"http/chunks"
+	. "http/tport"
 )
 
 // drainBody reads all of b to memory and then returns two equivalent
@@ -98,7 +99,7 @@ func DumpRequestOut(req *Request, body bool) ([]byte, error) {
 			// Ensure all the body is read; otherwise
 			// we'll get a partial dump.
 			io.Copy(ioutil.Discard, req.Body)
-			req.Body.Close()
+			req.CloseBody()
 		}
 		dr.c <- strings.NewReader("HTTP/1.1 204 No Content\r\nConnection: close\r\n\r\n")
 	}()
@@ -122,14 +123,6 @@ func DumpRequestOut(req *Request, body bool) ([]byte, error) {
 		}
 	}
 	return dump, nil
-}
-
-// Return value if nonempty, def otherwise.
-func valueOrDefault(value, def string) string {
-	if value != "" {
-		return value
-	}
-	return def
 }
 
 // DumpRequest returns the given request in its HTTP/1.x wire
@@ -174,7 +167,7 @@ func DumpRequest(req *Request, body bool) ([]byte, error) {
 		reqURI = req.URL.RequestURI()
 	}
 
-	fmt.Fprintf(&b, "%s %s HTTP/%d.%d\r\n", valueOrDefault(req.Method, GET), reqURI, req.ProtoMajor, req.ProtoMinor)
+	fmt.Fprintf(&b, "%s %s HTTP/%d.%d\r\n", ValueOrDefault(req.Method, GET), reqURI, req.ProtoMajor, req.ProtoMinor)
 
 	absRequestURI := strings.HasPrefix(req.RequestURI, HttpUrlPrefix) || strings.HasPrefix(req.RequestURI, HttpsUrlPrefix)
 	if !absRequestURI {

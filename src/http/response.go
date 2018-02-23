@@ -144,8 +144,10 @@ func (r *Response) Write(w io.Writer) error {
 	return nil
 }
 
-func (r *Response) closeBody() {
+// @comment : decided to go public with this function - called everywhere
+func (r *Response) CloseBody() {
 	if r.Body != nil {
+		//TODO : @badu - closer returns an error : why we don't handle it?
 		r.Body.Close()
 	}
 }

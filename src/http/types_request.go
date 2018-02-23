@@ -63,9 +63,9 @@ var (
 		File:  make(map[string][]*multipart.FileHeader),
 	}
 
-	// errMissingHost is returned by Write when there is no Host or URL present in
+	// ErrMissingHost is returned by Write when there is no Host or URL present in
 	// the Request.
-	errMissingHost = errors.New("http: Request.Write on Request with no Host or URL set")
+	ErrMissingHost = errors.New("http: Request.Write on Request with no Host or URL set")
 
 	textprotoReaderPool sync.Pool
 )
@@ -278,10 +278,12 @@ type (
 		// and mutating the contexts held by callers of the same request.
 		ctx context.Context
 	}
-	// requestBodyReadError wraps an error from (*Request).write to indicate
+	// RequestBodyReadError wraps an error from (*Request).write to indicate
 	// that the error came from a Read call on the Request.Body.
 	// This error type should not escape the net/http package to users.
-	requestBodyReadError struct{ error }
+	RequestBodyReadError struct {
+		error
+	}
 
 	maxBytesReader struct {
 		w   ResponseWriter

@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
  */
 
-package http
+package tport
 
 import (
 	"fmt"
@@ -12,6 +12,7 @@ import (
 	"strings"
 	"time"
 
+	. "http"
 	"http/trc"
 )
 
@@ -19,7 +20,7 @@ import (
 // HTTP request on a new connection. The non-nil input error is the
 // error from roundTrip.
 func (p *persistConn) shouldRetryRequest(req *Request, err error) bool {
-	if err == errMissingHost {
+	if err == ErrMissingHost {
 		// User error.
 		return false
 	}
@@ -36,9 +37,9 @@ func (p *persistConn) shouldRetryRequest(req *Request, err error) bool {
 	if _, ok := err.(nothingWrittenError); ok {
 		// We never wrote anything, so it's safe to retry, if there's no body or we
 		// can "rewind" the body with GetBody.
-		return req.outgoingLength() == 0 || req.GetBody != nil
+		return req.OutgoingLength() == 0 || req.GetBody != nil
 	}
-	if !req.isReplayable() {
+	if !isReplayable(req) {
 		// Don't retry non-idempotent requests.
 		return false
 	}
@@ -247,7 +248,7 @@ func (p *persistConn) readLoop() {
 			}
 			return
 		}
-		p.readLimit = maxInt64 // effictively no limit for response bodies
+		p.readLimit = MaxInt64 // effictively no limit for response bodies
 
 		p.mu.Lock()
 		p.numExpectedResponses--
@@ -285,7 +286,7 @@ func (p *persistConn) readLoop() {
 			// Now that they've read from the unbuffered channel, they're safely
 			// out of the select that also waits on this goroutine to die, so
 			// we're allowed to exit now if needed (if alive is false)
-			testEventsEmitter.dispatch(ReadLoopBeforeNextReadEvent)
+			TestEventsEmitter.Dispatch(ReadLoopBeforeNextReadEvent)
 			continue
 		}
 
@@ -346,7 +347,7 @@ func (p *persistConn) readLoop() {
 			alive = false
 		}
 
-		testEventsEmitter.dispatch(ReadLoopBeforeNextReadEvent)
+		TestEventsEmitter.Dispatch(ReadLoopBeforeNextReadEvent)
 	}
 }
 
@@ -428,9 +429,9 @@ func (p *persistConn) writeLoop() {
 		select {
 		case wr := <-p.writech:
 			startBytesWritten := p.nwrite
-			err := wr.req.Request.write(p.bw, p.isProxy, wr.req.extra, p.waitForContinue(wr.continueCh))
-			if bre, ok := err.(requestBodyReadError); ok {
-				err = bre.error
+			err := wr.req.Request.IWrite(p.bw, p.isProxy, wr.req.extra, p.waitForContinue(wr.continueCh))
+			if _, ok := err.(RequestBodyReadError); ok {
+				//err = bre.error
 				// Errors reading from the user's
 				// Request.Body are high priority.
 				// Set it here before sending on the
@@ -444,7 +445,7 @@ func (p *persistConn) writeLoop() {
 				err = p.bw.Flush()
 			}
 			if err != nil {
-				wr.req.Request.closeBody()
+				wr.req.Request.CloseBody()
 				if p.nwrite == startBytesWritten {
 					err = nothingWrittenError{err}
 				}
@@ -492,7 +493,7 @@ func (p *persistConn) wroteRequest() bool {
 func (p *persistConn) roundTrip(req *transportRequest) (*Response, error) {
 	var err error
 	//@comment : new way of letting tests know
-	testEventsEmitter.dispatch(EnterRoundTripEvent)
+	TestEventsEmitter.Dispatch(EnterRoundTripEvent)
 
 	if !p.transport.replaceReqCanceler(req.Request, p.cancelRequest) {
 		p.transport.putOrCloseIdleConn(p)
@@ -533,7 +534,7 @@ func (p *persistConn) roundTrip(req *transportRequest) (*Response, error) {
 	}
 
 	var continueCh chan struct{}
-	if req.ProtoAtLeast(1, 1) && req.Body != nil && req.expectsContinue() {
+	if req.ProtoAtLeast(1, 1) && req.Body != nil && req.ExpectsContinue() {
 		continueCh = make(chan struct{}, 1)
 	}
 
@@ -572,7 +573,7 @@ func (p *persistConn) roundTrip(req *transportRequest) (*Response, error) {
 
 	ctxDoneChan := req.Context().Done()
 	for {
-		testEventsEmitter.dispatch(WaitResLoopEvent)
+		TestEventsEmitter.Dispatch(WaitResLoopEvent)
 		select {
 		case err := <-writeErrCh:
 			if debugRoundTrip {

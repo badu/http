@@ -39,6 +39,7 @@ import (
 	"http/filetransport"
 	"http/mux"
 	"http/th"
+	. "http/tport"
 )
 
 func TestConsumingBodyOnNextConn(t *testing.T) {
@@ -253,7 +254,7 @@ func testServerTimeouts(timeout time.Duration) error {
 		return fmt.Errorf("http Get #2: %v", err)
 	}
 	got, err = ioutil.ReadAll(r.Body)
-	r.Body.Close()
+	r.CloseBody()
 	expected = "req=2"
 	if string(got) != expected || err != nil {
 		return fmt.Errorf("Get #2 got %q, %v, want %q, nil", string(got), err, expected)
@@ -319,7 +320,7 @@ func TestOnlyWriteTimeout(t *testing.T) {
 			return
 		}
 		_, err = io.Copy(ioutil.Discard, res.Body)
-		res.Body.Close()
+		res.CloseBody()
 		errc <- err
 	}()
 	select {
@@ -381,7 +382,7 @@ func TestIdentityResponse(t *testing.T) {
 			t.Errorf("for %s expected len(res.TransferEncoding) of %d; got %d (%v)",
 				testUrl, expected, tl, res.TransferEncoding)
 		}
-		res.Body.Close()
+		res.CloseBody()
 	}
 
 	// Verify that ErrContentLength is returned
@@ -390,7 +391,7 @@ func TestIdentityResponse(t *testing.T) {
 	if err != nil {
 		t.Fatalf("error with Get of %s: %v", testUrl, err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 
 	// Verify that the connection is closed when the declared Content-Length
 	// is larger than what the handler wrote.
@@ -481,7 +482,7 @@ func testTCPConnectionStaysOpen(t *testing.T, req string, handler Handler) {
 		if _, err := io.Copy(ioutil.Discard, res.Body); err != nil {
 			t.Fatalf("res %d body copy: %v", i+1, err)
 		}
-		res.Body.Close()
+		res.CloseBody()
 	}
 }
 
@@ -556,7 +557,7 @@ func TestKeepAliveFinalChunkWithEOF(t *testing.T) {
 		if addrs[i].Addr == "" {
 			t.Fatal("no address")
 		}
-		res.Body.Close()
+		res.CloseBody()
 	}
 	if addrs[0] != addrs[1] {
 		t.Fatalf("connection not reused")
@@ -611,7 +612,7 @@ func TestServerAllowsBlockingRemoteAddr(t *testing.T) {
 			response <- ""
 			return
 		}
-		defer resp.Body.Close()
+		defer resp.CloseBody()
 		body, err := ioutil.ReadAll(resp.Body)
 		if err != nil {
 			t.Errorf("Request %d: %v", num, err)
@@ -678,7 +679,7 @@ func TestIdentityResponseHeaders(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get error: %v", err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 
 	if g, e := res.TransferEncoding, []string(nil); !reflect.DeepEqual(g, e) {
 		t.Errorf("expected TransferEncoding of %v; got %v", e, g)
@@ -801,7 +802,7 @@ func TestTLSServer(t *testing.T) {
 			t.Errorf("got nil Response")
 			return
 		}
-		defer res.Body.Close()
+		defer res.CloseBody()
 		if res.Header.Get("X-TLS-Set") != "true" {
 			t.Errorf("expected X-TLS-Set response header")
 			return
@@ -1092,7 +1093,7 @@ func testHandlerBodyClose(t *testing.T, i int, tt handlerBodyCloseTest) {
 		numReqs++
 		if numReqs == 1 {
 			size0 = readBufLen()
-			req.Body.Close()
+			req.CloseBody()
 			size1 = readBufLen()
 		}
 	}))
@@ -1307,7 +1308,7 @@ func TestTimeoutHandlerRace(t *testing.T) {
 			res, err := c.Get(fmt.Sprintf("%s/%d", ts.URL, rand.Intn(50)))
 			if err == nil {
 				io.Copy(ioutil.Discard, res.Body)
-				res.Body.Close()
+				res.CloseBody()
 			}
 		}()
 	}
@@ -1345,7 +1346,7 @@ func TestTimeoutHandlerRaceHeader(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			defer res.Body.Close()
+			defer res.CloseBody()
 			io.Copy(ioutil.Discard, res.Body)
 		}()
 	}
@@ -1430,7 +1431,7 @@ func TestTimeoutHandlerStartTimerWhenServing(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 	if res.StatusCode != StatusNoContent {
 		t.Errorf("got res.StatusCode %d, want %v", res.StatusCode, StatusNoContent)
 	}
@@ -1453,7 +1454,7 @@ func TestTimeoutHandlerEmptyResponse(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 	if res.StatusCode != StatusOK {
 		t.Errorf("got res.StatusCode %d, want %v", res.StatusCode, StatusOK)
 	}
@@ -1670,7 +1671,7 @@ func TestServerWriteHijackZeroBytes(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 	select {
 	case <-done:
 	case <-time.After(5 * time.Second):
@@ -1694,7 +1695,7 @@ func testServerNoHeader(t *testing.T, header string) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 	if got, ok := res.Header[header]; ok {
 		t.Fatalf("Expected no %s header; got %q", header, got)
 	}
@@ -1718,7 +1719,7 @@ func TestStripPrefix(t *testing.T) {
 	if g, e := res.Header.Get("X-Path"), "/bar"; g != e {
 		t.Errorf("test 1: got %s, want %s", g, e)
 	}
-	res.Body.Close()
+	res.CloseBody()
 
 	res, err = cli.Get(ts.URL + "/bar")
 	if err != nil {
@@ -1727,7 +1728,7 @@ func TestStripPrefix(t *testing.T) {
 	if g, e := res.StatusCode, 404; g != e {
 		t.Errorf("test 2: got status %v, want %v", g, e)
 	}
-	res.Body.Close()
+	res.CloseBody()
 }
 
 // https://golang.org/issue/18952.
@@ -1759,7 +1760,7 @@ func TestRequestLimit(t *testing.T) {
 		// we do support it (at least currently), so we expect a response below.
 		t.Fatalf("Do: %v", err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 	if res.StatusCode != 431 {
 		t.Fatalf("expected 431 response status; got: %d %s", res.StatusCode, res.Status)
 	}
@@ -1921,7 +1922,7 @@ func TestCaseSensitiveMethod(t *testing.T) {
 		return
 	}
 
-	res.Body.Close()
+	res.CloseBody()
 }
 
 // TestContentLengthZero tests that for both an HTTP/1.0 and HTTP/1.1
@@ -2225,7 +2226,7 @@ func TestOptions(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 	if got := <-uric; got != "/second" {
 		t.Errorf("Handler saw request for %q; want /second", got)
 	}
@@ -2535,7 +2536,7 @@ func TestHTTP10ConnectionHeader(t *testing.T) {
 			t.Fatal("ReadResponse err:", err)
 		}
 		conn.Close()
-		resp.Body.Close()
+		resp.CloseBody()
 
 		got := resp.Header[Connection]
 		if !reflect.DeepEqual(got, tt.expect) {
@@ -2584,7 +2585,7 @@ func TestServerReaderFromOrder(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 	if string(all) != "hi" {
 		t.Errorf("Body = %q; want hi", all)
 	}
@@ -2737,10 +2738,10 @@ func TestTransportAndServerSharedBodyRace(t *testing.T) {
 	}
 
 	// Cleanup, so we don't leak goroutines.
-	res.Body.Close()
+	res.CloseBody()
 	select {
 	case res := <-backendRespc:
-		res.Body.Close()
+		res.CloseBody()
 	default:
 		// We failed earlier. (e.g. on proxy.c.Do(req2))
 	}
@@ -2897,7 +2898,7 @@ func TestServerConnState(t *testing.T) {
 			return
 		}
 		_, err = ioutil.ReadAll(res.Body)
-		defer res.Body.Close()
+		defer res.CloseBody()
 		if err != nil {
 			t.Errorf("Error reading %s: %v", url, err)
 		}
@@ -3004,7 +3005,7 @@ func TestServerKeepAlivesEnabled2(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 	if !res.Close {
 		t.Errorf("Body.Close == false; want true")
 	}
@@ -3030,7 +3031,7 @@ func TestServerEmptyBodyRace(t *testing.T) {
 				t.Error(err)
 				return
 			}
-			defer res.Body.Close()
+			defer res.CloseBody()
 			_, err = io.Copy(ioutil.Discard, res.Body)
 			if err != nil {
 				t.Error(err)
@@ -3102,7 +3103,7 @@ func TestServerFlushAndHijack(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 	all, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -3140,7 +3141,7 @@ func TestServerKeepAliveAfterWriteError(t *testing.T) {
 		for i := 0; i < numReq; i++ {
 			res, err := cli.Get(ts.URL)
 			if res != nil {
-				res.Body.Close()
+				res.CloseBody()
 			}
 			errc <- err
 		}
@@ -3341,7 +3342,7 @@ func TestHandlerSetsBodyNil(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer res.Body.Close()
+		defer res.CloseBody()
 		slurp, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			t.Fatal(err)
@@ -3485,7 +3486,7 @@ func TestServerRequestContextCancel_ServeHTTPDone(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 	ctx := <-ctxc
 	select {
 	case <-ctx.Done():
@@ -3548,7 +3549,7 @@ func TestServerContext_ServerContextKey(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 }
 
 func TestServerContext_LocalAddrContextKey(t *testing.T) {
@@ -3643,7 +3644,7 @@ func TestServerIdleTimeout(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		defer res.Body.Close()
+		defer res.CloseBody()
 		slurp, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			t.Fatal(err)
@@ -3753,7 +3754,7 @@ func TestServerShutdown(t *testing.T) {
 
 	res, err := cst.c.Get(cst.ts.URL)
 	if err == nil {
-		res.Body.Close()
+		res.CloseBody()
 		t.Fatal("second request should fail. server should be shut down")
 	}
 }
@@ -3814,7 +3815,7 @@ func TestServerCancelsReadTimeoutWhenIdle(t *testing.T) {
 		t.Fatal(err)
 	}
 	slurp, err := ioutil.ReadAll(res.Body)
-	res.Body.Close()
+	res.CloseBody()
 	if err != nil {
 		t.Fatal(err)
 	}

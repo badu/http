@@ -6,10 +6,12 @@
 package tests
 
 import (
-	. "http"
 	"net/url"
 	"os"
 	"testing"
+
+	. "http"
+	. "http/tport"
 )
 
 func TestUseProxy(t *testing.T) {

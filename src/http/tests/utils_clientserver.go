@@ -18,6 +18,7 @@ import (
 	. "http"
 	"http/cli"
 	"http/th"
+	. "http/tport"
 )
 
 func (b issue18239Body) Read([]byte) (int, error) {
@@ -100,7 +101,7 @@ func (t *clientServerTest) getURL(u string) string {
 	if err != nil {
 		t.t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 	slurp, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.t.Fatal(err)

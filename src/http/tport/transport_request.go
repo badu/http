@@ -3,9 +3,12 @@
  * Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
  */
 
-package http
+package tport
 
-import "time"
+import (
+	. "http"
+	"time"
+)
 
 func (t *transportRequest) extraHeaders() Header {
 	if t.extra == nil {
@@ -23,7 +26,7 @@ func (t *transportRequest) setError(err error) {
 }
 
 func (t *transportRequest) logf(format string, args ...interface{}) {
-	if logf, ok := t.Request.Context().Value(tLogKey{}).(func(string, ...interface{})); ok {
+	if logf, ok := t.Request.Context().Value(TLogKey{}).(func(string, ...interface{})); ok {
 		logf(time.Now().Format(time.RFC3339Nano)+": "+format, args...)
 	}
 }

@@ -294,7 +294,7 @@ func (c *conn) serve(ctx context.Context) {
 
 		// Expect 100 Continue support
 		req := resp.req
-		if req.expectsContinue() {
+		if req.ExpectsContinue() {
 			if req.ProtoAtLeast(1, 1) && req.ContentLength != 0 {
 				// Wrap the Body reader with one that replies on the connection
 				req.Body = &expectContinueReader{readCloser: req.Body, resp: resp}

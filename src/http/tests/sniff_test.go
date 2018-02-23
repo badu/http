@@ -99,7 +99,7 @@ func TestServerContentType(t *testing.T) {
 		} else if !bytes.Equal(data, tt.data) {
 			t.Errorf("%v: data is %q, want %q", tt.desc, data, tt.data)
 		}
-		resp.Body.Close()
+		resp.CloseBody()
 	}
 }
 
@@ -121,7 +121,7 @@ func TestServerIssue5953(t *testing.T) {
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Content-Type = %q; want %q", got, want)
 	}
-	resp.Body.Close()
+	resp.CloseBody()
 }
 
 func TestContentTypeWithCopy(t *testing.T) {
@@ -155,7 +155,7 @@ func TestContentTypeWithCopy(t *testing.T) {
 	} else if !bytes.Equal(data, []byte(input)) {
 		t.Errorf("data is %q, want %q", data, input)
 	}
-	resp.Body.Close()
+	resp.CloseBody()
 }
 
 func TestSniffWriteSize(t *testing.T) {

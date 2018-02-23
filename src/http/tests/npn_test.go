@@ -19,6 +19,7 @@ import (
 	. "http"
 	"http/cli"
 	"http/th"
+	. "http/tport"
 )
 
 type http09Writer struct {
@@ -105,7 +106,7 @@ func TestNextProtoUpgrade(t *testing.T) {
 		}
 		res, err := c.Get(ts.URL)
 		if err == nil {
-			defer res.Body.Close()
+			defer res.CloseBody()
 			var buf bytes.Buffer
 			res.Write(&buf)
 			t.Errorf("expected error on unhandled-proto request; got: %s", buf.Bytes())

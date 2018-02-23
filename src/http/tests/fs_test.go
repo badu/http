@@ -31,6 +31,7 @@ import (
 	"http/filetransport"
 	"http/mux"
 	"http/th"
+	. "http/tport"
 )
 
 func TestServeFile(t *testing.T) {
@@ -222,7 +223,7 @@ func TestFSRedirect(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		res.Body.Close()
+		res.CloseBody()
 		if g, e := res.Request.URL.Path, data.redirect; g != e {
 			t.Errorf("redirect from %s: got %s, want %s", data.original, g, e)
 		}
@@ -299,7 +300,7 @@ func TestFileServerEscapesNames(t *testing.T) {
 		if trimmed := strings.TrimSuffix(strings.TrimPrefix(s, dirListPrefix), dirListSuffix); trimmed != test.escaped {
 			t.Errorf("test %q: listing dir, filename escaped to %q, want %q", test.name, trimmed, test.escaped)
 		}
-		res.Body.Close()
+		res.CloseBody()
 	}
 }
 
@@ -334,7 +335,7 @@ func TestFileServerSortsNames(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 
 	b, err := ioutil.ReadAll(res.Body)
 	if err != nil {
@@ -367,7 +368,7 @@ func TestFileServerImplicitLeadingSlash(t *testing.T) {
 		if err != nil {
 			t.Fatalf("ReadAll %s: %v", suffix, err)
 		}
-		res.Body.Close()
+		res.CloseBody()
 		return string(b)
 	}
 	if s := get("/bar/"); !strings.Contains(s, ">foo.txt<") {
@@ -450,7 +451,7 @@ func TestServeFileContentType(t *testing.T) {
 		if h := resp.Header[ContentType]; !reflect.DeepEqual(h, want) {
 			t.Errorf("Content-Type mismatch: got %v, want %v", h, want)
 		}
-		resp.Body.Close()
+		resp.CloseBody()
 	}
 	get("0", []string{"text/plain; charset=utf-8"})
 	get("1", []string{ctype})
@@ -467,7 +468,7 @@ func TestServeFileMimeType(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp.Body.Close()
+	resp.CloseBody()
 	want := "text/css; charset=utf-8"
 	if h := resp.Header.Get(ContentType); h != want {
 		t.Errorf("Content-Type mismatch: got %q, want %q", h, want)
@@ -484,7 +485,7 @@ func TestServeFileFromCWD(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.Body.Close()
+	r.CloseBody()
 	if r.StatusCode != 200 {
 		t.Fatalf("expected 200 OK, got %s", r.Status)
 	}
@@ -502,7 +503,7 @@ func TestServeDirWithoutTrailingSlash(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	r.Body.Close()
+	r.CloseBody()
 	if g := r.Request.URL.Path; g != e {
 		t.Errorf("got %s, want %s", g, e)
 	}
@@ -528,7 +529,7 @@ func TestServeFileWithContentEncoding(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	resp.Body.Close()
+	resp.CloseBody()
 	if g, e := resp.ContentLength, int64(-1); g != e {
 		t.Errorf("Content-Length mismatch: got %d, want %d", g, e)
 	}
@@ -552,7 +553,7 @@ func TestServeIndexHtml(t *testing.T) {
 		if s := string(b); s != want {
 			t.Errorf("for path %q got %q, want %q", path, s, want)
 		}
-		res.Body.Close()
+		res.CloseBody()
 	}
 }
 
@@ -608,7 +609,7 @@ func TestDirectoryIfNotModified(t *testing.T) {
 	if string(b) != indexContents {
 		t.Fatalf("Got body %q; want %q", b, indexContents)
 	}
-	res.Body.Close()
+	res.CloseBody()
 
 	lastMod := res.Header.Get(LastModified)
 	if lastMod != fileModStr {
@@ -626,7 +627,7 @@ func TestDirectoryIfNotModified(t *testing.T) {
 	if res.StatusCode != 304 {
 		t.Fatalf("Code after If-Modified-Since request = %v; want 304", res.StatusCode)
 	}
-	res.Body.Close()
+	res.CloseBody()
 
 	// Advance the index.html file's modtime, but not the directory's.
 	indexFile.modtime = indexFile.modtime.Add(1 * time.Hour)
@@ -638,7 +639,7 @@ func TestDirectoryIfNotModified(t *testing.T) {
 	if res.StatusCode != 200 {
 		t.Fatalf("Code after second If-Modified-Since request = %v; want 200; res is %#v", res.StatusCode, res)
 	}
-	res.Body.Close()
+	res.CloseBody()
 }
 
 func TestServeContent(t *testing.T) {
@@ -910,7 +911,7 @@ func TestServeContent(t *testing.T) {
 			t.Fatal(err)
 		}
 		io.Copy(ioutil.Discard, res.Body)
-		res.Body.Close()
+		res.CloseBody()
 		if res.StatusCode != tt.wantStatus {
 			t.Errorf("test %q: status = %d; want %d", testName, res.StatusCode, tt.wantStatus)
 		}
@@ -960,7 +961,7 @@ func TestServeContentErrorMessages(t *testing.T) {
 		if res.StatusCode != code {
 			t.Errorf("For /%d, status code = %d; want %d", code, res.StatusCode, code)
 		}
-		res.Body.Close()
+		res.CloseBody()
 	}
 }
 
@@ -1016,7 +1017,7 @@ func TestLinuxSendfile(t *testing.T) {
 	if err != nil {
 		t.Fatalf("client body read error: %v", err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 
 	// Force child to exit cleanly.
 	cli.Post(fmt.Sprintf("http://%s/quit", ln.Addr()), "", nil)
@@ -1063,7 +1064,7 @@ func TestFileServerNotDirError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 	if res.StatusCode != 404 {
 		t.Errorf("StatusCode = %v; want 404", res.StatusCode)
 	}
@@ -1173,7 +1174,7 @@ func TestFileTransport(t *testing.T) {
 			t.Fatalf("for %s, nil Body", urlstr)
 		}
 		slurp, err := ioutil.ReadAll(res.Body)
-		res.Body.Close()
+		res.CloseBody()
 		check("ReadAll "+urlstr, err)
 		if string(slurp) != "Bar" {
 			t.Errorf("for %s, got content %q, want %q", urlstr, string(slurp), "Bar")
@@ -1186,5 +1187,5 @@ func TestFileTransport(t *testing.T) {
 	if res.StatusCode != 404 {
 		t.Errorf("for %s, StatusCode = %d, want 404", badURL, res.StatusCode)
 	}
-	res.Body.Close()
+	res.CloseBody()
 }

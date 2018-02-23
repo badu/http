@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
  */
 
-package http
+package tport
 
 import (
 	"crypto/tls"
@@ -12,6 +12,7 @@ import (
 	"strings"
 
 	"golang.org/x/net/proxy"
+	. "http"
 )
 
 func newOneConnDialer(c net.Conn) proxy.Dialer {
@@ -80,7 +81,7 @@ func useProxy(addr string) bool {
 // canonicalAddr returns url.Host but always with a ":port" suffix
 func canonicalAddr(url *url.URL) string {
 	addr := url.Hostname()
-	if v, err := idnaASCII(addr); err == nil {
+	if v, err := IdnaASCII(addr); err == nil {
 		addr = v
 	}
 	port := url.Port()
@@ -110,4 +111,19 @@ func validPort(p string) bool {
 		}
 	}
 	return true
+}
+
+//@ comment : duplicated from utils_http.go
+// Given a string of the form "host", "host:port", or "[ipv6::address]:port",
+// return true if the string includes a port.
+func hasPort(s string) bool { return strings.LastIndex(s, ":") > strings.LastIndex(s, "]") }
+
+func isReplayable(r *Request) bool {
+	if r.Body == nil || r.Body == NoBody || r.GetBody != nil {
+		switch ValueOrDefault(r.Method, GET) {
+		case GET, HEAD, OPTIONS, TRACE:
+			return true
+		}
+	}
+	return false
 }

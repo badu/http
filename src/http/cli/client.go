@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	. "http"
+	. "http/tport"
 )
 
 func (c *Client) send(req *Request) (resp *Response, err error) {
@@ -124,9 +125,7 @@ func (c *Client) checkRedirect(req *Request, via []*Request) error {
 // standard library body types.
 func (c *Client) Do(req *Request) (*Response, error) {
 	if req.URL == nil {
-		if req.Body != nil {
-			req.Body.Close()
-		}
+		req.CloseBody()
 		return nil, errors.New("http: nil Request.URL")
 	}
 
@@ -143,11 +142,9 @@ func (c *Client) Do(req *Request) (*Response, error) {
 	uerr := func(err error) error {
 		// the body may have been closed already by c.send()
 		if !reqBodyClosed {
-			if req.Body != nil {
-				req.Body.Close()
-			}
+			req.CloseBody()
 		}
-		method := valueOrDefault(reqs[0].Method, GET)
+		method := ValueOrDefault(reqs[0].Method, GET)
 		var urlStr string
 		if resp != nil && resp.Request != nil {
 			urlStr = resp.Request.URL.String()
@@ -173,9 +170,7 @@ func (c *Client) Do(req *Request) (*Response, error) {
 			}
 			u, err := req.URL.Parse(loc)
 			if err != nil {
-				if resp.Body != nil {
-					resp.Body.Close()
-				}
+				resp.CloseBody()
 				return nil, uerr(fmt.Errorf("failed to parse Location header %q: %v", loc, err))
 			}
 			host := ""
@@ -236,7 +231,7 @@ func (c *Client) Do(req *Request) (*Response, error) {
 			if resp.ContentLength == -1 || resp.ContentLength <= maxBodySlurpSize {
 				io.CopyN(ioutil.Discard, resp.Body, maxBodySlurpSize)
 			}
-			resp.Body.Close()
+			resp.CloseBody()
 
 			if err != nil {
 				// Special case for Go 1 compatibility: return both the response
@@ -262,9 +257,7 @@ func (c *Client) Do(req *Request) (*Response, error) {
 		if !shouldRedirect {
 			return resp, nil
 		}
-		if req.Body != nil {
-			req.Body.Close()
-		}
+		req.CloseBody()
 	}
 }
 

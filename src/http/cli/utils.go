@@ -19,15 +19,8 @@ import (
 	"unicode/utf8"
 
 	. "http"
+	. "http/tport"
 )
-
-// Return value if nonempty, def otherwise.
-func valueOrDefault(value, def string) string {
-	if value != "" {
-		return value
-	}
-	return def
-}
 
 // refererForURL returns a referer without any authentication info or
 // an empty string if lastReq scheme is https and newReq scheme is http.
@@ -59,23 +52,17 @@ func send(ireq *Request, rt RoundTripper) (resp *Response, err error) {
 	req := ireq // req is either the original request, or a modified fork
 
 	if rt == nil {
-		if req.Body != nil {
-			req.Body.Close()
-		}
+		req.CloseBody()
 		return nil, errors.New("http: no Client.Transport or DefaultTransport")
 	}
 
 	if req.URL == nil {
-		if req.Body != nil {
-			req.Body.Close()
-		}
+		req.CloseBody()
 		return nil, errors.New("http: nil Request.URL")
 	}
 
 	if req.RequestURI != "" {
-		if req.Body != nil {
-			req.Body.Close()
-		}
+		req.CloseBody()
 		return nil, errors.New("http: Request.RequestURI can't be set in client requests.")
 	}
 

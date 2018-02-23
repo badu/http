@@ -45,14 +45,14 @@ func newTransferWriter(r interface{}) (*transferWriter, error) {
 		if rr.ContentLength != 0 && rr.Body == nil {
 			return nil, fmt.Errorf("http: Request.ContentLength=%d with nil Body", rr.ContentLength)
 		}
-		t.Method = valueOrDefault(rr.Method, GET)
+		t.Method = ValueOrDefault(rr.Method, GET)
 		t.Close = rr.Close
 		t.TransferEncoding = rr.TransferEncoding
 		t.Header = rr.Header
 		t.Trailer = rr.Trailer
 		t.Body = rr.Body
 		t.BodyCloser = rr.Body
-		t.ContentLength = rr.outgoingLength()
+		t.ContentLength = rr.OutgoingLength()
 		if t.ContentLength < 0 && len(t.TransferEncoding) == 0 && t.shouldSendChunkedRequestBody() {
 			t.TransferEncoding = []string{DoChunked}
 		}

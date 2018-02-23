@@ -3,10 +3,10 @@
  * Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
  */
 
-package http
+package tport
 
-func (w persistConnWriter) Write(p []byte) (n int, err error) {
-	n, err = w.pc.conn.Write(p)
-	w.pc.nwrite += int64(n)
-	return
+import "fmt"
+
+func (e transportReadFromServerError) Error() string {
+	return fmt.Sprintf("net/http: Transport failed to read from server: %v", e.err)
 }

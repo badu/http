@@ -98,7 +98,7 @@ func BenchmarkClientServer(b *testing.B) {
 			b.Fatal("Get:", err)
 		}
 		all, err := ioutil.ReadAll(res.Body)
-		res.Body.Close()
+		res.CloseBody()
 		if err != nil {
 			b.Fatal("ReadAll:", err)
 		}
@@ -149,7 +149,7 @@ func benchmarkClientServerParallel(b *testing.B, parallelism int, useTLS bool) {
 				continue
 			}
 			all, err := ioutil.ReadAll(res.Body)
-			res.Body.Close()
+			res.CloseBody()
 			if err != nil {
 				b.Logf("ReadAll: %v", err)
 				continue
@@ -184,7 +184,7 @@ func BenchmarkServer(b *testing.B) {
 				log.Panicf("Get: %v", err)
 			}
 			all, err := ioutil.ReadAll(res.Body)
-			res.Body.Close()
+			res.CloseBody()
 			if err != nil {
 				log.Panicf("ReadAll: %v", err)
 			}
@@ -498,7 +498,7 @@ func BenchmarkClient(b *testing.B) {
 			b.Fatalf("Get: %v", err)
 		}
 		body, err := ioutil.ReadAll(res.Body)
-		res.Body.Close()
+		res.CloseBody()
 		if err != nil {
 			b.Fatalf("ReadAll: %v", err)
 		}

@@ -28,6 +28,7 @@ import (
 	. "http"
 	"http/cli"
 	"http/th"
+	. "http/tport"
 )
 
 func TestClient(t *testing.T) {
@@ -41,7 +42,7 @@ func TestClient(t *testing.T) {
 	var b []byte
 	if err == nil {
 		b, err = pedanticReadAll(r.Body)
-		r.Body.Close()
+		r.CloseBody()
 	}
 	if err != nil {
 		t.Error(err)
@@ -209,7 +210,7 @@ func TestClientRedirects(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get error: %v", err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 	finalUrl := res.Request.URL.String()
 	if e, g := "<nil>", fmt.Sprintf("%v", err); e != g {
 		t.Errorf("with custom client, expected error %q, got %q", e, g)
@@ -243,7 +244,7 @@ func TestClientRedirects(t *testing.T) {
 	if res == nil {
 		t.Fatalf("Expected a non-nil Response on CheckRedirect failure (https://golang.org/issue/3795)")
 	}
-	res.Body.Close()
+	res.CloseBody()
 	if res.Header.Get(Location) == "" {
 		t.Errorf("no Location header in Response")
 	}
@@ -452,7 +453,7 @@ func TestClientRedirectUseResponse(t *testing.T) {
 	if res.StatusCode != StatusFound {
 		t.Errorf("status = %d; want %d", res.StatusCode, StatusFound)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 	slurp, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -477,7 +478,7 @@ func TestClientRedirect308NoLocation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 	if res.StatusCode != 308 {
 		t.Errorf("status = %d; want %d", res.StatusCode, 308)
 	}
@@ -506,7 +507,7 @@ func TestClientRedirect308NoGetBody(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 	if res.StatusCode != 308 {
 		t.Errorf("status = %d; want %d", res.StatusCode, 308)
 	}
@@ -573,7 +574,7 @@ func TestRedirectCookiesJar(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	resp.Body.Close()
+	resp.CloseBody()
 	matchReturnedCookies(t, expectedCookies, cli.RespCookies(resp))
 }
 
@@ -715,7 +716,7 @@ func TestClientInsecureTransport(t *testing.T) {
 			t.Errorf("insecure=%v: got unexpected err=%v", insecure, err)
 		}
 		if res != nil {
-			res.Body.Close()
+			res.CloseBody()
 		}
 	}
 
@@ -812,7 +813,7 @@ func TestTransportUsesTLSConfigServerName(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 }
 
 func TestResponseSetsTLSConnectionState(t *testing.T) {
@@ -832,7 +833,7 @@ func TestResponseSetsTLSConnectionState(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 	if res.TLS == nil {
 		t.Fatal("Response didn't set TLS Connection State.")
 	}
@@ -924,7 +925,7 @@ func TestEmptyPasswordAuth(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer resp.Body.Close()
+	defer resp.CloseBody()
 }
 
 func TestBasicAuth(t *testing.T) {
@@ -1019,7 +1020,7 @@ func TestClientRedirectEatsBody(t *testing.T) {
 		t.Fatal(err)
 	}
 	_, err = ioutil.ReadAll(res.Body)
-	res.Body.Close()
+	res.CloseBody()
 	if err != nil {
 		t.Fatal(err)
 	}
@@ -1142,7 +1143,7 @@ func TestClientCopyHeadersOnRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 	if res.StatusCode != 200 {
 		t.Fatal(res.Status)
 	}
@@ -1236,7 +1237,7 @@ func TestClientAltersCookiesOnRedirect(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 	if res.StatusCode != 200 {
 		t.Fatal(res.Status)
 	}
@@ -1368,7 +1369,7 @@ func TestClientRedirectTypes(t *testing.T) {
 			continue
 		}
 
-		res.Body.Close()
+		res.CloseBody()
 	}
 }
 
@@ -1396,7 +1397,7 @@ func TestTransportBodyReadError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 
 	var readCallsAtomic int32
 	var closeCallsAtomic int32 // atomic
@@ -1407,10 +1408,12 @@ func TestTransportBodyReadError(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	req = req.WithT(t)
+
+	req = req.WithContext(context.WithValue(req.Context(), TLogKey{}, t.Logf))
+
 	_, err = tr.RoundTrip(req)
-	if err != someErr {
-		t.Errorf("Got error: %v; want Request.Body read error: %v", err, someErr)
+	if err.Error() != someErr.Error() {
+		t.Errorf("Got error: `%v`; want Request.Body read error: `%v`", err, someErr)
 	}
 
 	// And verify that our Body wasn't used multiple times, which

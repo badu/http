@@ -22,6 +22,7 @@ import (
 
 	. "http"
 	"http/sniff"
+	. "http/tport"
 )
 
 // mapDirOpenError maps the provided non-nil error from opening name

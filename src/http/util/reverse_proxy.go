@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	. "http"
+	. "http/tport"
 )
 
 func (p *ReverseProxy) ServeHTTP(rw ResponseWriter, req *Request) {
@@ -127,7 +128,7 @@ func (p *ReverseProxy) ServeHTTP(rw ResponseWriter, req *Request) {
 		}
 	}
 	p.copyResponse(rw, res.Body)
-	res.Body.Close() // close now, instead of defer, to populate res.Trailer
+	res.CloseBody() // close now, instead of defer, to populate res.Trailer
 
 	if len(res.Trailer) == announcedTrailers {
 		rw.Header().CopyFromHeader(res.Trailer)

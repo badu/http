@@ -12,9 +12,9 @@ import (
 )
 
 const (
-	// maxInt64 is the effective "infinite" value for the Server and
+	// MaxInt64 is the effective "infinite" value for the Server and
 	// Transport's byte-limiting readers.
-	maxInt64 = 1<<63 - 1
+	MaxInt64 = 1<<63 - 1
 
 	// The algorithm uses at most sniffLen bytes to make its decision.
 	SniffLen = 512
@@ -115,5 +115,5 @@ const (
 )
 
 var (
-	testEventsEmitter = &srvEvDispatcher{lsns: map[ServerEventType][]srvEvListner{}}
+	TestEventsEmitter = &srvEvDispatcher{lsns: map[ServerEventType][]srvEvListner{}}
 )

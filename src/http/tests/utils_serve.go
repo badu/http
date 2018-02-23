@@ -295,7 +295,7 @@ func getNoBody(urlStr string) (*Response, error) {
 	if err != nil {
 		return nil, err
 	}
-	res.Body.Close()
+	res.CloseBody()
 	return res, nil
 }
 
@@ -304,7 +304,7 @@ func get(t *testing.T, c *cli.Client, url string) string {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 	slurp, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)

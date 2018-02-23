@@ -199,7 +199,7 @@ func (s *Server) Serve(lsn net.Listener) error {
 	defer lsn.Close()
 
 	// @comment : new way of dispatching server Serve (so we got rid of the boilerplate)
-	testEventsEmitter.dispatch(ServerServe)
+	TestEventsEmitter.Dispatch(ServerServe)
 
 	s.trackListener(lsn, true)
 	defer s.trackListener(lsn, false)
@@ -265,8 +265,12 @@ func (s *Server) Serve(lsn net.Listener) error {
 // ServeTLS always returns a non-nil error. After Shutdown or Close, the
 // returned error is ErrServerClosed.
 func (s *Server) ServeTLS(lsn net.Listener, certFile, keyFile string) error {
+	var config *tls.Config
 	// @comment : clone any existing TLS configuration
-	config := cloneTLSConfig(s.TLSConfig)
+	if s.TLSConfig == nil {
+		config = &tls.Config{}
+	}
+	config = s.TLSConfig.Clone()
 	// @comment : checking if we're already registered the
 	if !strSliceContains(config.NextProtos, "http/1.1") {
 		config.NextProtos = append(config.NextProtos, "http/1.1")

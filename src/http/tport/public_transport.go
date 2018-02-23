@@ -3,13 +3,15 @@
  * Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
  */
 
-package http
+package tport
 
 import (
 	"errors"
 	"fmt"
 	"net/url"
 	"os"
+
+	. "http"
 )
 
 // ProxyFromEnvironment returns the URL of the proxy to use for a

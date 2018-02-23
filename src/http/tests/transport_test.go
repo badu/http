@@ -34,6 +34,7 @@ import (
 	"http/cli"
 	"http/mux"
 	"http/th"
+	. "http/tport"
 	"http/trc"
 	"http/util"
 )
@@ -99,7 +100,7 @@ func TestTransportConnectionCloseOnResponse(t *testing.T) {
 			if err != nil {
 				t.Fatalf("error in connectionClose=%v, req #%d, Do: %v", connectionClose, n, err)
 			}
-			defer res.Body.Close()
+			defer res.CloseBody()
 			body, err := ioutil.ReadAll(res.Body)
 			if err != nil {
 				t.Fatalf("error in connectionClose=%v, req #%d, ReadAll: %v", connectionClose, n, err)
@@ -189,7 +190,7 @@ func TestTransportConnectionCloseOnRequestDisableKeepAlive(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 	if res.Header.Get("X-Saw-Close") != "true" {
 		t.Errorf("handler didn't see Connection: close ")
 	}
@@ -264,7 +265,7 @@ func TestTransportReadToEndReusesConn(t *testing.T) {
 			// since Closing this early in the loop would risk
 			// making connections be re-used for the wrong reason.
 			//TODO : @badu - it's a defer inside a loop
-			defer res.Body.Close()
+			defer res.CloseBody()
 
 			if res.ContentLength != int64(wantLen) {
 				t.Errorf("%s res.ContentLength = %d; want %d", path, res.ContentLength, wantLen)
@@ -373,7 +374,7 @@ func TestTransportRemovesDeadIdleConnections(t *testing.T) {
 		if res.StatusCode != 200 {
 			t.Fatalf("%s: %v", name, res.Status)
 		}
-		defer res.Body.Close()
+		defer res.CloseBody()
 		slurp, err := ioutil.ReadAll(res.Body)
 		if err != nil {
 			t.Fatalf("%s: %v", name, err)
@@ -427,7 +428,7 @@ func TestTransportServerClosingUnexpectedly(t *testing.T) {
 				condFatalf("error in req #%d, ReadAll: %v", n, err)
 				continue
 			}
-			res.Body.Close()
+			res.CloseBody()
 			return string(body)
 		}
 		panic("unreachable")
@@ -495,7 +496,7 @@ func TestStressSurpriseServerCloses(t *testing.T) {
 					// actually care what the error is.
 					// But we want to close the body in cases
 					// where we won the race.
-					res.Body.Close()
+					res.CloseBody()
 				}
 				activityc <- true
 			}
@@ -629,7 +630,7 @@ func TestRoundTripGzip(t *testing.T) {
 				continue
 			}
 			body, err = ioutil.ReadAll(r)
-			res.Body.Close()
+			res.CloseBody()
 		} else {
 			body, err = ioutil.ReadAll(res.Body)
 		}
@@ -700,7 +701,7 @@ func TestTransportGzip(t *testing.T) {
 		if e, g := testString, string(buf); e != g {
 			t.Errorf("partial read got %q, expected %q", g, e)
 		}
-		res.Body.Close()
+		res.CloseBody()
 		// Read on the body, even though it's closed
 		n, err = res.Body.Read(buf)
 		if n != 0 || err == nil {
@@ -728,7 +729,7 @@ func TestTransportGzip(t *testing.T) {
 		if n != 0 || err == nil {
 			t.Errorf("expected Read error after exhausted reads; got %d, %v", n, err)
 		}
-		res.Body.Close()
+		res.CloseBody()
 		n, err = res.Body.Read(buf)
 		if n != 0 || err == nil {
 			t.Errorf("expected Read error after Close; got %d, %v", n, err)
@@ -825,7 +826,7 @@ func TestTransportExpect100Continue(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		resp.Body.Close()
+		resp.CloseBody()
 
 		sent := len(v.body) - body.Len()
 		if v.status != resp.StatusCode {
@@ -983,7 +984,7 @@ func TestTransportDialPreservesNetOpProxyError(t *testing.T) {
 	req, _ := NewRequest(GET, "http://fake.tld", nil)
 	res, err := c.Do(req)
 	if err == nil {
-		res.Body.Close()
+		res.CloseBody()
 		t.Fatal("wanted a non-nil error")
 	}
 
@@ -1050,7 +1051,7 @@ func TestTransportGzipShort(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 	_, err = ioutil.ReadAll(res.Body)
 	if err == nil {
 		t.Fatal("Expect an error from reading a body.")
@@ -1091,7 +1092,7 @@ func TestTransportPersistConnLeak(t *testing.T) {
 				failed <- true
 				return
 			}
-			res.Body.Close()
+			res.CloseBody()
 		}()
 	}
 
@@ -1189,7 +1190,7 @@ func TestTransportIdleConnCrash(t *testing.T) {
 		if err != nil {
 			t.Error(err)
 		} else {
-			res.Body.Close() // returns idle conn
+			res.CloseBody() // returns idle conn
 		}
 		didreq <- true
 	}()
@@ -1216,7 +1217,7 @@ func TestIssue3644(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 	bs, err := ioutil.ReadAll(res.Body)
 	if err != nil {
 		t.Fatal(err)
@@ -1269,7 +1270,7 @@ func TestChunkedNoContent(t *testing.T) {
 				t.Errorf("closingBody=%v, req %d/%d: %v", closeBody, i, n, err)
 			} else {
 				if closeBody {
-					res.Body.Close()
+					res.CloseBody()
 				}
 			}
 		}
@@ -1325,7 +1326,7 @@ func TestTransportConcurrency(t *testing.T) {
 				if string(all) != req {
 					t.Errorf("body of req %s = %q; want %q", req, all, req)
 				}
-				res.Body.Close()
+				res.CloseBody()
 				wg.Done()
 			}
 		}()
@@ -1403,7 +1404,7 @@ func TestIssue4191InfiniteGetToPutTimeout(t *testing.T) {
 		io.Copy(w, neverEnding('a'))
 	})
 	srvMx.HandleFunc("/put", func(w ResponseWriter, r *Request) {
-		defer r.Body.Close()
+		defer r.CloseBody()
 		io.Copy(ioutil.Discard, r.Body)
 	})
 	ts := th.NewServer(srvMx)
@@ -1447,11 +1448,11 @@ func TestIssue4191InfiniteGetToPutTimeout(t *testing.T) {
 		req, _ := NewRequest(PUT, ts.URL+"/put", sres.Body)
 		_, err = c.Do(req)
 		if err == nil {
-			sres.Body.Close()
+			sres.CloseBody()
 			t.Errorf("Unexpected successful PUT")
 			break
 		}
-		sres.Body.Close()
+		sres.CloseBody()
 	}
 	if debug {
 		println("tests complete; waiting for handlers to finish")
@@ -1491,7 +1492,7 @@ func TestTransportResponseHeaderTimeout(t *testing.T) {
 	}
 	for i, tt := range tests {
 		req, _ := NewRequest(GET, ts.URL+tt.path, nil)
-		req = req.WithT(t)
+		req = req.WithContext(context.WithValue(req.Context(), TLogKey{}, t.Logf))
 		res, err := c.Do(req)
 		select {
 		case <-inHandler:
@@ -1707,7 +1708,7 @@ func TestTransportSocketLateBinding(t *testing.T) {
 		// connection for /bar
 		fooGate <- true
 		io.Copy(ioutil.Discard, fooRes.Body)
-		fooRes.Body.Close()
+		fooRes.CloseBody()
 	})
 
 	barRes, err := c.Get(ts.URL + "/bar")
@@ -1718,7 +1719,7 @@ func TestTransportSocketLateBinding(t *testing.T) {
 	if barAddr != fooAddr {
 		t.Fatalf("/foo came from conn %q; /bar came from %q instead", fooAddr, barAddr)
 	}
-	barRes.Body.Close()
+	barRes.CloseBody()
 	dialGate <- false
 }
 
@@ -1960,7 +1961,7 @@ func TestTransportClosesRequestBody(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 	if closes != 1 {
 		t.Errorf("closes = %d; want 1", closes)
 	}
@@ -2180,7 +2181,7 @@ func TestTransportIssue10457(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 
 	// Just a sanity check that we at least get the response. The real
 	// test here is that the "defer afterTest" above doesn't find any
@@ -2324,7 +2325,7 @@ func TestRetryRequestsOnError(t *testing.T) {
 				if err != nil {
 					t.Fatalf("i=%d: Do = %v", i, err)
 				}
-				res.Body.Close()
+				res.CloseBody()
 			}
 
 			mu.Lock()
@@ -2377,7 +2378,7 @@ func TestTransportClosesBodyOnError(t *testing.T) {
 	})
 	res, err := c.Do(req)
 	if res != nil {
-		defer res.Body.Close()
+		defer res.CloseBody()
 	}
 	if err == nil || !strings.Contains(err.Error(), fakeErr.Error()) {
 		t.Fatalf("Do error = %v; want something containing %q", err, fakeErr.Error())
@@ -2425,7 +2426,7 @@ func TestTransportDialTLS(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 	mu.Lock()
 	if !gotReq {
 		t.Error("didn't get request")
@@ -2523,7 +2524,7 @@ func TestTransportRangeAndGzip(t *testing.T) {
 	case <-time.After(10 * time.Second):
 		t.Fatal("timeout")
 	}
-	res.Body.Close()
+	res.CloseBody()
 }
 
 // Test for issue 10474
@@ -2562,7 +2563,7 @@ func TestTransportResponseCancelRace(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	res.Body.Close()
+	res.CloseBody()
 }
 
 // Test for issue 19248: Content-Encoding's value is case insensitive.
@@ -2587,7 +2588,7 @@ func TestTransportContentEncodingCaseInsensitive(t *testing.T) {
 			}
 
 			body, err := ioutil.ReadAll(res.Body)
-			res.Body.Close()
+			res.CloseBody()
 			if err != nil {
 				t.Fatal(err)
 			}
@@ -2646,7 +2647,7 @@ func TestTransportFlushesBodyChunks(t *testing.T) {
 	if !ok {
 		return
 	}
-	defer res.Body.Close()
+	defer res.CloseBody()
 
 	want := []string{
 		"POST / HTTP/1.1\r\nHost: localhost:8080\r\nUser-Agent: x\r\nTransfer-Encoding: chunked\r\nAccept-Encoding: gzip\r\n\r\n" +
@@ -2670,7 +2671,7 @@ func TestTransportPrefersResponseOverWriteError(t *testing.T) {
 	ts := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		if r.ContentLength >= contentLengthLimit {
 			w.WriteHeader(StatusBadRequest)
-			r.Body.Close()
+			r.CloseBody()
 			return
 		}
 		w.WriteHeader(StatusOK)
@@ -2697,7 +2698,7 @@ func TestTransportPrefersResponseOverWriteError(t *testing.T) {
 				}
 			}
 		} else {
-			resp.Body.Close()
+			resp.CloseBody()
 			if resp.StatusCode != 400 {
 				t.Errorf("Expected status code 400, got %v", resp.Status)
 			}
@@ -2738,7 +2739,7 @@ func TestTransportReuseConnEmptyResponseBody(t *testing.T) {
 		} else if addr != firstAddr {
 			t.Fatalf("On request %d, addr %q != original addr %q", i+1, addr, firstAddr)
 		}
-		res.Body.Close()
+		res.CloseBody()
 	}
 }
 
@@ -2800,12 +2801,12 @@ func TestTransportResponseHeaderLength(t *testing.T) {
 	if res, err := c.Get(ts.URL); err != nil {
 		t.Fatal(err)
 	} else {
-		res.Body.Close()
+		res.CloseBody()
 	}
 
 	res, err := c.Get(ts.URL + "/long")
 	if err == nil {
-		defer res.Body.Close()
+		defer res.CloseBody()
 		var n int64
 		for k, vv := range res.Header {
 			for _, v := range vv {
@@ -2823,7 +2824,7 @@ func TestTransportResponseHeaderLength(t *testing.T) {
 func TestTransportRejectsAlphaPort(t *testing.T) {
 	res, err := cli.Get("http://dummy.tld:123foo/bar")
 	if err == nil {
-		res.Body.Close()
+		res.CloseBody()
 		t.Fatal("unexpected success")
 	}
 	ue, ok := err.(*url.Error)
@@ -2873,7 +2874,7 @@ func TestTLSHandshakeTrace(t *testing.T) {
 	if err != nil {
 		t.Fatal("Unexpected error making request:", err)
 	}
-	r.Body.Close()
+	r.CloseBody()
 	mu.Lock()
 	defer mu.Unlock()
 	if !start {
@@ -2919,7 +2920,7 @@ func TestTransportIdleConnTimeout(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		res.Body.Close()
+		res.CloseBody()
 		conns := idleConns()
 		if len(conns) != 1 {
 			t.Fatalf("req %v: unexpected number of idle conns: %q", n, conns)
@@ -2999,7 +3000,7 @@ func TestTransportProxyConnectHeader(t *testing.T) {
 
 	res, err := c.Get("https://dummy.tld/") // https to force a CONNECT
 	if err == nil {
-		res.Body.Close()
+		res.CloseBody()
 		t.Errorf("unexpected success")
 	}
 	select {

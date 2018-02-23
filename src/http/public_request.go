@@ -76,10 +76,10 @@ func NewRequest(method, url string, body io.Reader) (*Request, error) {
 	if method == "" {
 		// We document that "" means "GET" for Request.Method, and people have
 		// relied on that from NewRequest, so keep that working.
-		// We still enforce validMethod for non-empty methods.
+		// We still enforce ValidMethod for non-empty methods.
 		method = GET
 	}
-	if !validMethod(method) {
+	if !ValidMethod(method) {
 		return nil, fmt.Errorf("net/http: invalid method %q", method)
 	}
 	u, err := parseURL(url) // Just url.Parse (url is shadowed for godoc).

@@ -75,7 +75,7 @@ func (cr *connReader) abortPendingRead() {
 
 func (cr *connReader) setReadLimit(remain int64) { cr.remain = remain }
 
-func (cr *connReader) setInfiniteReadLimit() { cr.remain = maxInt64 }
+func (cr *connReader) setInfiniteReadLimit() { cr.remain = MaxInt64 }
 
 func (cr *connReader) hitReadLimit() bool { return cr.remain <= 0 }
 

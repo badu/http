@@ -14,7 +14,6 @@ import (
 	"mime"
 	"mime/multipart"
 	"net/url"
-	"testing"
 
 	"http/trc"
 )
@@ -141,6 +140,11 @@ func (r *Request) WriteProxy(w io.Writer) error {
 	return r.write(w, true, nil, nil)
 }
 
+// @comment : used only in persist_conn.go of the transport
+func (r *Request) IWrite(w io.Writer, usingProxy bool, extraHeaders Header, waitForContinue func() bool) (err error) {
+	return r.write(w, usingProxy, extraHeaders, waitForContinue)
+}
+
 // extraHeaders may be nil
 // waitForContinue may be nil
 func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitForContinue func() bool) (err error) {
@@ -160,7 +164,7 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 	host := cleanHost(r.Host)
 	if host == "" {
 		if r.URL == nil {
-			return errMissingHost
+			return ErrMissingHost
 		}
 		host = cleanHost(r.URL.Host)
 	}
@@ -189,7 +193,7 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 		w = bw
 	}
 
-	_, err = fmt.Fprintf(w, "%s %s HTTP/1.1\r\n", valueOrDefault(r.Method, GET), ruri)
+	_, err = fmt.Fprintf(w, "%s %s HTTP/1.1\r\n", ValueOrDefault(r.Method, GET), ruri)
 	if err != nil {
 		return err
 	}
@@ -256,7 +260,7 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 			tracer.Wait100Continue()
 		}
 		if !waitForContinue() {
-			r.closeBody()
+			r.CloseBody()
 			return nil
 		}
 	}
@@ -271,7 +275,7 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 	err = tw.WriteBody(w)
 	if err != nil {
 		if tw.bodyReadError == err {
-			err = requestBodyReadError{err}
+			err = RequestBodyReadError{err}
 		}
 		return err
 	}
@@ -452,7 +456,7 @@ func (r *Request) FormFile(key string) (multipart.File, *multipart.FileHeader, e
 	return nil, nil, ErrMissingFile
 }
 
-func (r *Request) expectsContinue() bool {
+func (r *Request) ExpectsContinue() bool {
 	return hasToken(r.Header.get(Expect), "100-continue")
 }
 
@@ -467,35 +471,17 @@ func (r *Request) wantsClose() bool {
 	return hasToken(r.Header.get(Connection), DoClose)
 }
 
-func (r *Request) closeBody() {
+// @comment : decide to go public with this function, because it's called in so many places
+func (r *Request) CloseBody() {
 	if r.Body != nil {
+		//TODO : @badu - closer returns an error : why we don't handle it?
 		r.Body.Close()
 	}
 }
 
-func (r *Request) isReplayable() bool {
-	if r.Body == nil || r.Body == NoBody || r.GetBody != nil {
-		switch valueOrDefault(r.Method, GET) {
-		case GET, HEAD, OPTIONS, TRACE:
-			return true
-		}
-	}
-	return false
-}
-
 // outgoingLength reports the Content-Length of this outgoing (Client) request.
 // It maps 0 into -1 (unknown) when the Body is non-nil.
-func (r *Request) outgoingLength() int64 {
-	if r.Body == nil || r.Body == NoBody {
-		return 0
-	}
-	if r.ContentLength != 0 {
-		return r.ContentLength
-	}
-	return -1
-}
-
-//TODO:  @badu - temporary exposed for client to work
+//@ comment : exposed for client / transport to work
 func (r *Request) OutgoingLength() int64 {
 	if r.Body == nil || r.Body == NoBody {
 		return 0
@@ -509,9 +495,4 @@ func (r *Request) OutgoingLength() int64 {
 //TODO:  @badu - temporary exposed for client to work
 func (r *Request) SetCtx(ctx context.Context) {
 	r.ctx = ctx
-}
-
-//TODO: @badu - this is exported for tests
-func (r *Request) WithT(t *testing.T) *Request {
-	return r.WithContext(context.WithValue(r.Context(), tLogKey{}, t.Logf))
 }
