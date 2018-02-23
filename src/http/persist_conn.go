@@ -57,7 +57,7 @@ func (p *persistConn) shouldRetryRequest(req *Request, err error) bool {
 }
 
 func (p *persistConn) maxHeaderResponseSize() int64 {
-	if v := p.t.MaxResponseHeaderBytes; v != 0 {
+	if v := p.transport.MaxResponseHeaderBytes; v != 0 {
 		return v
 	}
 	return 10 << 20 // conservative default; same as http2
@@ -126,7 +126,7 @@ func (p *persistConn) cancelRequest(err error) {
 // This is what's called by the persistConn's idleTimer, and is run in its
 // own goroutine.
 func (p *persistConn) closeConnIfStillIdle() {
-	t := p.t
+	t := p.transport
 	t.idleMu.Lock()
 	defer t.idleMu.Unlock()
 	if _, ok := t.idleLRU.m[p]; !ok {
@@ -188,11 +188,11 @@ func (p *persistConn) readLoop() {
 	closeErr := errReadLoopExiting // default value, if not changed below
 	defer func() {
 		p.close(closeErr)
-		p.t.removeIdleConn(p)
+		p.transport.removeIdleConn(p)
 	}()
 
 	tryPutIdleConn := func(trace *trc.ClientTrace) bool {
-		if err := p.t.tryPutIdleConn(p); err != nil {
+		if err := p.transport.tryPutIdleConn(p); err != nil {
 			closeErr = err
 			if trace != nil && trace.PutIdleConn != nil && err != errKeepAlivesDisabled {
 				trace.PutIdleConn(err)
@@ -263,7 +263,7 @@ func (p *persistConn) readLoop() {
 		}
 
 		if !hasBody {
-			p.t.setReqCanceler(rc.req, nil)
+			p.transport.setReqCanceler(rc.req, nil)
 
 			// Put the idle conn back into the pool before we send the response
 			// so if they process it quickly and make another request, they'll
@@ -331,7 +331,7 @@ func (p *persistConn) readLoop() {
 		// reading the response body. (or for cancelation or death)
 		select {
 		case bodyEOF := <-waitForBodyRead:
-			p.t.setReqCanceler(rc.req, nil) // before p might return to idle pool
+			p.transport.setReqCanceler(rc.req, nil) // before p might return to idle pool
 			alive = alive &&
 				bodyEOF &&
 				!p.sawEOF &&
@@ -408,7 +408,7 @@ func (p *persistConn) waitForContinue(continueCh <-chan struct{}) func() bool {
 		return nil
 	}
 	return func() bool {
-		timer := time.NewTimer(p.t.ExpectContinueTimeout)
+		timer := time.NewTimer(p.transport.ExpectContinueTimeout)
 		defer timer.Stop()
 
 		select {
@@ -494,8 +494,8 @@ func (p *persistConn) roundTrip(req *transportRequest) (*Response, error) {
 	//@comment : new way of letting tests know
 	testEventsEmitter.dispatch(EnterRoundTripEvent)
 
-	if !p.t.replaceReqCanceler(req.Request, p.cancelRequest) {
-		p.t.putOrCloseIdleConn(p)
+	if !p.transport.replaceReqCanceler(req.Request, p.cancelRequest) {
+		p.transport.putOrCloseIdleConn(p)
 		return nil, ErrRequestCanceled
 	}
 	p.mu.Lock()
@@ -512,7 +512,7 @@ func (p *persistConn) roundTrip(req *transportRequest) (*Response, error) {
 	// uncompress the gzip stream if we were the layer that
 	// requested it.
 	requestedGzip := false
-	if !p.t.DisableCompression &&
+	if !p.transport.DisableCompression &&
 		req.Header.Get(AcceptEncoding) == "" &&
 		req.Header.Get("Range") == "" &&
 		req.Method != HEAD {
@@ -537,7 +537,7 @@ func (p *persistConn) roundTrip(req *transportRequest) (*Response, error) {
 		continueCh = make(chan struct{}, 1)
 	}
 
-	if p.t.DisableKeepAlives {
+	if p.transport.DisableKeepAlives {
 		req.extraHeaders().Set(Connection, DoClose)
 	}
 
@@ -546,7 +546,7 @@ func (p *persistConn) roundTrip(req *transportRequest) (*Response, error) {
 
 	defer func() {
 		if err != nil {
-			p.t.setReqCanceler(req.Request, nil)
+			p.transport.setReqCanceler(req.Request, nil)
 		}
 	}()
 
@@ -582,7 +582,7 @@ func (p *persistConn) roundTrip(req *transportRequest) (*Response, error) {
 				p.close(fmt.Errorf("write error: %v", err))
 				return nil, p.mapRoundTripError(req, startBytesWritten, err)
 			}
-			if d := p.t.ResponseHeaderTimeout; d > 0 {
+			if d := p.transport.ResponseHeaderTimeout; d > 0 {
 				if debugRoundTrip {
 					req.logf("starting timer for %v", d)
 				}

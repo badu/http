@@ -343,7 +343,7 @@ type (
 		// @comment : HTTP/2 is disabled - we don't need alt-ernate round tripper
 		//alt RoundTripper
 
-		t         *Transport
+		transport *Transport
 		cacheKey  connectMethodKey
 		conn      net.Conn
 		tlsState  *tls.ConnectionState

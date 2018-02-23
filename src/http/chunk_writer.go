@@ -25,18 +25,18 @@ func (cw *chunkWriter) Write(p []byte) (n int, err error) {
 		return len(p), nil
 	}
 	if cw.chunking {
-		_, err = fmt.Fprintf(cw.res.conn.bufw, "%x\r\n", len(p))
+		_, err = fmt.Fprintf(cw.res.conn.bufWriter, "%x\r\n", len(p))
 		if err != nil {
-			cw.res.conn.rwc.Close()
+			cw.res.conn.netConIface.Close()
 			return
 		}
 	}
-	n, err = cw.res.conn.bufw.Write(p)
+	n, err = cw.res.conn.bufWriter.Write(p)
 	if cw.chunking && err == nil {
-		_, err = cw.res.conn.bufw.Write(crlf)
+		_, err = cw.res.conn.bufWriter.Write(crlf)
 	}
 	if err != nil {
-		cw.res.conn.rwc.Close()
+		cw.res.conn.netConIface.Close()
 	}
 	return
 }
@@ -45,7 +45,7 @@ func (cw *chunkWriter) flush() {
 	if !cw.wroteHeader {
 		cw.writeHeader(nil)
 	}
-	cw.res.conn.bufw.Flush()
+	cw.res.conn.bufWriter.Flush()
 }
 
 func (cw *chunkWriter) close() {
@@ -53,7 +53,7 @@ func (cw *chunkWriter) close() {
 		cw.writeHeader(nil)
 	}
 	if cw.chunking {
-		bw := cw.res.conn.bufw // conn's bufio writer
+		bw := cw.res.conn.bufWriter // conn's bufio writer
 		// zero chunk to mark EOF
 		bw.WriteString("0\r\n")
 		if trailers := cw.res.finalTrailers(); trailers != nil {
@@ -66,7 +66,7 @@ func (cw *chunkWriter) close() {
 }
 
 // writeHeader finalizes the header sent to the client and writes it
-// to cw.res.conn.bufw.
+// to cw.res.conn.bufWriter.
 //
 // p is not written by writeHeader, but is the first chunk of the body
 // that will be written. It is sniffed for a Content-Type if none is
@@ -324,8 +324,8 @@ func (cw *chunkWriter) writeHeader(p []byte) {
 		}
 	}
 
-	writeStatusLine(w.conn.bufw, w.req.ProtoAtLeast(1, 1), code, w.statusBuf[:])
-	cw.header.WriteSubset(w.conn.bufw, excludeHeader)
-	setHeader.Write(w.conn.bufw)
-	w.conn.bufw.Write(crlf)
+	writeStatusLine(w.conn.bufWriter, w.req.ProtoAtLeast(1, 1), code, w.statusBuf[:])
+	cw.header.WriteSubset(w.conn.bufWriter, excludeHeader)
+	setHeader.Write(w.conn.bufWriter)
+	w.conn.bufWriter.Write(crlf)
 }

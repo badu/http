@@ -13,8 +13,8 @@ func (ecr *expectContinueReader) Read(p []byte) (n int, err error) {
 	}
 	if !ecr.resp.wroteContinue && !ecr.resp.conn.hijacked() {
 		ecr.resp.wroteContinue = true
-		ecr.resp.conn.bufw.WriteString("HTTP/1.1 100 Continue\r\n\r\n")
-		ecr.resp.conn.bufw.Flush()
+		ecr.resp.conn.bufWriter.WriteString("HTTP/1.1 100 Continue\r\n\r\n")
+		ecr.resp.conn.bufWriter.Flush()
 	}
 	n, err = ecr.readCloser.Read(p)
 	if err == io.EOF {

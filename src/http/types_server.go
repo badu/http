@@ -380,19 +380,17 @@ type (
 	conn struct {
 		// server is the server on which the connection arrived.
 		// Immutable; never nil.
-		//TODO : @badu - this is declared here for some server constants(read/write timeout), the server logger and TLSNextProto. Besides that, there is this serverHandler{c.server}.ServeHTTP(w, w.req) which worth appreciative comments
 		server *Server
 
 		// cancelCtx cancels the connection-level context.
 		cancelCtx context.CancelFunc
 
-		// rwc is the underlying network connection.
+		// netConIface is the underlying network connection.
 		// This is never wrapped by other types and is the value given out
-		// to CloseNotifier callers. It is usually of type *net.TCPConn or
-		// *tls.Conn.
-		rwc net.Conn
+		// to CloseNotifier callers. It is usually of type *net.TCPConn or *tls.Conn.
+		netConIface net.Conn
 
-		// remoteAddr is rwc.RemoteAddr().String(). It is not populated synchronously
+		// remoteAddr is netConIface.RemoteAddr().String(). It is not populated synchronously
 		// inside the Listener's Accept goroutine, as some implementations block.
 		// It is populated immediately inside the (*conn).serve goroutine.
 		// This is the value of a Handler's (*Request).RemoteAddr.
@@ -402,20 +400,20 @@ type (
 		// nil means not TLS.
 		tlsState *tls.ConnectionState
 
-		// werr is set to the first write error to rwc.
-		// It is set via checkConnErrorWriter{w}, where bufw writes.
-		werr error
+		// wErr is set to the first write error to netConIface.
+		// It is set via checkConnErrorWriter{w}, where bufWriter writes.
+		wErr error
 
-		// r is bufr's read source. It's a wrapper around rwc that provides
+		// r is bufReader's read source. It's a wrapper around netConIface that provides
 		// io.LimitedReader-style limiting (while reading request headers)
 		// and functionality to support CloseNotifier. See *connReader docs.
-		r *connReader
+		reader *connReader
 
-		// bufr reads from r.
-		bufr *bufio.Reader
+		// bufReader reads from r.
+		bufReader *bufio.Reader
 
-		// bufw writes to checkConnErrorWriter{c}, which populates werr on error.
-		bufw *bufio.Writer
+		// bufWriter writes to checkConnErrorWriter{c}, which populates wErr on error.
+		bufWriter *bufio.Writer
 
 		// lastMethod is the method of the most recent request
 		// on this connection, if any.
@@ -425,17 +423,17 @@ type (
 
 		curState atomic.Value // of ConnState
 
-		// mu guards hijackedv
+		// mu guards wasHijacked
 		mu sync.Mutex
 
-		// hijackedv is whether this connection has been hijacked
+		// wasHijacked is whether this connection has been hijacked
 		// by a Handler with the Hijacker interface.
 		// It is guarded by mu.
-		hijackedv bool
+		wasHijacked bool
 	}
 
 	// chunkWriter writes to a response's conn buffer, and is the writer
-	// wrapped by the response.bufw buffered writer.
+	// wrapped by the response.bufWriter buffered writer.
 	//
 	// chunkWriter also is responsible for finalizing the Header, including
 	// conditionally setting the Content-Type and setting a Content-Length
@@ -517,8 +515,7 @@ type (
 		statusBuf [3]byte
 
 		// closeNotifyCh is the channel returned by CloseNotify.
-		// TODO(bradfitz): this is currently (for Go 1.8) always
-		// non-nil. Make this lazily-created again as it used to be?
+		// TODO(bradfitz): this is currently (for Go 1.8) always non-nil. Make this lazily-created again as it used to be?
 		closeNotifyCh  chan bool
 		didCloseNotify int32 // atomic (only 0->1 winner should send)
 	}
@@ -544,7 +541,7 @@ type (
 		byteBuf [1]byte
 		cond    *sync.Cond
 		inRead  bool
-		aborted bool  // set true before conn.rwc deadline is set to past
+		aborted bool  // set true before conn.netConIface deadline is set to past
 		remain  int64 // bytes remaining
 	}
 
@@ -708,8 +705,8 @@ type (
 	// uninitialized fields in its *Request. Such partially-initialized
 	// Requests come from NPN protocol handlers.
 	initNPNRequest struct {
-		c *tls.Conn
-		h serverHandler
+		tlsConn *tls.Conn
+		handler serverHandler
 	}
 
 	// loggingConn is used for debugging.
@@ -718,7 +715,7 @@ type (
 		net.Conn
 	}
 
-	// checkConnErrorWriter writes to c.rwc and records any write errors to c.werr.
+	// checkConnErrorWriter writes to c.netConIface and records any write errors to c.wErr.
 	// It only contains one field (and a pointer field at that), so it
 	// fits in an interface value without an extra allocation.
 	checkConnErrorWriter struct {

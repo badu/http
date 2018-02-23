@@ -32,12 +32,12 @@ func (cr *connReader) startBackgroundRead() {
 		return
 	}
 	cr.inRead = true
-	cr.conn.rwc.SetReadDeadline(time.Time{})
+	cr.conn.netConIface.SetReadDeadline(time.Time{})
 	go cr.backgroundRead()
 }
 
 func (cr *connReader) backgroundRead() {
-	n, err := cr.conn.rwc.Read(cr.byteBuf[:])
+	n, err := cr.conn.netConIface.Read(cr.byteBuf[:])
 	cr.lock()
 	if n == 1 {
 		cr.hasByte = true
@@ -66,11 +66,11 @@ func (cr *connReader) abortPendingRead() {
 		return
 	}
 	cr.aborted = true
-	cr.conn.rwc.SetReadDeadline(aLongTimeAgo)
+	cr.conn.netConIface.SetReadDeadline(aLongTimeAgo)
 	for cr.inRead {
 		cr.cond.Wait()
 	}
-	cr.conn.rwc.SetReadDeadline(time.Time{})
+	cr.conn.netConIface.SetReadDeadline(time.Time{})
 }
 
 func (cr *connReader) setReadLimit(remain int64) { cr.remain = remain }
@@ -134,7 +134,7 @@ func (cr *connReader) Read(p []byte) (n int, err error) {
 	}
 	cr.inRead = true
 	cr.unlock()
-	n, err = cr.conn.rwc.Read(p)
+	n, err = cr.conn.netConIface.Read(p)
 
 	cr.lock()
 	cr.inRead = false

@@ -1814,6 +1814,7 @@ func TestClientWriteShutdown(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Dial: %v", err)
 	}
+	t.Log("Forcing CloseWrite")
 	err = conn.(*net.TCPConn).CloseWrite()
 	if err != nil {
 		t.Fatalf("CloseWrite: %v", err)

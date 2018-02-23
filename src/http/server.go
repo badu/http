@@ -14,16 +14,16 @@ import (
 	"time"
 )
 
-// Create new connection from rwc.
+// Create new connection from netConIface.
 // @comment : called only form Server.Serve, but also exposed for tests
 func (s *Server) newConn(rwc net.Conn) *conn {
 	c := &conn{
-		server: s,
-		rwc:    rwc,
+		server:      s,
+		netConIface: rwc,
 	}
 	// @comment : replaces the underlying network connection with a fake one that traces everything (all tests will fail)
 	if debugServerConnections {
-		c.rwc = newLoggingConn("server", c.rwc)
+		c.netConIface = newLoggingConn("server", c.netConIface)
 	}
 	return c
 }
@@ -79,7 +79,7 @@ func (s *Server) Close() error {
 	s.closeDoneChanLocked()
 	err := s.closeListenersLocked()
 	for c := range s.activeConn {
-		c.rwc.Close()
+		c.netConIface.Close()
 		delete(s.activeConn, c)
 	}
 	return err
@@ -150,7 +150,7 @@ func (s *Server) closeIdleConns() bool {
 			quiescent = false
 			continue
 		}
-		c.rwc.Close()
+		c.netConIface.Close()
 		delete(s.activeConn, c)
 	}
 	return quiescent
@@ -211,7 +211,7 @@ func (s *Server) Serve(lsn net.Listener) error {
 	var tempDelay time.Duration
 
 	for {
-		// @comment:  main listening loop
+		// @comment:  main listening loop - conn is a net.Conn interface
 		conn, e := lsn.Accept()
 		if e != nil {
 			select {
@@ -241,7 +241,7 @@ func (s *Server) Serve(lsn net.Listener) error {
 		// @comment : init internal connection
 		newConn := s.newConn(conn)
 		// @comment :  set it's state
-		newConn.setState(newConn.rwc, StateNew) // before Serve can return
+		newConn.setState(newConn.netConIface, StateNew) // before Serve can return
 		// @comment : perform in a different goroutine + passing the context built here
 		go newConn.serve(ctx)
 	}

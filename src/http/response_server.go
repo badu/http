@@ -68,10 +68,10 @@ func (r *response) needsSniff() bool {
 // ReadFrom is here to optimize copying from an *os.File regular file
 // to a *net.TCPConn with sendfile.
 func (r *response) ReadFrom(src io.Reader) (n int64, err error) {
-	// Our underlying r.conn.rwc is usually a *TCPConn (with its
+	// Our underlying r.conn.netConIface is usually a *TCPConn (with its
 	// own ReadFrom method). If not, or if our src isn't a regular
 	// file, just fall back to the normal copy method.
-	rf, ok := r.conn.rwc.(io.ReaderFrom)
+	rf, ok := r.conn.netConIface.(io.ReaderFrom)
 	regFile, err := srcIsRegularFile(src)
 	if err != nil {
 		return 0, err
@@ -97,7 +97,7 @@ func (r *response) ReadFrom(src io.Reader) (n int64, err error) {
 	}
 
 	r.w.Flush()  // get rid of any previous writes
-	r.cw.flush() // make sure Header is written; flush data to rwc
+	r.cw.flush() // make sure Header is written; flush data to netConIface
 
 	// Now that cw has been flushed, its chunking field is guaranteed initialized.
 	if !r.cw.chunking && r.bodyAllowed() {
@@ -181,8 +181,8 @@ func (r *response) bodyAllowed() bool {
 //    and which writes the chunk headers, if needed.
 // 4. conn.buf, a bufio.Writer of default (4kB) bytes, writing to ->
 // 5. checkConnErrorWriter{c}, which notes any non-nil error on Write
-//    and populates c.werr with it if so. but otherwise writes to:
-// 6. the rwc, the net.Conn.
+//    and populates c.wErr with it if so. but otherwise writes to:
+// 6. the netConIface, the net.Conn.
 //
 // TODO(bradfitz): short-circuit some of the buffering when the initial header contains both a Content-Type and Content-Length. Also short-circuit in (1) when the header's been sent and not in chunking mode, writing directly to (4) instead, if (2) has no buffered data. More generally, we could short-circuit from (1) to (3) even in chunking mode if the write size from (1) is over some threshold and nothing is in (2).  The answer might be mostly making bufferBeforeChunkingSize smaller and having bufio's fast-paths deal with this instead.
 func (r *response) Write(data []byte) (n int, err error) {
@@ -232,9 +232,9 @@ func (r *response) finishRequest() {
 	r.w.Flush()
 	putBufioWriter(r.w)
 	r.cw.close()
-	r.conn.bufw.Flush()
+	r.conn.bufWriter.Flush()
 
-	r.conn.r.abortPendingRead()
+	r.conn.reader.abortPendingRead()
 
 	// Close the body (regardless of r.closeAfterReply) so we can
 	// re-use its bufio.Reader later safely.
@@ -262,7 +262,7 @@ func (r *response) shouldReuseConnection() bool {
 
 	// There was some error writing to the underlying connection
 	// during the request, so don't re-use this conn.
-	if r.conn.werr != nil {
+	if r.conn.wErr != nil {
 		return false
 	}
 

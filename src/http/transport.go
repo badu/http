@@ -524,7 +524,7 @@ func (t *Transport) getConn(treq *transportRequest, cm connectMethod) (*persistC
 
 func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (*persistConn, error) {
 	pconn := &persistConn{
-		t:             t,
+		transport:     t,
 		cacheKey:      cm.key(),
 		reqch:         make(chan requestAndChan, 1),
 		writech:       make(chan writeRequest, 1),
@@ -763,9 +763,9 @@ func (t *Transport) RequestIdleConnChForTesting() {
 func (t *Transport) PutIdleTestConn() bool {
 	c, _ := net.Pipe()
 	return t.tryPutIdleConn(&persistConn{
-		t:        t,
-		conn:     c,                   // dummy
-		closech:  make(chan struct{}), // so it can be closed
-		cacheKey: connectMethodKey{"", HTTP, "example.com"},
+		transport: t,
+		conn:      c,                   // dummy
+		closech:   make(chan struct{}), // so it can be closed
+		cacheKey:  connectMethodKey{"", HTTP, "example.com"},
 	}) == nil
 }

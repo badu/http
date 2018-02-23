@@ -20,23 +20,23 @@ import (
 func (c *conn) hijacked() bool {
 	c.mu.Lock()
 	defer c.mu.Unlock()
-	return c.hijackedv
+	return c.wasHijacked
 }
 
 // c.mu must be held.
 func (c *conn) hijackLocked() (rwc net.Conn, buf *bufio.ReadWriter, err error) {
-	if c.hijackedv {
+	if c.wasHijacked {
 		return nil, nil, ErrHijacked
 	}
-	c.r.abortPendingRead()
+	c.reader.abortPendingRead()
 
-	c.hijackedv = true
-	rwc = c.rwc
+	c.wasHijacked = true
+	rwc = c.netConIface
 	rwc.SetDeadline(time.Time{})
 
-	buf = bufio.NewReadWriter(c.bufr, bufio.NewWriter(rwc))
-	if c.r.hasByte {
-		if _, err := c.bufr.Peek(c.bufr.Buffered() + 1); err != nil {
+	buf = bufio.NewReadWriter(c.bufReader, bufio.NewWriter(rwc))
+	if c.reader.hasByte {
+		if _, err := c.bufReader.Peek(c.bufReader.Buffered() + 1); err != nil {
 			return nil, nil, fmt.Errorf("unexpected Peek failure reading buffered byte: %v", err)
 		}
 	}
@@ -62,24 +62,24 @@ func (c *conn) readRequest(ctx context.Context) (w *response, err error) {
 	if d := c.server.ReadTimeout; d != 0 {
 		wholeReqDeadline = t0.Add(d)
 	}
-	c.rwc.SetReadDeadline(hdrDeadline)
+	c.netConIface.SetReadDeadline(hdrDeadline)
 	if d := c.server.WriteTimeout; d != 0 {
 		defer func() {
-			c.rwc.SetWriteDeadline(time.Now().Add(d))
+			c.netConIface.SetWriteDeadline(time.Now().Add(d))
 		}()
 	}
 
-	c.r.setReadLimit(c.server.initialReadLimitSize())
+	c.reader.setReadLimit(c.server.initialReadLimitSize())
 
 	// RFC 2616 section 4.1 tolerance for old buggy clients.
 	if c.lastMethod == POST {
-		peek, _ := c.bufr.Peek(4) // ReadRequest will get err below
-		c.bufr.Discard(numLeadingCRorLF(peek))
+		peek, _ := c.bufReader.Peek(4) // ReadRequest will get err below
+		c.bufReader.Discard(numLeadingCRorLF(peek))
 	}
 	// @comment : reads info from the request (using textproto.Reader transforms bytes into textproto.MIMEHeader and other usefull info)
-	req, err := readRequest(c.bufr, false)
+	req, err := readRequest(c.bufReader, false)
 	if err != nil {
-		if c.r.hitReadLimit() {
+		if c.reader.hitReadLimit() {
 			return nil, errTooLarge
 		}
 		return nil, err
@@ -91,7 +91,7 @@ func (c *conn) readRequest(ctx context.Context) (w *response, err error) {
 	}
 
 	c.lastMethod = req.Method
-	c.r.setInfiniteReadLimit()
+	c.reader.setInfiniteReadLimit()
 
 	hosts, haveHost := req.Header[Host]
 	if req.ProtoAtLeast(1, 1) && (!haveHost || len(hosts) == 0) && req.Method != CONNECT {
@@ -130,7 +130,7 @@ func (c *conn) readRequest(ctx context.Context) (w *response, err error) {
 
 	// Adjust the read deadline if necessary.
 	if !hdrDeadline.Equal(wholeReqDeadline) {
-		c.rwc.SetReadDeadline(wholeReqDeadline)
+		c.netConIface.SetReadDeadline(wholeReqDeadline)
 	}
 
 	w = &response{
@@ -154,26 +154,26 @@ func (c *conn) readRequest(ctx context.Context) (w *response, err error) {
 }
 
 func (c *conn) finalFlush() {
-	if c.bufr != nil {
+	if c.bufReader != nil {
 		// Steal the bufio.Reader (~4KB worth of memory) and its associated
 		// reader for a future connection.
-		putBufioReader(c.bufr)
-		c.bufr = nil
+		putBufioReader(c.bufReader)
+		c.bufReader = nil
 	}
 
-	if c.bufw != nil {
-		c.bufw.Flush()
+	if c.bufWriter != nil {
+		c.bufWriter.Flush()
 		// Steal the bufio.Writer (~4KB worth of memory) and its associated
 		// writer for a future connection.
-		putBufioWriter(c.bufw)
-		c.bufw = nil
+		putBufioWriter(c.bufWriter)
+		c.bufWriter = nil
 	}
 }
 
 // Close the connection.
 func (c *conn) close() {
 	c.finalFlush()
-	c.rwc.Close()
+	c.netConIface.Close()
 }
 
 // closeWrite flushes any outstanding data and sends a FIN packet (if
@@ -184,7 +184,7 @@ func (c *conn) close() {
 // See https://golang.org/issue/3595
 func (c *conn) closeWriteAndWait() {
 	c.finalFlush()
-	if tcp, ok := c.rwc.(closeWriter); ok {
+	if tcp, ok := c.netConIface.(closeWriter); ok {
 		tcp.CloseWrite()
 	}
 	time.Sleep(rstAvoidanceDelay)
@@ -207,8 +207,8 @@ func (c *conn) setState(nc net.Conn, state ConnState) {
 // Serve a new connection.
 //TODO : @badu - maybe this should return error???
 func (c *conn) serve(ctx context.Context) {
-	c.remoteAddr = c.rwc.RemoteAddr().String()
-	ctx = context.WithValue(ctx, LocalAddrContextKey, c.rwc.LocalAddr())
+	c.remoteAddr = c.netConIface.RemoteAddr().String()
+	ctx = context.WithValue(ctx, LocalAddrContextKey, c.netConIface.LocalAddr())
 
 	defer func() {
 		// @comment : recovering from panic
@@ -221,19 +221,19 @@ func (c *conn) serve(ctx context.Context) {
 		// @comment :close non hijacked
 		if !c.hijacked() {
 			c.close()
-			c.setState(c.rwc, StateClosed)
+			c.setState(c.netConIface, StateClosed)
 		}
 	}()
 
-	if tlsConn, ok := c.rwc.(*tls.Conn); ok {
+	if tlsConn, ok := c.netConIface.(*tls.Conn); ok {
 		if d := c.server.ReadTimeout; d != 0 {
-			c.rwc.SetReadDeadline(time.Now().Add(d))
+			c.netConIface.SetReadDeadline(time.Now().Add(d))
 		}
 		if d := c.server.WriteTimeout; d != 0 {
-			c.rwc.SetWriteDeadline(time.Now().Add(d))
+			c.netConIface.SetWriteDeadline(time.Now().Add(d))
 		}
 		if err := tlsConn.Handshake(); err != nil {
-			c.server.logf("http: TLS handshake error from %s: %v", c.rwc.RemoteAddr(), err)
+			c.server.logf("http: TLS handshake error from %s: %v", c.netConIface.RemoteAddr(), err)
 			return
 		}
 		c.tlsState = new(tls.ConnectionState)
@@ -252,16 +252,16 @@ func (c *conn) serve(ctx context.Context) {
 	c.cancelCtx = cancelCtx
 	defer cancelCtx()
 
-	c.r = &connReader{conn: c}
-	c.bufr = newBufioReader(c.r)
-	c.bufw = newBufioWriterSize(checkConnErrorWriter{c}, 4<<10) //TODO : @badu - this should be configurable
+	c.reader = &connReader{conn: c}
+	c.bufReader = newBufioReader(c.reader)
+	c.bufWriter = newBufioWriterSize(checkConnErrorWriter{c}, 4<<10) //TODO : @badu - this should be configurable
 
 	for {
 		// @comment : starts to read request
 		resp, err := c.readRequest(ctx)
-		if c.r.remain != c.server.initialReadLimitSize() {
+		if c.reader.remain != c.server.initialReadLimitSize() {
 			// If we read any bytes off the wire, we're active.
-			c.setState(c.rwc, StateActive)
+			c.setState(c.netConIface, StateActive)
 		}
 		if err != nil {
 			//TODO : @Badu - this should be in consts section
@@ -274,7 +274,7 @@ func (c *conn) serve(ctx context.Context) {
 				// while they're still writing their
 				// request. Undefined behavior.
 				const publicErr = "431 Request Header Fields Too Large"
-				fmt.Fprintf(c.rwc, "HTTP/1.1 "+publicErr+errorHeaders+publicErr)
+				fmt.Fprintf(c.netConIface, "HTTP/1.1 "+publicErr+errorHeaders+publicErr)
 				c.closeWriteAndWait()
 				return
 			}
@@ -288,7 +288,7 @@ func (c *conn) serve(ctx context.Context) {
 				publicErr = publicErr + ": " + string(v)
 			}
 
-			fmt.Fprintf(c.rwc, "HTTP/1.1 "+publicErr+errorHeaders+publicErr)
+			fmt.Fprintf(c.netConIface, "HTTP/1.1 "+publicErr+errorHeaders+publicErr)
 			return
 		}
 
@@ -307,12 +307,12 @@ func (c *conn) serve(ctx context.Context) {
 		c.curReq.Store(resp)
 
 		if requestBodyRemains(req.Body) {
-			registerOnHitEOF(req.Body, resp.conn.r.startBackgroundRead)
+			registerOnHitEOF(req.Body, resp.conn.reader.startBackgroundRead)
 		} else {
-			if resp.conn.bufr.Buffered() > 0 {
-				resp.conn.r.closeNotifyFromPipelinedRequest()
+			if resp.conn.bufReader.Buffered() > 0 {
+				resp.conn.reader.closeNotifyFromPipelinedRequest()
 			}
-			resp.conn.r.startBackgroundRead()
+			resp.conn.reader.startBackgroundRead()
 		}
 
 		// HTTP cannot have multiple simultaneous active requests.[*]
@@ -334,7 +334,7 @@ func (c *conn) serve(ctx context.Context) {
 
 		// @comment : finishes the request (sending it back to client)
 		resp.finishRequest()
-		// @comment :
+		// @comment : certain condition won't let us reuse the connection
 		if !resp.shouldReuseConnection() {
 			if resp.requestBodyLimitHit || resp.closedRequestBodyEarly() {
 				c.closeWriteAndWait()
@@ -342,7 +342,7 @@ func (c *conn) serve(ctx context.Context) {
 			return
 		}
 
-		c.setState(c.rwc, StateIdle)
+		c.setState(c.netConIface, StateIdle)
 		// @comment : store it in atomic.Value
 		c.curReq.Store((*response)(nil))
 
@@ -354,13 +354,13 @@ func (c *conn) serve(ctx context.Context) {
 			return
 		}
 
-		// @comment : ???
+		// @comment :
 		if d := c.server.idleTimeout(); d != 0 {
-			c.rwc.SetReadDeadline(time.Now().Add(d))
-			if _, err := c.bufr.Peek(4); err != nil {
+			c.netConIface.SetReadDeadline(time.Now().Add(d))
+			if _, err := c.bufReader.Peek(4); err != nil {
 				return
 			}
 		}
-		c.rwc.SetReadDeadline(time.Time{})
+		c.netConIface.SetReadDeadline(time.Time{})
 	}
 }
