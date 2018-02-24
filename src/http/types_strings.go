@@ -102,4 +102,6 @@ const (
 	FormData    = "multipart/form-data"
 	OctetStream = "application/octet-stream"
 	XFormData   = "application/x-www-form-urlencoded"
+
+	errorHeaders = "\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n"
 )

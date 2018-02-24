@@ -462,44 +462,32 @@ type (
 
 	// A response represents the server side of an HTTP response.
 	response struct {
-		conn             *conn
-		req              *Request // request for this response
-		reqBody          io.ReadCloser
-		cancelCtx        context.CancelFunc // when ServeHTTP exits
-		wroteHeader      bool               // reply header has been (logically) written
-		wroteContinue    bool               // 100 Continue response was written
-		wants10KeepAlive bool               // HTTP/1.0 w/ Connection "keep-alive"
-		wantsClose       bool               // HTTP request has Connection "close"
-
-		w *bufio.Writer // buffers output in chunks to chunkWriter
+		conn      *conn
+		req       *Request // request for this response
+		reqBody   io.ReadCloser
+		cancelCtx context.CancelFunc // when ServeHTTP exits
+		bufWriter *bufio.Writer      // buffers output in chunks to chunkWriter
 		// TODO : @badu - maybe this is chunked_writer after all ?
-		cw chunkWriter
+		chunkWriter chunkWriter
 
 		// handlerHeader is the Header that Handlers get access to,
 		// which may be retained and mutated even after WriteHeader.
 		// handlerHeader is copied into cw.header at WriteHeader
 		// time, and privately mutated thereafter.
 		handlerHeader Header
-		calledHeader  bool // handler accessed handlerHeader via Header
 
 		written       int64 // number of bytes written in body
 		contentLength int64 // explicitly-declared Content-Length; or -1
 		status        int   // status code passed to WriteHeader
 
-		// close connection after this reply.  set on request and
-		// updated after response from handler if there's a
-		// "Connection: keep-alive" response header and a
-		// Content-Length.
-		closeAfterReply bool
-
-		// requestBodyLimitHit is set by requestTooLarge when
-		// maxBytesReader hits its max size. It is checked in
-		// WriteHeader, to make sure we don't consume the
-		// remaining request body to try to advance to the next HTTP
-		// request. Instead, when this is set, we stop reading
-		// subsequent requests on this connection and stop reading
-		// input from it.
-		requestBodyLimitHit bool
+		//TODO : @badu - too much booleans (state / bitflag?)
+		wroteHeader         bool // reply header has been (logically) written
+		wroteContinue       bool // 100 Continue response was written
+		wants10KeepAlive    bool // HTTP/1.0 w/ Connection "keep-alive"
+		wantsClose          bool // HTTP request has Connection "close"
+		calledHeader        bool // handler accessed handlerHeader via Header
+		closeAfterReply     bool // close connection after this reply.  set on request and updated after response from handler if there's a "Connection: keep-alive" response header and a Content-Length.
+		requestBodyLimitHit bool // requestBodyLimitHit is set by requestTooLarge when maxBytesReader hits its max size. It is checked in WriteHeader, to make sure we don't consume the remaining request body to try to advance to the next HTTP request. Instead, when this is set, we stop reading subsequent requests on this connection and stop reading input from it.
 
 		// trailers are the headers to be sent after the handler
 		// finishes writing the body. This field is initialized from
@@ -585,6 +573,7 @@ type (
 		code int
 	}
 
+	TLSConHandler func(*tls.Conn, Handler)
 	// A Server defines parameters for running an HTTP server.
 	// The zero value for Server is a valid configuration.
 	Server struct {
@@ -635,7 +624,7 @@ type (
 		// automatically closed when the function returns.
 		// If TLSNextProto is not nil, HTTP/2 support is not enabled
 		// automatically.
-		TLSNextProto map[string]func(*tls.Conn, Handler)
+		TLSNextProto map[string]TLSConHandler
 
 		// ConnState specifies an optional callback function that is
 		// called when a client connection changes state. See the
@@ -669,20 +658,18 @@ type (
 	}
 
 	timeoutHandler struct {
-		handler Handler
-		body    string
-		dt      time.Duration
-
 		// When set, no timer will be created and this channel will
 		// be used instead.
 		testTimeout <-chan time.Time
+		handler     Handler
+		body        string
+		dt          time.Duration
 	}
 
 	timeoutWriter struct {
-		w    ResponseWriter
-		h    Header
-		wbuf bytes.Buffer
-
+		w           ResponseWriter
+		h           Header
+		wbuf        bytes.Buffer
 		mu          sync.Mutex
 		timedOut    bool
 		wroteHeader bool

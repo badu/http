@@ -149,8 +149,8 @@ func (c *conn) readRequest(ctx context.Context) (*response, error) {
 		wants10KeepAlive: req.wantsHttp10KeepAlive(),
 		wantsClose:       req.wantsClose(),
 	}
-	w.cw.res = w
-	w.w = newBufioWriterSize(&w.cw, bufferBeforeChunkingSize)
+	w.chunkWriter.res = w
+	w.bufWriter = newBufioWriterSize(&w.chunkWriter, bufferBeforeChunkingSize)
 	return w, nil
 }
 
@@ -237,6 +237,7 @@ func (c *conn) serve(ctx context.Context) {
 			c.server.logf("http: TLS handshake error from %s: %v", c.netConIface.RemoteAddr(), err)
 			return
 		}
+		// TODO : @badu - what an ugly way to clone
 		c.tlsState = new(tls.ConnectionState)
 		*c.tlsState = tlsConn.ConnectionState()
 		if proto := c.tlsState.NegotiatedProtocol; validNPN(proto) {
@@ -265,17 +266,13 @@ func (c *conn) serve(ctx context.Context) {
 			c.setState(c.netConIface, StateActive)
 		}
 		if err != nil {
-			//TODO : @Badu - this should be in consts section
-			const errorHeaders = "\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n"
-
 			if err == errTooLarge {
 				// Their HTTP client may or may not be
 				// able to read this if we're
 				// responding to them and hanging up
 				// while they're still writing their
 				// request. Undefined behavior.
-				const publicErr = "431 Request Header Fields Too Large"
-				fmt.Fprintf(c.netConIface, "HTTP/1.1 "+publicErr+errorHeaders+publicErr)
+				fmt.Fprintf(c.netConIface, "HTTP/1.1 431 Request Header Fields Too Large"+errorHeaders+"431 Request Header Fields Too Large")
 				c.closeWriteAndWait()
 				return
 			}
@@ -325,6 +322,7 @@ func (c *conn) serve(ctx context.Context) {
 		// But we're not going to implement HTTP pipelining because it
 		// was never deployed in the wild and the answer is HTTP/2.
 
+		// TODO : @badu - good place for metrics
 		// @comment : calls the Handler ServeHTTP(rw ResponseWriter, req *Request)
 		serverHandler{c.server}.ServeHTTP(resp, resp.req)
 

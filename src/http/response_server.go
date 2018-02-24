@@ -62,7 +62,7 @@ func (r *response) requestTooLarge() {
 // needsSniff reports whether a Content-Type still needs to be sniffed.
 func (r *response) needsSniff() bool {
 	_, haveType := r.handlerHeader[ContentType]
-	return !r.cw.wroteHeader && !haveType && r.written < SniffLen
+	return !r.chunkWriter.wroteHeader && !haveType && r.written < SniffLen
 }
 
 // ReadFrom is here to optimize copying from an *os.File regular file
@@ -97,11 +97,11 @@ func (r *response) ReadFrom(src io.Reader) (int64, error) {
 		}
 	}
 
-	r.w.Flush()  // get rid of any previous writes
-	r.cw.flush() // make sure Header is written; flush data to netConIface
+	r.bufWriter.Flush()   // get rid of any previous writes
+	r.chunkWriter.flush() // make sure Header is written; flush data to netConIface
 
 	// Now that cw has been flushed, its chunking field is guaranteed initialized.
-	if !r.cw.chunking && r.bodyAllowed() {
+	if !r.chunkWriter.chunking && r.bodyAllowed() {
 		n0, err := rf.ReadFrom(src)
 		n += n0
 		r.written += n0
@@ -114,11 +114,11 @@ func (r *response) ReadFrom(src io.Reader) (int64, error) {
 }
 
 func (r *response) Header() Header {
-	if r.cw.header == nil && r.wroteHeader && !r.cw.wroteHeader {
+	if r.chunkWriter.header == nil && r.wroteHeader && !r.chunkWriter.wroteHeader {
 		// Accessing the header between logically writing it
 		// and physically writing it means we need to allocate
 		// a clone to snapshot the logically written state.
-		r.cw.header = r.handlerHeader.Clone()
+		r.chunkWriter.header = r.handlerHeader.Clone()
 	}
 	r.calledHeader = true
 	return r.handlerHeader
@@ -136,8 +136,8 @@ func (r *response) WriteHeader(code int) {
 	r.wroteHeader = true
 	r.status = code
 
-	if r.calledHeader && r.cw.header == nil {
-		r.cw.header = r.handlerHeader.Clone()
+	if r.calledHeader && r.chunkWriter.header == nil {
+		r.chunkWriter.header = r.handlerHeader.Clone()
 	}
 
 	if cl := r.handlerHeader.get(ContentLength); cl != "" {
@@ -187,15 +187,7 @@ func (r *response) bodyAllowed() bool {
 //
 // TODO(bradfitz): short-circuit some of the buffering when the initial header contains both a Content-Type and Content-Length. Also short-circuit in (1) when the header's been sent and not in chunking mode, writing directly to (4) instead, if (2) has no buffered data. More generally, we could short-circuit from (1) to (3) even in chunking mode if the write size from (1) is over some threshold and nothing is in (2).  The answer might be mostly making bufferBeforeChunkingSize smaller and having bufio's fast-paths deal with this instead.
 func (r *response) Write(data []byte) (int, error) {
-	return r.write(len(data), data, "")
-}
-
-func (r *response) WriteString(data string) (int, error) {
-	return r.write(len(data), nil, data)
-}
-
-// either dataB or dataS is non-zero.
-func (r *response) write(lenData int, dataB []byte, dataS string) (int, error) {
+	lenData := len(data)
 	if r.conn.hijacked() {
 		if lenData > 0 {
 			r.conn.server.logf("http: response.Write on hijacked connection")
@@ -216,11 +208,32 @@ func (r *response) write(lenData int, dataB []byte, dataS string) (int, error) {
 	if r.contentLength != -1 && r.written > r.contentLength {
 		return 0, ErrContentLength
 	}
-	if dataB != nil {
-		return r.w.Write(dataB)
-	} else {
-		return r.w.WriteString(dataS)
+	return r.bufWriter.Write(data)
+}
+
+func (r *response) WriteString(data string) (int, error) {
+	lenData := len(data)
+	if r.conn.hijacked() {
+		if lenData > 0 {
+			r.conn.server.logf("http: response.Write on hijacked connection")
+		}
+		return 0, ErrHijacked
 	}
+	if !r.wroteHeader {
+		r.WriteHeader(StatusOK)
+	}
+	if lenData == 0 {
+		return 0, nil
+	}
+	if !r.bodyAllowed() {
+		return 0, ErrBodyNotAllowed
+	}
+
+	r.written += int64(lenData) // ignoring errors, for errorKludge
+	if r.contentLength != -1 && r.written > r.contentLength {
+		return 0, ErrContentLength
+	}
+	return r.bufWriter.WriteString(data)
 }
 
 func (r *response) finishRequest() {
@@ -230,9 +243,9 @@ func (r *response) finishRequest() {
 		r.WriteHeader(StatusOK)
 	}
 
-	r.w.Flush()
-	putBufioWriter(r.w)
-	r.cw.close()
+	r.bufWriter.Flush()
+	putBufioWriter(r.bufWriter)
+	r.chunkWriter.close()
 	r.conn.bufWriter.Flush()
 
 	r.conn.reader.abortPendingRead()
@@ -283,8 +296,8 @@ func (r *response) Flush() {
 	if !r.wroteHeader {
 		r.WriteHeader(StatusOK)
 	}
-	r.w.Flush()
-	r.cw.flush()
+	r.bufWriter.Flush()
+	r.chunkWriter.flush()
 }
 
 func (r *response) sendExpectationFailed() {
@@ -307,7 +320,7 @@ func (r *response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 		panic("net/http: Hijack called after ServeHTTP finished")
 	}
 	if r.wroteHeader {
-		r.cw.flush()
+		r.chunkWriter.flush()
 	}
 
 	c := r.conn
@@ -318,8 +331,8 @@ func (r *response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	// used after a connection has been hijacked.
 	rwc, buf, err := c.hijackLocked()
 	if err == nil {
-		putBufioWriter(r.w)
-		r.w = nil
+		putBufioWriter(r.bufWriter)
+		r.bufWriter = nil
 	}
 	return rwc, buf, err
 }

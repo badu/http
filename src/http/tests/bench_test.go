@@ -83,34 +83,6 @@ func BenchmarkServeMux(b *testing.B) {
 	}
 }
 
-func BenchmarkClientServer(b *testing.B) {
-	b.ReportAllocs()
-	b.StopTimer()
-	ts := th.NewServer(HandlerFunc(func(rw ResponseWriter, r *Request) {
-		fmt.Fprintf(rw, "Hello world.\n")
-	}))
-	defer ts.Close()
-	b.StartTimer()
-
-	for i := 0; i < b.N; i++ {
-		res, err := cli.Get(ts.URL)
-		if err != nil {
-			b.Fatal("Get:", err)
-		}
-		all, err := ioutil.ReadAll(res.Body)
-		res.CloseBody()
-		if err != nil {
-			b.Fatal("ReadAll:", err)
-		}
-		body := string(all)
-		if body != "Hello world.\n" {
-			b.Fatal("Got body:", body)
-		}
-	}
-
-	b.StopTimer()
-}
-
 func BenchmarkClientServerParallel4(b *testing.B) {
 	benchmarkClientServerParallel(b, 4, false)
 }
@@ -529,4 +501,32 @@ func BenchmarkResponseStatusLine(b *testing.B) {
 			WriteStatusLine(bw, true, 200, buf3[:])
 		}
 	})
+}
+
+func BenchmarkClientServer(b *testing.B) {
+	b.ReportAllocs()
+	b.StopTimer()
+	ts := th.NewServer(HandlerFunc(func(rw ResponseWriter, r *Request) {
+		fmt.Fprintf(rw, "Hello world.\n")
+	}))
+	defer ts.Close()
+	b.StartTimer()
+
+	for i := 0; i < b.N; i++ {
+		res, err := cli.Get(ts.URL)
+		if err != nil {
+			b.Fatal("Get:", err)
+		}
+		all, err := ioutil.ReadAll(res.Body)
+		res.CloseBody()
+		if err != nil {
+			b.Fatal("ReadAll:", err)
+		}
+		body := string(all)
+		if body != "Hello world.\n" {
+			b.Fatal("Got body:", body)
+		}
+	}
+
+	b.StopTimer()
 }
