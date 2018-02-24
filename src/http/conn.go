@@ -13,8 +13,6 @@ import (
 	"net"
 	"runtime"
 	"time"
-
-	"golang.org/x/net/lex/httplex"
 )
 
 func (c *conn) hijacked() bool {
@@ -105,17 +103,17 @@ func (c *conn) readRequest(ctx context.Context) (*response, error) {
 		//TODO : @badu - document
 		return nil, badRequestError("too many Host headers")
 	}
-	if len(hosts) == 1 && !httplex.ValidHostHeader(hosts[0]) {
+	if len(hosts) == 1 && !ValidHostHeader(hosts[0]) {
 		//TODO : @badu - document
 		return nil, badRequestError("malformed Host header")
 	}
 	for k, vv := range req.Header {
-		if !httplex.ValidHeaderFieldName(k) {
+		if !ValidHeaderFieldName(k) {
 			//TODO : @badu - document
 			return nil, badRequestError("invalid header name")
 		}
 		for _, v := range vv {
-			if !httplex.ValidHeaderFieldValue(v) {
+			if !ValidHeaderFieldValue(v) {
 				//TODO : @badu - document
 				return nil, badRequestError("invalid header value")
 			}

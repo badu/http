@@ -23,11 +23,6 @@ func isTokenBoundary(b byte) bool {
 	return b == ' ' || b == ',' || b == '\t'
 }
 
-//TODO : @badu - exported for tests
-func HasToken(v, token string) bool {
-	return hasToken(v, token)
-}
-
 // hasToken reports whether token appears with v, ASCII
 // case-insensitive, with space or comma boundaries.
 // token must be all lowercase.
@@ -62,14 +57,6 @@ func hasToken(v, token string) bool {
 		}
 	}
 	return false
-}
-
-// Return value if nonempty, def otherwise.
-func ValueOrDefault(value, def string) string {
-	if value != "" {
-		return value
-	}
-	return def
 }
 
 func IdnaASCII(v string) (string, error) {
@@ -120,11 +107,6 @@ func cleanHost(in string) string {
 	return net.JoinHostPort(a, port)
 }
 
-//TODO : @badu - exported for tests
-func CleanHost(in string) string {
-	return cleanHost(in)
-}
-
 // removeZone removes IPv6 zone identifier from host.
 // E.g., "[fe80::1%en0]:8080" to "[fe80::1]:8080"
 func removeZone(host string) string {
@@ -140,23 +122,6 @@ func removeZone(host string) string {
 		return host
 	}
 	return host[:j] + host[i:]
-}
-
-func ValidMethod(method string) bool {
-	/*
-	     Method         = "OPTIONS"                ; Section 9.2
-	                    | "GET"                    ; Section 9.3
-	                    | "HEAD"                   ; Section 9.4
-	                    | "POST"                   ; Section 9.5
-	                    | "PUT"                    ; Section 9.6
-	                    | "DELETE"                 ; Section 9.7
-	                    | "TRACE"                  ; Section 9.8
-	                    | "CONNECT"                ; Section 9.9
-	                    | extension-method
-	   extension-method = token
-	     token          = 1*<any CHAR except CTLs or separators>
-	*/
-	return len(method) > 0 && strings.IndexFunc(method, IsNotToken) == -1
 }
 
 // parseBasicAuth parses an HTTP Basic Authentication string.
@@ -190,9 +155,9 @@ func parseRequestLine(line string) (string, string, string, bool) {
 	return line[:s1], line[s1+1 : s2], line[s2+1:], true
 }
 
-func newTextprotoReader(br *bufio.Reader) *HeaderReader {
+func newHeaderReader(br *bufio.Reader) *HeaderReader {
 	// @comment : getting Reader from the pool
-	if v := textprotoReaderPool.Get(); v != nil {
+	if v := headerReaderPool.Get(); v != nil {
 		tr := v.(*HeaderReader)
 		tr.R = br
 		return tr
@@ -200,15 +165,15 @@ func newTextprotoReader(br *bufio.Reader) *HeaderReader {
 	return NewHeaderReader(br)
 }
 
-func putTextprotoReader(r *HeaderReader) {
+func putHeaderReader(r *HeaderReader) {
 	r.R = nil
-	textprotoReaderPool.Put(r)
+	headerReaderPool.Put(r)
 }
 
 func readRequest(b *bufio.Reader, deleteHostHeader bool) (*Request, error) {
 	var err error
 	var req *Request
-	tp := newTextprotoReader(b)
+	tp := newHeaderReader(b)
 	req = new(Request)
 
 	// First line: GET /index.html HTTP/1.0
@@ -218,7 +183,7 @@ func readRequest(b *bufio.Reader, deleteHostHeader bool) (*Request, error) {
 	}
 	// @comment : storing Reader into the pool
 	defer func() {
-		putTextprotoReader(tp)
+		putHeaderReader(tp)
 		if err == io.EOF {
 			err = io.ErrUnexpectedEOF
 		}

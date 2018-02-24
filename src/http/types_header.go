@@ -39,6 +39,19 @@ var (
 	// isTokenTable is a copy of net/http/lex.go's isTokenTable.
 	// See https://httpwg.github.io/specs/rfc7230.html#rule.token.separators
 	isTokenTable = [127]bool{
+		'0': true, '1': true, '2': true, '3': true, '4': true, '5': true, '6': true, '7': true,
+		'8': true, '9': true,
+
+		'a': true, 'b': true, 'c': true, 'd': true, 'e': true, 'f': true, 'g': true, 'h': true,
+		'i': true, 'j': true, 'k': true, 'l': true, 'm': true, 'n': true, 'o': true, 'p': true,
+		'q': true, 'r': true, 's': true, 't': true, 'u': true, 'v': true, 'w': true, 'x': true,
+		'y': true, 'z': true,
+
+		'A': true, 'B': true, 'C': true, 'D': true, 'E': true, 'F': true, 'G': true, 'H': true,
+		'I': true, 'J': true, 'K': true, 'L': true, 'M': true, 'N': true, 'O': true, 'P': true,
+		'Q': true, 'R': true, 'S': true, 'T': true, 'U': true, 'V': true, 'W': true, 'X': true,
+		'Y': true, 'Z': true,
+
 		'!':  true,
 		'#':  true,
 		'$':  true,
@@ -49,73 +62,47 @@ var (
 		'+':  true,
 		'-':  true,
 		'.':  true,
-		'0':  true,
-		'1':  true,
-		'2':  true,
-		'3':  true,
-		'4':  true,
-		'5':  true,
-		'6':  true,
-		'7':  true,
-		'8':  true,
-		'9':  true,
-		'A':  true,
-		'B':  true,
-		'C':  true,
-		'D':  true,
-		'E':  true,
-		'F':  true,
-		'G':  true,
-		'H':  true,
-		'I':  true,
-		'J':  true,
-		'K':  true,
-		'L':  true,
-		'M':  true,
-		'N':  true,
-		'O':  true,
-		'P':  true,
-		'Q':  true,
-		'R':  true,
-		'S':  true,
-		'T':  true,
-		'U':  true,
-		'W':  true,
-		'V':  true,
-		'X':  true,
-		'Y':  true,
-		'Z':  true,
 		'^':  true,
 		'_':  true,
 		'`':  true,
-		'a':  true,
-		'b':  true,
-		'c':  true,
-		'd':  true,
-		'e':  true,
-		'f':  true,
-		'g':  true,
-		'h':  true,
-		'i':  true,
-		'j':  true,
-		'k':  true,
-		'l':  true,
-		'm':  true,
-		'n':  true,
-		'o':  true,
-		'p':  true,
-		'q':  true,
-		'r':  true,
-		's':  true,
-		't':  true,
-		'u':  true,
-		'v':  true,
-		'w':  true,
-		'x':  true,
-		'y':  true,
-		'z':  true,
 		'|':  true,
 		'~':  true,
+	}
+
+	// See the validHostHeader comment.
+	validHostByte = [256]bool{
+		'0': true, '1': true, '2': true, '3': true, '4': true, '5': true, '6': true, '7': true,
+		'8': true, '9': true,
+
+		'a': true, 'b': true, 'c': true, 'd': true, 'e': true, 'f': true, 'g': true, 'h': true,
+		'i': true, 'j': true, 'k': true, 'l': true, 'm': true, 'n': true, 'o': true, 'p': true,
+		'q': true, 'r': true, 's': true, 't': true, 'u': true, 'v': true, 'w': true, 'x': true,
+		'y': true, 'z': true,
+
+		'A': true, 'B': true, 'C': true, 'D': true, 'E': true, 'F': true, 'G': true, 'H': true,
+		'I': true, 'J': true, 'K': true, 'L': true, 'M': true, 'N': true, 'O': true, 'P': true,
+		'Q': true, 'R': true, 'S': true, 'T': true, 'U': true, 'V': true, 'W': true, 'X': true,
+		'Y': true, 'Z': true,
+
+		'!':  true, // sub-delims
+		'$':  true, // sub-delims
+		'%':  true, // pct-encoded (and used in IPv6 zones)
+		'&':  true, // sub-delims
+		'(':  true, // sub-delims
+		')':  true, // sub-delims
+		'*':  true, // sub-delims
+		'+':  true, // sub-delims
+		',':  true, // sub-delims
+		'-':  true, // unreserved
+		'.':  true, // unreserved
+		':':  true, // IPv6address + Host expression's optional port
+		';':  true, // sub-delims
+		'=':  true, // sub-delims
+		'[':  true,
+		'\'': true, // sub-delims
+		']':  true,
+		'_':  true, // unreserved
+		'~':  true, // unreserved
 	}
 )
 

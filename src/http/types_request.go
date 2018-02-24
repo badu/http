@@ -67,7 +67,7 @@ var (
 	// the Request.
 	ErrMissingHost = errors.New("http: Request.Write on Request with no Host or URL set")
 
-	textprotoReaderPool sync.Pool
+	headerReaderPool sync.Pool
 )
 
 type (

@@ -22,7 +22,6 @@ import (
 
 	. "http"
 
-	"golang.org/x/net/lex/httplex"
 	"golang.org/x/net/proxy"
 )
 
@@ -46,11 +45,11 @@ func (t *Transport) RoundTrip(req *Request) (*Response, error) {
 	isHTTP := scheme == HTTP || scheme == HTTPS
 	if isHTTP {
 		for k, vv := range req.Header {
-			if !httplex.ValidHeaderFieldName(k) {
+			if !ValidHeaderFieldName(k) {
 				return nil, fmt.Errorf("net/http: invalid header field name %q", k)
 			}
 			for _, v := range vv {
-				if !httplex.ValidHeaderFieldValue(v) {
+				if !ValidHeaderFieldValue(v) {
 					return nil, fmt.Errorf("net/http: invalid header field value %q for key %v", v, k)
 				}
 			}

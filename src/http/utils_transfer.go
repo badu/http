@@ -12,10 +12,9 @@ import (
 	"io"
 	"strconv"
 	"strings"
+	"unicode/utf8"
 
 	"http/chunks"
-
-	"golang.org/x/net/lex/httplex"
 )
 
 // requestMethodUsuallyLacksBody reports whether the given request
@@ -341,9 +340,9 @@ func shouldClose(major, minor int, header Header, removeCloseHeader bool) bool {
 	}
 
 	conv := header[Connection]
-	hasClose := httplex.HeaderValuesContainsToken(conv, DoClose)
+	hasClose := headersValuesContainsToken(conv, DoClose)
 	if major == 1 && minor == 0 {
-		return hasClose || !httplex.HeaderValuesContainsToken(conv, DoKeepAlive)
+		return hasClose || !headersValuesContainsToken(conv, DoKeepAlive)
 	}
 
 	if hasClose && removeCloseHeader {
@@ -351,6 +350,64 @@ func shouldClose(major, minor int, header Header, removeCloseHeader bool) bool {
 	}
 
 	return hasClose
+}
+
+// HeaderValuesContainsToken reports whether any string in values
+// contains the provided token, ASCII case-insensitively.
+func headersValuesContainsToken(values []string, token string) bool {
+	for _, v := range values {
+		if headerValueContainsToken(v, token) {
+			return true
+		}
+	}
+	return false
+}
+
+func headerValueContainsToken(v string, token string) bool {
+	v = trimOWS(v)
+	if comma := strings.IndexByte(v, ','); comma != -1 {
+		return tokenEqual(trimOWS(v[:comma]), token) || headerValueContainsToken(v[comma+1:], token)
+	}
+	return tokenEqual(v, token)
+}
+
+func isOWS(b byte) bool { return b == ' ' || b == '\t' }
+
+func trimOWS(x string) string {
+	// TODO: consider using strings.Trim(x, " \t") instead,
+	// if and when it's fast enough. See issue 10292.
+	// But this ASCII-only code will probably always beat UTF-8
+	// aware code.
+	for len(x) > 0 && isOWS(x[0]) {
+		x = x[1:]
+	}
+	for len(x) > 0 && isOWS(x[len(x)-1]) {
+		x = x[:len(x)-1]
+	}
+	return x
+}
+
+func tokenEqual(t1, t2 string) bool {
+	if len(t1) != len(t2) {
+		return false
+	}
+	for i, b := range t1 {
+		if b >= utf8.RuneSelf {
+			// No UTF-8 or non-ASCII allowed in tokens.
+			return false
+		}
+		if lowerASCII(byte(b)) != lowerASCII(t2[i]) {
+			return false
+		}
+	}
+	return true
+}
+
+func lowerASCII(b byte) byte {
+	if 'A' <= b && b <= 'Z' {
+		return b + ('a' - 'A')
+	}
+	return b
 }
 
 // Parse the trailer header

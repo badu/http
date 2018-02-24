@@ -16,6 +16,36 @@ import (
 	"strings"
 )
 
+//TODO : @badu - exported for tests
+func HasToken(v, token string) bool {
+	return hasToken(v, token)
+}
+
+// Return value if nonempty, def otherwise.
+func ValueOrDefault(value, def string) string {
+	if value != "" {
+		return value
+	}
+	return def
+}
+
+func ValidMethod(method string) bool {
+	/*
+	     Method         = "OPTIONS"                ; Section 9.2
+	                    | "GET"                    ; Section 9.3
+	                    | "HEAD"                   ; Section 9.4
+	                    | "POST"                   ; Section 9.5
+	                    | "PUT"                    ; Section 9.6
+	                    | "DELETE"                 ; Section 9.7
+	                    | "TRACE"                  ; Section 9.8
+	                    | "CONNECT"                ; Section 9.9
+	                    | extension-method
+	   extension-method = token
+	     token          = 1*<any CHAR except CTLs or separators>
+	*/
+	return len(method) > 0 && strings.IndexFunc(method, IsNotToken) == -1
+}
+
 // See 2 (end of page 4) http://www.ietf.org/rfc/rfc2617.txt
 // "To receive authorization, the client sends the userid and password,
 // separated by a single colon (":") character, within a base64
@@ -24,6 +54,11 @@ import (
 func BasicAuth(username, password string) string {
 	auth := username + ":" + password
 	return base64.StdEncoding.EncodeToString([]byte(auth))
+}
+
+//TODO : @badu - exported for tests
+func CleanHost(in string) string {
+	return cleanHost(in)
 }
 
 // ParseHTTPVersion parses a HTTP version string.
