@@ -21,7 +21,6 @@ import (
 	"testing"
 
 	. "http"
-	"http/chunks"
 )
 
 type respTest struct {
@@ -650,7 +649,7 @@ func TestReadResponseCloseInMiddle(t *testing.T) {
 		}
 		var wr io.Writer = &buf
 		if test.chunked {
-			wr = chunks.NewChunkedWriter(wr)
+			wr = NewChunkedWriter(wr)
 		}
 		if test.compressed {
 			buf.WriteString("Content-Encoding: gzip\r\n")

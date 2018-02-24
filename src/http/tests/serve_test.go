@@ -34,7 +34,6 @@ import (
 	"time"
 
 	. "http"
-	"http/chunks"
 	"http/cli"
 	"http/filetransport"
 	"http/mux"
@@ -210,8 +209,8 @@ func testServerTimeouts(timeout time.Duration) error {
 		reqNum++
 		fmt.Fprintf(res, "req=%d", reqNum)
 	}))
-	ts.Config.ReadTimeout = timeout
-	ts.Config.WriteTimeout = timeout
+	ts.Server.ReadTimeout = timeout
+	ts.Server.WriteTimeout = timeout
 	ts.Start()
 	defer ts.Close()
 
@@ -737,8 +736,8 @@ func TestTLSHandshakeTimeout(t *testing.T) {
 	defer afterTest(t)
 	ts := th.NewUnstartedServer(HandlerFunc(func(w ResponseWriter, r *Request) {}))
 	errc := make(chanWriter, 10) // but only expecting 1
-	ts.Config.ReadTimeout = 250 * time.Millisecond
-	ts.Config.ErrorLog = log.New(errc, "", 0)
+	ts.Server.ReadTimeout = 250 * time.Millisecond
+	ts.Server.ErrorLog = log.New(errc, "", 0)
 	ts.StartTLS()
 	defer ts.Close()
 	conn, err := net.Dial("tcp", ts.Listener.Addr().String())
@@ -774,7 +773,7 @@ func TestTLSServer(t *testing.T) {
 			}
 		}
 	}))
-	ts.Config.ErrorLog = log.New(ioutil.Discard, "", 0)
+	ts.Server.ErrorLog = log.New(ioutil.Discard, "", 0)
 	defer ts.Close()
 
 	// Connect an idle TCP connection to this server before we run
@@ -925,7 +924,7 @@ func TestServerExpect(t *testing.T) {
 					ioutil.NopCloser(nil),
 				}
 				if test.chunked {
-					targ = chunks.NewChunkedWriter(conn)
+					targ = NewChunkedWriter(conn)
 				}
 				body := strings.Repeat("A", test.contentLength)
 				_, err = fmt.Fprint(targ, body)
@@ -1062,7 +1061,7 @@ func testHandlerBodyClose(t *testing.T, i int, tt handlerBodyCloseTest) {
 			tt.connectionHeader() +
 			"Transfer-Encoding: chunked\r\n" +
 			"\r\n")
-		cw := chunks.NewChunkedWriter(&conn.readBuf)
+		cw := NewChunkedWriter(&conn.readBuf)
 		io.WriteString(cw, body)
 		cw.Close()
 		conn.readBuf.WriteString("\r\n")
@@ -1662,7 +1661,7 @@ func TestServerWriteHijackZeroBytes(t *testing.T) {
 			t.Errorf("Write error = %v; want ErrHijacked", err)
 		}
 	}))
-	ts.Config.ErrorLog = log.New(terrorWriter{t}, "Unexpected write: ", 0)
+	ts.Server.ErrorLog = log.New(terrorWriter{t}, "Unexpected write: ", 0)
 	ts.Start()
 	defer ts.Close()
 
@@ -2864,8 +2863,8 @@ func TestServerConnState(t *testing.T) {
 	var stateLog = map[int][]ConnState{}
 	var connID = map[net.Conn]int{}
 
-	ts.Config.ErrorLog = log.New(ioutil.Discard, "", 0)
-	ts.Config.ConnState = func(c net.Conn, state ConnState) {
+	ts.Server.ErrorLog = log.New(ioutil.Discard, "", 0)
+	ts.Server.ConnState = func(c net.Conn, state ConnState) {
 		if c == nil {
 			t.Errorf("nil conn seen in state %s", state)
 			return
@@ -2998,7 +2997,7 @@ func TestServerConnState(t *testing.T) {
 func TestServerKeepAlivesEnabled2(t *testing.T) {
 	defer afterTest(t)
 	ts := th.NewUnstartedServer(HandlerFunc(func(w ResponseWriter, r *Request) {}))
-	ts.Config.SetKeepAlivesEnabled(false)
+	ts.Server.SetKeepAlivesEnabled(false)
 	ts.Start()
 	defer ts.Close()
 	res, err := cli.Get(ts.URL)
@@ -3131,7 +3130,7 @@ func TestServerKeepAliveAfterWriteError(t *testing.T) {
 		time.Sleep(500 * time.Millisecond)
 		w.(Flusher).Flush()
 	}))
-	ts.Config.WriteTimeout = 250 * time.Millisecond
+	ts.Server.WriteTimeout = 250 * time.Millisecond
 	ts.Start()
 	defer ts.Close()
 
@@ -3633,8 +3632,8 @@ func TestServerIdleTimeout(t *testing.T) {
 		io.Copy(ioutil.Discard, r.Body)
 		io.WriteString(w, r.RemoteAddr)
 	}))
-	ts.Config.ReadHeaderTimeout = 1 * time.Second
-	ts.Config.IdleTimeout = 2 * time.Second
+	ts.Server.ReadHeaderTimeout = 1 * time.Second
+	ts.Server.IdleTimeout = 2 * time.Second
 	ts.Start()
 	defer ts.Close()
 	c := ts.Client()
@@ -3702,7 +3701,7 @@ func TestServerSetKeepAlivesEnabledClosesConns(t *testing.T) {
 		t.Fatalf("idle count before SetKeepAlivesEnabled called = %v; want 1", idle0)
 	}
 
-	ts.Config.SetKeepAlivesEnabled(false)
+	ts.Server.SetKeepAlivesEnabled(false)
 
 	var idle1 int
 	if !waitCondition(2*time.Second, 10*time.Millisecond, func() bool {
@@ -3733,13 +3732,13 @@ func TestServerShutdown(t *testing.T) {
 		time.Sleep(20 * time.Millisecond)
 		io.WriteString(w, r.RemoteAddr)
 	})
-	cst := newClientServerTest(t, handler, func(srv *th.TServer) {
-		srv.Config.RegisterOnShutdown(func() { gotOnShutdown <- struct{}{} })
+	cst := newClientServerTest(t, handler, func(srv *th.TestServer) {
+		srv.Server.RegisterOnShutdown(func() { gotOnShutdown <- struct{}{} })
 	})
 	defer cst.close()
 
 	doShutdown = func() {
-		shutdownRes <- cst.ts.Config.Shutdown(context.Background())
+		shutdownRes <- cst.ts.Server.Shutdown(context.Background())
 	}
 	get(t, cst.c, cst.ts.URL) // calls t.Fail on failure
 
@@ -3774,7 +3773,7 @@ func TestServerKeepAlivesEnabled(t *testing.T) {
 		fmt.Fprintf(w, "%v", r.RemoteAddr)
 	}))
 	defer cst.close()
-	srv := cst.ts.Config
+	srv := cst.ts.Server
 	srv.SetKeepAlivesEnabled(false)
 	a := cst.getURL(cst.ts.URL)
 	if !waitCondition(2*time.Second, 10*time.Millisecond, srv.ExportAllConnsIdle) {
@@ -3804,7 +3803,7 @@ func TestServerCancelsReadTimeoutWhenIdle(t *testing.T) {
 			fmt.Fprint(w, r.Context().Err())
 		}
 	}))
-	ts.Config.ReadTimeout = timeout
+	ts.Server.ReadTimeout = timeout
 	ts.Start()
 	defer ts.Close()
 

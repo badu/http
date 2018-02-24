@@ -17,7 +17,6 @@ import (
 	"strings"
 
 	. "http"
-	"http/chunks"
 	. "http/tport"
 )
 
@@ -198,7 +197,7 @@ func DumpRequest(req *Request, body bool) ([]byte, error) {
 	if req.Body != nil {
 		var dest io.Writer = &b
 		if chunked {
-			dest = chunks.NewChunkedWriter(dest)
+			dest = NewChunkedWriter(dest)
 		}
 		_, err = io.Copy(dest, req.Body)
 		if chunked {

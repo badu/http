@@ -139,7 +139,7 @@ func newLocalListener() net.Listener {
 
 // NewServer starts and returns a new Server.
 // The caller should call Close when finished, to shut it down.
-func NewServer(handler Handler) *TServer {
+func NewServer(handler Handler) *TestServer {
 	ts := NewUnstartedServer(handler)
 	ts.Start()
 	return ts
@@ -151,16 +151,16 @@ func NewServer(handler Handler) *TServer {
 // StartTLS.
 //
 // The caller should call Close when finished, to shut it down.
-func NewUnstartedServer(handler Handler) *TServer {
-	return &TServer{
+func NewUnstartedServer(handler Handler) *TestServer {
+	return &TestServer{
 		Listener: newLocalListener(),
-		Config:   &Server{Handler: handler},
+		Server:   &Server{Handler: handler},
 	}
 }
 
 // NewTLSServer starts and returns a new Server using TLS.
 // The caller should call Close when finished, to shut it down.
-func NewTLSServer(handler Handler) *TServer {
+func NewTLSServer(handler Handler) *TestServer {
 	ts := NewUnstartedServer(handler)
 	ts.StartTLS()
 	return ts

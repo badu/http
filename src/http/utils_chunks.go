@@ -3,7 +3,7 @@
  * Use of this source code is governed by a BSD-style license that can be found in the LICENSE file.
  */
 
-package chunks
+package http
 
 import (
 	"bufio"
@@ -44,10 +44,6 @@ func trimTrailingWhitespace(b []byte) []byte {
 		b = b[:len(b)-1]
 	}
 	return b
-}
-
-func isASCIISpace(b byte) bool {
-	return b == ' ' || b == '\t' || b == '\n' || b == '\r'
 }
 
 // removeChunkExtension removes any chunk-extension from p.

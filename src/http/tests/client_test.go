@@ -155,7 +155,7 @@ func TestPostFormRequestFormat(t *testing.T) {
 func TestClientRedirects(t *testing.T) {
 	setParallel(t)
 	defer afterTest(t)
-	var ts *th.TServer
+	var ts *th.TestServer
 	ts = th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		n, _ := strconv.Atoi(r.FormValue("n"))
 		// Test Referer header. (7 is arbitrary position to test at)
@@ -366,7 +366,7 @@ func testRedirectsByMethod(t *testing.T, method string, table []redirectTest, wa
 		sync.Mutex
 		bytes.Buffer
 	}
-	var ts *th.TServer
+	var ts *th.TestServer
 	ts = th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		sLog.Lock()
 		slurp, _ := ioutil.ReadAll(r.Body)
@@ -427,7 +427,7 @@ func TestClientRedirectUseResponse(t *testing.T) {
 	setParallel(t)
 	defer afterTest(t)
 	const body = "Hello, world."
-	var ts *th.TServer
+	var ts *th.TestServer
 	ts = th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		if strings.Contains(r.URL.Path, "/other") {
 			io.WriteString(w, "wrong body")
@@ -563,7 +563,7 @@ func TestRedirectCookiesJar(t *testing.T) {
 
 	setParallel(t)
 	defer afterTest(t)
-	var ts *th.TServer
+	var ts *th.TestServer
 	ts = th.NewServer(echoCookiesRedirectHandler)
 	defer ts.Close()
 	c := ts.Client()
@@ -700,7 +700,7 @@ func TestClientInsecureTransport(t *testing.T) {
 		w.Write([]byte("Hello"))
 	}))
 	errc := make(chanWriter, 10) // but only expecting 1
-	ts.Config.ErrorLog = log.New(errc, "", 0)
+	ts.Server.ErrorLog = log.New(errc, "", 0)
 	defer ts.Close()
 
 	// TODO(bradfitz): add tests for skipping hostname checks too?
@@ -766,7 +766,7 @@ func TestClientWithIncorrectTLSServerName(t *testing.T) {
 	ts := th.NewTLSServer(HandlerFunc(func(w ResponseWriter, r *Request) {}))
 	defer ts.Close()
 	errc := make(chanWriter, 10) // but only expecting 1
-	ts.Config.ErrorLog = log.New(errc, "", 0)
+	ts.Server.ErrorLog = log.New(errc, "", 0)
 
 	c := ts.Client()
 	c.Transport.(*Transport).TLSClientConfig.ServerName = "badserver"
@@ -848,7 +848,7 @@ func TestResponseSetsTLSConnectionState(t *testing.T) {
 func TestHTTPSClientDetectsHTTPServer(t *testing.T) {
 	defer afterTest(t)
 	ts := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {}))
-	ts.Config.ErrorLog = log.New(ioutil.Discard, "", 0)
+	ts.Server.ErrorLog = log.New(ioutil.Discard, "", 0)
 	defer ts.Close()
 
 	_, err := cli.Get(strings.Replace(ts.URL, HTTP, HTTPS, 1))

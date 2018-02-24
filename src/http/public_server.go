@@ -7,6 +7,7 @@ package http
 
 import (
 	"fmt"
+	"io"
 	"net"
 	"net/url"
 	"path"
@@ -247,4 +248,17 @@ func TimeoutHandler(h Handler, dt time.Duration, msg string) Handler {
 		body:    msg,
 		dt:      dt,
 	}
+}
+
+// NewChunkedWriter returns a new chunkedWriter that translates writes into HTTP
+// "chunked" format before writing them to w. Closing the returned chunkedWriter
+// sends the final 0-length chunk that marks the end of the stream.
+//
+// NewChunkedWriter is not needed by normal applications. The http
+// package adds chunking automatically if handlers don't set a
+// Content-Length header. Using newChunkedWriter inside a handler
+// would result in double chunking or chunking with a Content-Length
+// length, both of which are wrong.
+func NewChunkedWriter(w io.Writer) io.WriteCloser {
+	return &chunkedWriter{w}
 }

@@ -834,8 +834,8 @@ func testInterruptWithPanic(t *testing.T, panicValue interface{}) {
 		case <-testDone:
 		}
 		panic(panicValue)
-	}), func(ts *th.TServer) {
-		ts.Config.ErrorLog = log.New(&errorLog, "", 0)
+	}), func(ts *th.TestServer) {
+		ts.Server.ErrorLog = log.New(&errorLog, "", 0)
 	})
 	defer cst.close()
 	res, err := cst.c.Get(cst.ts.URL)

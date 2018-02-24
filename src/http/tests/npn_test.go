@@ -49,7 +49,7 @@ func TestNextProtoUpgrade(t *testing.T) {
 	ts.TLS = &tls.Config{
 		NextProtos: []string{"unhandled-proto", "tls-0.9"},
 	}
-	ts.Config.TLSNextProto = map[string]func(*tls.Conn, Handler){
+	ts.Server.TLSNextProto = map[string]func(*tls.Conn, Handler){
 		"tls-0.9": func(conn *tls.Conn, h Handler) {
 			// handleTLSProtocol09 implements the HTTP/0.9 protocol over TLS, for the TestNextProtoUpgrade test.
 			br := bufio.NewReader(conn)

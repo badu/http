@@ -21,7 +21,7 @@ import (
 )
 
 // Start starts a server from NewUnstartedServer.
-func (s *TServer) Start() {
+func (s *TestServer) Start() {
 	if s.URL != "" {
 		panic("Server already started")
 	}
@@ -38,7 +38,7 @@ func (s *TServer) Start() {
 }
 
 // StartTLS starts TLS on a server from NewUnstartedServer.
-func (s *TServer) StartTLS() {
+func (s *TestServer) StartTLS() {
 	if s.URL != "" {
 		panic("Server already started")
 	}
@@ -50,15 +50,16 @@ func (s *TServer) StartTLS() {
 		panic(fmt.Sprintf("httptest: NewTLSServer: %v", err))
 	}
 
-	existingConfig := s.TLS
-	if existingConfig != nil {
-		s.TLS = existingConfig.Clone()
+	if s.TLS != nil {
+		s.TLS = s.TLS.Clone()
 	} else {
 		s.TLS = new(tls.Config)
 	}
+
 	if s.TLS.NextProtos == nil {
 		s.TLS.NextProtos = []string{"http/1.1"}
 	}
+
 	if len(s.TLS.Certificates) == 0 {
 		s.TLS.Certificates = []tls.Certificate{cert}
 	}
@@ -66,6 +67,7 @@ func (s *TServer) StartTLS() {
 	if err != nil {
 		panic(fmt.Sprintf("httptest: NewTLSServer: %v", err))
 	}
+
 	certpool := x509.NewCertPool()
 	certpool.AddCert(s.certificate)
 	s.client.Transport = &Transport{
@@ -81,12 +83,12 @@ func (s *TServer) StartTLS() {
 
 // Close shuts down the server and blocks until all outstanding
 // requests on this server have completed.
-func (s *TServer) Close() {
+func (s *TestServer) Close() {
 	s.mu.Lock()
 	if !s.closed {
 		s.closed = true
 		s.Listener.Close()
-		s.Config.SetKeepAlivesEnabled(false)
+		s.Server.SetKeepAlivesEnabled(false)
 		for c, st := range s.conns {
 			// Force-close any idle connections (those between
 			// requests) and new connections (those which connected
@@ -133,7 +135,7 @@ func (s *TServer) Close() {
 	s.wg.Wait()
 }
 
-func (s *TServer) logCloseHangDebugInfo() {
+func (s *TestServer) logCloseHangDebugInfo() {
 	s.mu.Lock()
 	defer s.mu.Unlock()
 	var buf bytes.Buffer
@@ -145,7 +147,7 @@ func (s *TServer) logCloseHangDebugInfo() {
 }
 
 // CloseClientConnections closes any open HTTP connections to the test Server.
-func (s *TServer) CloseClientConnections() {
+func (s *TestServer) CloseClientConnections() {
 	s.mu.Lock()
 	nconn := len(s.conns)
 	ch := make(chan struct{}, nconn)
@@ -174,30 +176,30 @@ func (s *TServer) CloseClientConnections() {
 
 // Certificate returns the certificate used by the server, or nil if
 // the server doesn't use TLS.
-func (s *TServer) Certificate() *x509.Certificate {
+func (s *TestServer) Certificate() *x509.Certificate {
 	return s.certificate
 }
 
 // Client returns an HTTP client configured for making requests to the server.
 // It is configured to trust the server's TLS test certificate and will
 // close its idle connections on Server.Close.
-func (s *TServer) Client() *cli.Client {
+func (s *TestServer) Client() *cli.Client {
 	return s.client
 }
 
-func (s *TServer) goServe() {
+func (s *TestServer) goServe() {
 	s.wg.Add(1)
 	go func() {
 		defer s.wg.Done()
-		s.Config.Serve(s.Listener)
+		s.Server.Serve(s.Listener)
 	}()
 }
 
 // wrap installs the connection state-tracking hook to know which
 // connections are idle.
-func (s *TServer) wrap() {
-	oldHook := s.Config.ConnState
-	s.Config.ConnState = func(c net.Conn, cs ConnState) {
+func (s *TestServer) wrap() {
+	oldHook := s.Server.ConnState
+	s.Server.ConnState = func(c net.Conn, cs ConnState) {
 		s.mu.Lock()
 		defer s.mu.Unlock()
 		switch cs {
@@ -245,11 +247,11 @@ func (s *TServer) wrap() {
 
 // closeConn closes c.
 // s.mu must be held.
-func (s *TServer) closeConn(c net.Conn) { s.closeConnChan(c, nil) }
+func (s *TestServer) closeConn(c net.Conn) { s.closeConnChan(c, nil) }
 
 // closeConnChan is like closeConn, but takes an optional channel to receive a value
 // when the goroutine closing c is done.
-func (s *TServer) closeConnChan(c net.Conn, done chan<- struct{}) {
+func (s *TestServer) closeConnChan(c net.Conn, done chan<- struct{}) {
 	c.Close()
 	if done != nil {
 		done <- struct{}{}
@@ -259,7 +261,7 @@ func (s *TServer) closeConnChan(c net.Conn, done chan<- struct{}) {
 // forgetConn removes c from the set of tracked conns and decrements it from the
 // waitgroup, unless it was previously removed.
 // s.mu must be held.
-func (s *TServer) forgetConn(c net.Conn) {
+func (s *TestServer) forgetConn(c net.Conn) {
 	if _, ok := s.conns[c]; ok {
 		delete(s.conns, c)
 		s.wg.Done()

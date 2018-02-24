@@ -14,8 +14,6 @@ import (
 	"strconv"
 	"strings"
 	"time"
-
-	"http/chunks"
 )
 
 // shouldSendChunkedRequestBody reports whether we should try to send a
@@ -192,9 +190,9 @@ func (t *transferWriter) WriteBody(w io.Writer) error {
 		var body = transferBodyReader{t}
 		if chunked(t.TransferEncoding) {
 			if bw, ok := w.(*bufio.Writer); ok && !t.IsResponse {
-				w = &chunks.FlushAfterChunkWriter{Writer: bw}
+				w = &FlushAfterChunkWriter{Writer: bw}
 			}
-			cw := chunks.NewChunkedWriter(w)
+			cw := &chunkedWriter{w}
 			_, err = io.Copy(cw, body)
 			if err == nil {
 				err = cw.Close()

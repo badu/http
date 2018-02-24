@@ -22,8 +22,8 @@ import (
 )
 
 var (
-	optQuietLog = func(ts *th.TServer) {
-		ts.Config.ErrorLog = log.New(ioutil.Discard, "", 0)
+	optQuietLog = func(ts *th.TestServer) {
+		ts.Server.ErrorLog = log.New(ioutil.Discard, "", 0)
 	}
 	robotsTxtHandler = HandlerFunc(func(w ResponseWriter, r *Request) {
 		w.Header().Set(LastModified, "sometime")
@@ -41,7 +41,7 @@ type (
 	clientServerTest struct {
 		t  *testing.T
 		h  Handler
-		ts *th.TServer
+		ts *th.TestServer
 		tr *Transport
 		c  *cli.Client
 	}

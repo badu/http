@@ -174,7 +174,7 @@ func newClientServerTest(t *testing.T, h Handler, opts ...interface{}) *clientSe
 		switch opt := opt.(type) {
 		case func(*Transport):
 			opt(cst.tr)
-		case func(*th.TServer):
+		case func(*th.TestServer):
 			opt(cst.ts)
 		default:
 			t.Fatalf("unhandled option type %T", opt)
