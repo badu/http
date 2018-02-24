@@ -217,11 +217,13 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 	}
 
 	// Process Body,ContentLength,Close,Trailer
-	tw, err := newTransferWriter(r)
+	transfWriter, err := r.createWriter()
 	if err != nil {
 		return err
 	}
-	err = tw.WriteHeader(w)
+
+	//TODO : @badu - maybe move code below into createWriter()
+	err = transfWriter.WriteHeader(w)
 	if err != nil {
 		return err
 	}
@@ -264,16 +266,16 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 		}
 	}
 
-	if bw, ok := w.(*bufio.Writer); ok && tw.FlushHeaders {
+	if bw, ok := w.(*bufio.Writer); ok && transfWriter.FlushHeaders {
 		if err := bw.Flush(); err != nil {
 			return err
 		}
 	}
 
 	// Write body and trailer
-	err = tw.WriteBody(w)
+	err = transfWriter.WriteBody(w)
 	if err != nil {
-		if tw.bodyReadError == err {
+		if transfWriter.bodyReadError == err {
 			err = RequestBodyReadError{err}
 		}
 		return err
@@ -283,6 +285,51 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 		return bw.Flush()
 	}
 	return nil
+}
+
+func (r *Request) createWriter() (*transferWriter, error) {
+	if r.ContentLength != 0 && r.Body == nil {
+		return nil, fmt.Errorf("http: Request.ContentLength=%d with nil Body", r.ContentLength)
+	}
+
+	t := &transferWriter{
+		Method:           ValueOrDefault(r.Method, GET),
+		Close:            r.Close,
+		TransferEncoding: r.TransferEncoding,
+		Header:           r.Header,
+		Trailer:          r.Trailer,
+		Body:             r.Body,
+		BodyCloser:       r.Body,
+		ContentLength:    r.OutgoingLength(),
+	}
+
+	if t.ContentLength < 0 && len(t.TransferEncoding) == 0 && t.shouldSendChunkedRequestBody() {
+		t.TransferEncoding = []string{DoChunked}
+	}
+
+	// Sanitize Body, ContentLength, TransferEncoding
+	if t.ResponseToHEAD {
+		t.Body = nil
+		if chunked(t.TransferEncoding) {
+			t.ContentLength = -1
+		}
+	} else {
+		if t.Body == nil {
+			t.TransferEncoding = nil
+		}
+		if chunked(t.TransferEncoding) {
+			t.ContentLength = -1
+		} else if t.Body == nil { // no chunking, no body
+			t.ContentLength = 0
+		}
+	}
+
+	// Sanitize Trailer
+	if !chunked(t.TransferEncoding) {
+		t.Trailer = nil
+	}
+
+	return t, nil
 }
 
 // BasicAuth returns the username and password provided in the request's

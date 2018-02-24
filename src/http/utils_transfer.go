@@ -32,71 +32,6 @@ func requestMethodUsuallyLacksBody(method string) bool {
 	return false
 }
 
-// TODO : @badu - replace this with two functions - for Request and Response (un-necessary optimisation)
-func newTransferWriter(r interface{}) (*transferWriter, error) {
-
-	t := &transferWriter{}
-
-	// Extract relevant fields
-	atLeastHTTP11 := false
-	switch rr := r.(type) {
-	case *Request:
-		if rr.ContentLength != 0 && rr.Body == nil {
-			return nil, fmt.Errorf("http: Request.ContentLength=%d with nil Body", rr.ContentLength)
-		}
-		t.Method = ValueOrDefault(rr.Method, GET)
-		t.Close = rr.Close
-		t.TransferEncoding = rr.TransferEncoding
-		t.Header = rr.Header
-		t.Trailer = rr.Trailer
-		t.Body = rr.Body
-		t.BodyCloser = rr.Body
-		t.ContentLength = rr.OutgoingLength()
-		if t.ContentLength < 0 && len(t.TransferEncoding) == 0 && t.shouldSendChunkedRequestBody() {
-			t.TransferEncoding = []string{DoChunked}
-		}
-		atLeastHTTP11 = true // Transport requests are always 1.1
-	case *Response:
-		t.IsResponse = true
-		if rr.Request != nil {
-			t.Method = rr.Request.Method
-		}
-		t.Body = rr.Body
-		t.BodyCloser = rr.Body
-		t.ContentLength = rr.ContentLength
-		t.Close = rr.Close
-		t.TransferEncoding = rr.TransferEncoding
-		t.Header = rr.Header
-		t.Trailer = rr.Trailer
-		atLeastHTTP11 = rr.ProtoAtLeast(1, 1)
-		t.ResponseToHEAD = noResponseBodyExpected(t.Method)
-	}
-
-	// Sanitize Body,ContentLength,TransferEncoding
-	if t.ResponseToHEAD {
-		t.Body = nil
-		if chunked(t.TransferEncoding) {
-			t.ContentLength = -1
-		}
-	} else {
-		if !atLeastHTTP11 || t.Body == nil {
-			t.TransferEncoding = nil
-		}
-		if chunked(t.TransferEncoding) {
-			t.ContentLength = -1
-		} else if t.Body == nil { // no chunking, no body
-			t.ContentLength = 0
-		}
-	}
-
-	// Sanitize Trailer
-	if !chunked(t.TransferEncoding) {
-		t.Trailer = nil
-	}
-
-	return t, nil
-}
-
 func noResponseBodyExpected(requestMethod string) bool {
 	return requestMethod == HEAD
 }
@@ -126,35 +61,19 @@ func suppressedHeaders(status int) []string {
 	return nil
 }
 
-// TODO : @badu - replace this with two functions - for Request and Response (un-necessary optimisation)
-// msg is *Request or *Response.
-func readTransfer(msg interface{}, r *bufio.Reader) error {
-	t := &transferReader{RequestMethod: GET}
+// @comment : called from public_response.go ReadResponse function - used in transport and tests
+func readTransferResponse(resp *Response, r *bufio.Reader) error {
+	t := &transferReader{
+		RequestMethod: GET,
+		Header:        resp.Header,
+		StatusCode:    resp.StatusCode,
+		ProtoMajor:    resp.ProtoMajor,
+		ProtoMinor:    resp.ProtoMinor,
+		Close:         shouldClose(resp.ProtoMajor, resp.ProtoMinor, resp.Header, true),
+	}
 
-	// Unify input
-	isResponse := false
-	switch rr := msg.(type) {
-	case *Response:
-		t.Header = rr.Header
-		t.StatusCode = rr.StatusCode
-		t.ProtoMajor = rr.ProtoMajor
-		t.ProtoMinor = rr.ProtoMinor
-		t.Close = shouldClose(t.ProtoMajor, t.ProtoMinor, t.Header, true)
-		isResponse = true
-		if rr.Request != nil {
-			t.RequestMethod = rr.Request.Method
-		}
-	case *Request:
-		t.Header = rr.Header
-		t.RequestMethod = rr.Method
-		t.ProtoMajor = rr.ProtoMajor
-		t.ProtoMinor = rr.ProtoMinor
-		// Transfer semantics for Requests are exactly like those for
-		// Responses with status code 200, responding to a GET method
-		t.StatusCode = 200
-		t.Close = rr.Close
-	default:
-		panic("unexpected type")
+	if resp.Request != nil {
+		t.RequestMethod = resp.Request.Method
 	}
 
 	// Default to HTTP/1.1
@@ -168,11 +87,12 @@ func readTransfer(msg interface{}, r *bufio.Reader) error {
 		return err
 	}
 
-	realLength, err := fixLength(isResponse, t.StatusCode, t.RequestMethod, t.Header, t.TransferEncoding)
+	realLength, err := fixLength(true, t.StatusCode, t.RequestMethod, t.Header, t.TransferEncoding)
 	if err != nil {
 		return err
 	}
-	if isResponse && t.RequestMethod == HEAD {
+
+	if t.RequestMethod == HEAD {
 		if n, err := parseContentLength(t.Header.get(ContentLength)); err != nil {
 			return err
 		} else {
@@ -191,14 +111,11 @@ func readTransfer(msg interface{}, r *bufio.Reader) error {
 	// If there is no Content-Length or chunked Transfer-Encoding on a *Response
 	// and the status is not 1xx, 204 or 304, then the body is unbounded.
 	// See RFC 2616, section 4.4.
-	switch msg.(type) {
-	case *Response:
-		if realLength == -1 &&
-			!chunked(t.TransferEncoding) &&
-			bodyAllowedForStatus(t.StatusCode) {
-			// Unbounded body.
-			t.Close = true
-		}
+	if realLength == -1 &&
+		!chunked(t.TransferEncoding) &&
+		bodyAllowedForStatus(t.StatusCode) {
+		// Unbounded body.
+		t.Close = true
 	}
 
 	// Prepare body reader. ContentLength < 0 means chunked encoding
@@ -208,7 +125,75 @@ func readTransfer(msg interface{}, r *bufio.Reader) error {
 		if noResponseBodyExpected(t.RequestMethod) {
 			t.Body = NoBody
 		} else {
-			t.Body = &body{reader: chunks.NewChunkedReader(r), responseOrRequestIntf: msg, r: r, isClosing: t.Close}
+			t.Body = &body{reader: chunks.NewChunkedReader(r), responseOrRequestIntf: resp, r: r, isClosing: t.Close}
+		}
+	case realLength == 0:
+		t.Body = NoBody
+	case realLength > 0:
+		t.Body = &body{reader: io.LimitReader(r, realLength), isClosing: t.Close}
+	default:
+		// realLength < 0, i.e. "Content-Length" not mentioned in header
+		if t.Close {
+			// Close semantics (i.e. HTTP/1.0)
+			t.Body = &body{reader: r, isClosing: t.Close}
+		} else {
+			// Persistent connection (i.e. HTTP/1.1)
+			t.Body = NoBody
+		}
+	}
+	//TODO : @badu - maybe we should directly work with Body of response
+	resp.Body = t.Body
+	resp.ContentLength = t.ContentLength
+	resp.TransferEncoding = t.TransferEncoding
+	resp.Close = t.Close
+	resp.Trailer = t.Trailer
+
+	return nil
+}
+
+func readTransferRequest(req *Request, r *bufio.Reader) error {
+	// Transfer semantics for Requests are exactly like those for
+	// Responses with status code 200, responding to a GET method
+	t := &transferReader{
+		Header:        req.Header,
+		RequestMethod: req.Method,
+		ProtoMajor:    req.ProtoMajor,
+		ProtoMinor:    req.ProtoMinor,
+		StatusCode:    200,
+		Close:         req.Close,
+	}
+
+	// Default to HTTP/1.1
+	if t.ProtoMajor == 0 && t.ProtoMinor == 0 {
+		t.ProtoMajor, t.ProtoMinor = 1, 1
+	}
+
+	// Transfer encoding, content length
+	err := t.fixTransferEncoding()
+	if err != nil {
+		return err
+	}
+
+	realLength, err := fixLength(false, t.StatusCode, t.RequestMethod, t.Header, t.TransferEncoding)
+	if err != nil {
+		return err
+	}
+	t.ContentLength = realLength
+
+	// Trailer
+	t.Trailer, err = fixTrailer(t.Header, t.TransferEncoding)
+	if err != nil {
+		return err
+	}
+
+	// Prepare body reader. ContentLength < 0 means chunked encoding
+	// or close connection when finished, since multipart is not supported yet
+	switch {
+	case chunked(t.TransferEncoding):
+		if noResponseBodyExpected(t.RequestMethod) {
+			t.Body = NoBody
+		} else {
+			t.Body = &body{reader: chunks.NewChunkedReader(r), responseOrRequestIntf: req, r: r, isClosing: t.Close}
 		}
 	case realLength == 0:
 		t.Body = NoBody
@@ -225,21 +210,12 @@ func readTransfer(msg interface{}, r *bufio.Reader) error {
 		}
 	}
 
-	// Unify output
-	switch rr := msg.(type) {
-	case *Request:
-		rr.Body = t.Body
-		rr.ContentLength = t.ContentLength
-		rr.TransferEncoding = t.TransferEncoding
-		rr.Close = t.Close
-		rr.Trailer = t.Trailer
-	case *Response:
-		rr.Body = t.Body
-		rr.ContentLength = t.ContentLength
-		rr.TransferEncoding = t.TransferEncoding
-		rr.Close = t.Close
-		rr.Trailer = t.Trailer
-	}
+	//TODO : @badu - maybe we should directly work with Body of request
+	req.Body = t.Body
+	req.ContentLength = t.ContentLength
+	req.TransferEncoding = t.TransferEncoding
+	req.Close = t.Close
+	req.Trailer = t.Trailer
 
 	return nil
 }

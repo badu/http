@@ -73,6 +73,7 @@ func (r *Response) Write(w io.Writer) error {
 
 	// Clone it, so we can modify r1 as needed.
 	r1 := new(Response)
+	//TODO : @badu - what an ugly way to clone
 	*r1 = *r
 	if r1.ContentLength == 0 && r1.Body != nil {
 		// Is it actually 0 length? Or just unknown?
@@ -105,10 +106,12 @@ func (r *Response) Write(w io.Writer) error {
 	}
 
 	// Process Body,ContentLength,Close,Trailer
-	tw, err := newTransferWriter(r1)
+	tw, err := r1.createWriter()
 	if err != nil {
 		return err
 	}
+
+	//TODO : @badu - maybe move code below into createWriter()
 	err = tw.WriteHeader(w)
 	if err != nil {
 		return err
@@ -142,6 +145,48 @@ func (r *Response) Write(w io.Writer) error {
 
 	// Success
 	return nil
+}
+func (r *Response) createWriter() (*transferWriter, error) {
+	t := &transferWriter{
+		Body:             r.Body,
+		BodyCloser:       r.Body,
+		ContentLength:    r.ContentLength,
+		Close:            r.Close,
+		TransferEncoding: r.TransferEncoding,
+		Header:           r.Header,
+		Trailer:          r.Trailer,
+		IsResponse:       true,
+	}
+
+	if r.Request != nil {
+		t.Method = r.Request.Method
+	}
+	t.ResponseToHEAD = noResponseBodyExpected(t.Method)
+	atLeastHTTP11 := r.ProtoAtLeast(1, 1)
+
+	// Sanitize Body, ContentLength, TransferEncoding
+	if t.ResponseToHEAD {
+		t.Body = nil
+		if chunked(t.TransferEncoding) {
+			t.ContentLength = -1
+		}
+	} else {
+		if !atLeastHTTP11 || t.Body == nil {
+			t.TransferEncoding = nil
+		}
+		if chunked(t.TransferEncoding) {
+			t.ContentLength = -1
+		} else if t.Body == nil { // no chunking, no body
+			t.ContentLength = 0
+		}
+	}
+
+	// Sanitize Trailer
+	if !chunked(t.TransferEncoding) {
+		t.Trailer = nil
+	}
+
+	return t, nil
 }
 
 // @comment : decided to go public with this function - called everywhere
