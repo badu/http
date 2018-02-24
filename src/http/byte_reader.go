@@ -7,14 +7,14 @@ package http
 
 import "io"
 
-func (br *byteReader) Read(p []byte) (n int, err error) {
-	if br.done {
+func (r *byteReader) Read(p []byte) (int, error) {
+	if r.done {
 		return 0, io.EOF
 	}
 	if len(p) == 0 {
 		return 0, nil
 	}
-	br.done = true
-	p[0] = br.b
+	r.done = true
+	p[0] = r.b
 	return 1, io.EOF
 }

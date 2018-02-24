@@ -141,19 +141,17 @@ func (r *Request) WriteProxy(w io.Writer) error {
 }
 
 // @comment : used only in persist_conn.go of the transport
-func (r *Request) IWrite(w io.Writer, usingProxy bool, extraHeaders Header, waitForContinue func() bool) (err error) {
+func (r *Request) IWrite(w io.Writer, usingProxy bool, extraHeaders Header, waitForContinue func() bool) error {
 	return r.write(w, usingProxy, extraHeaders, waitForContinue)
 }
 
 // extraHeaders may be nil
 // waitForContinue may be nil
-func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitForContinue func() bool) (err error) {
+func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitForContinue func() bool) error {
 	tracer := trc.ContextClientTrace(r.Context())
 	if tracer != nil && tracer.WroteRequest != nil {
 		defer func() {
-			tracer.WroteRequest(trc.WroteRequestInfo{
-				Err: err,
-			})
+			tracer.WroteRequest(trc.WroteRequestInfo{})
 		}()
 	}
 
@@ -193,6 +191,7 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 		w = bw
 	}
 
+	var err error
 	_, err = fmt.Fprintf(w, "%s %s HTTP/1.1\r\n", ValueOrDefault(r.Method, GET), ruri)
 	if err != nil {
 		return err
@@ -289,10 +288,10 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 // BasicAuth returns the username and password provided in the request's
 // Authorization header, if the request uses HTTP Basic Authentication.
 // See RFC 2617, Section 2.
-func (r *Request) BasicAuth() (username, password string, ok bool) {
+func (r *Request) BasicAuth() (string, string, bool) {
 	auth := r.Header.Get(Authorization)
 	if auth == "" {
-		return
+		return "", "", false
 	}
 	return parseBasicAuth(auth)
 }

@@ -44,10 +44,10 @@ type (
 		done bool
 	}
 
-	// transferBodyReader is an io.Reader that reads from tw.Body
-	// and records any non-EOF error in tw.bodyReadError.
+	// transferBodyReader is an io.Reader that reads from transferWriter.Body
+	// and records any non-EOF error in transferWriter.bodyReadError.
 	// It is exactly 1 pointer wide to avoid allocations into interfaces.
-	transferBodyReader struct{ tw *transferWriter }
+	transferBodyReader struct{ transferWriter *transferWriter }
 
 	// transferWriter inspects the fields of a user-supplied Request or Response,
 	// sanitizes them without changing the user object and provides methods for
@@ -63,10 +63,9 @@ type (
 		Header           Header
 		Trailer          Header
 		IsResponse       bool
-		bodyReadError    error // any non-EOF error from reading Body
-
-		FlushHeaders bool            // flush headers to network before body
-		ByteReadCh   chan readResult // non-nil if probeRequestBody called
+		bodyReadError    error           // any non-EOF error from reading Body
+		FlushHeaders     bool            // flush headers to network before body
+		ByteReadCh       chan readResult // non-nil if probeRequestBody called
 	}
 
 	transferReader struct {
@@ -88,28 +87,27 @@ type (
 	// Close ensures that the body has been fully read
 	// and then reads the trailer if necessary.
 	body struct {
-		src          io.Reader
-		hdr          interface{}   // non-nil (Response or Request) value means read trailer
-		r            *bufio.Reader // underlying wire-format reader for the trailer
-		closing      bool          // is the connection to be closed after reading body?
-		doEarlyClose bool          // whether Close should stop early
-
-		mu         sync.Mutex // guards following, and calls to Read and Close
-		sawEOF     bool
-		closed     bool
-		earlyClose bool   // Close called and we didn't read to the end of src
-		onHitEOF   func() // if non-nil, func to call when EOF is Read
+		mu                    sync.Mutex // guards following, and calls to Read and Close
+		reader                io.Reader
+		responseOrRequestIntf interface{}   // non-nil (Response or Request) value means read trailer
+		r                     *bufio.Reader // underlying wire-format reader for the trailer
+		isClosing             bool          // is the connection to be closed after reading body?
+		doEarlyClose          bool          // whether Close should stop early
+		hasSawEOF             bool
+		isClosed              bool
+		isEarlyClose          bool   // Close called and we didn't read to the end of src
+		onHitEOF              func() // if non-nil, func to call when EOF is Read
 	}
 
 	// bodyLocked is a io.Reader reading from a *body when its mutex is
 	// already held.
 	bodyLocked struct {
-		b *body
+		body *body
 	}
 
 	// finishAsyncByteRead finishes reading the 1-byte sniff
 	// from the ContentLength==0, Body!=nil case.
 	finishAsyncByteRead struct {
-		tw *transferWriter
+		transferWriter *transferWriter
 	}
 )

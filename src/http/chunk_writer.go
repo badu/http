@@ -16,47 +16,47 @@ import (
 	"http/sniff"
 )
 
-func (cw *chunkWriter) Write(p []byte) (n int, err error) {
-	if !cw.wroteHeader {
-		cw.writeHeader(p)
+func (w *chunkWriter) Write(p []byte) (int, error) {
+	if !w.wroteHeader {
+		w.writeHeader(p)
 	}
-	if cw.res.req.Method == HEAD {
+	if w.res.req.Method == HEAD {
 		// Eat writes.
 		return len(p), nil
 	}
-	if cw.chunking {
-		_, err = fmt.Fprintf(cw.res.conn.bufWriter, "%x\r\n", len(p))
+	if w.chunking {
+		_, err := fmt.Fprintf(w.res.conn.bufWriter, "%x\r\n", len(p))
 		if err != nil {
-			cw.res.conn.netConIface.Close()
-			return
+			w.res.conn.netConIface.Close()
+			return 0, err
 		}
 	}
-	n, err = cw.res.conn.bufWriter.Write(p)
-	if cw.chunking && err == nil {
-		_, err = cw.res.conn.bufWriter.Write(crlf)
+	n, err := w.res.conn.bufWriter.Write(p)
+	if w.chunking && err == nil {
+		_, err = w.res.conn.bufWriter.Write(crlf)
 	}
 	if err != nil {
-		cw.res.conn.netConIface.Close()
+		w.res.conn.netConIface.Close()
 	}
-	return
+	return n, err
 }
 
-func (cw *chunkWriter) flush() {
-	if !cw.wroteHeader {
-		cw.writeHeader(nil)
+func (w *chunkWriter) flush() {
+	if !w.wroteHeader {
+		w.writeHeader(nil)
 	}
-	cw.res.conn.bufWriter.Flush()
+	w.res.conn.bufWriter.Flush()
 }
 
-func (cw *chunkWriter) close() {
-	if !cw.wroteHeader {
-		cw.writeHeader(nil)
+func (w *chunkWriter) close() {
+	if !w.wroteHeader {
+		w.writeHeader(nil)
 	}
-	if cw.chunking {
-		bw := cw.res.conn.bufWriter // conn's bufio writer
+	if w.chunking {
+		bw := w.res.conn.bufWriter // conn's bufio writer
 		// zero chunk to mark EOF
 		bw.WriteString("0\r\n")
-		if trailers := cw.res.finalTrailers(); trailers != nil {
+		if trailers := w.res.finalTrailers(); trailers != nil {
 			trailers.Write(bw) // the writer handles noting errors
 		}
 		// final blank line after the trailers (whether
@@ -73,26 +73,26 @@ func (cw *chunkWriter) close() {
 // set explicitly. It's also used to set the Content-Length, if the
 // total body size was small and the handler has already finished
 // running.
-func (cw *chunkWriter) writeHeader(p []byte) {
-	if cw.wroteHeader {
+func (w *chunkWriter) writeHeader(p []byte) {
+	if w.wroteHeader {
 		//TODO : @Badu - maybe, just maybe, some of these methods should return an error, so we don't silently discard behavior
 		return
 	}
-	cw.wroteHeader = true
+	w.wroteHeader = true
 
-	w := cw.res
-	keepAlivesEnabled := w.conn.server.doKeepAlives()
-	isHEAD := w.req.Method == HEAD
+	res := w.res
+	keepAlivesEnabled := res.conn.server.doKeepAlives()
+	isHEAD := res.req.Method == HEAD
 
 	// header is written out to w.conn.buf below. Depending on the
 	// state of the handler, we either own the map or not. If we
 	// don't own it, the exclude map is created lazily for
 	// WriteSubset to remove headers. The setHeader struct holds
 	// headers we need to add.
-	header := cw.header
+	header := w.header
 	owned := header != nil
 	if !owned {
-		header = w.handlerHeader
+		header = res.handlerHeader
 	}
 	var excludeHeader map[string]bool
 	delHeader := func(key string) {
@@ -112,7 +112,7 @@ func (cw *chunkWriter) writeHeader(p []byte) {
 
 	// Don't write out the fake "Trailer:foo" keys. See TrailerPrefix.
 	trailers := false
-	for k := range cw.header {
+	for k := range w.header {
 		if strings.HasPrefix(k, TrailerPrefix) {
 			if excludeHeader == nil {
 				excludeHeader = make(map[string]bool)
@@ -121,9 +121,9 @@ func (cw *chunkWriter) writeHeader(p []byte) {
 			trailers = true
 		}
 	}
-	for _, v := range cw.header[Trailer] {
+	for _, v := range w.header[Trailer] {
 		trailers = true
-		foreachHeaderElement(v, cw.res.declareTrailer)
+		foreachHeaderElement(v, w.res.declareTrailer)
 	}
 
 	te := header.get(TransferEncoding)
@@ -143,34 +143,34 @@ func (cw *chunkWriter) writeHeader(p []byte) {
 	// send a Content-Length header.
 	// Further, we don't send an automatic Content-Length if they
 	// set a Transfer-Encoding, because they're generally incompatible.
-	if w.handlerDone.isSet() && !trailers && !hasTE && bodyAllowedForStatus(w.status) && header.get(ContentLength) == "" && (!isHEAD || len(p) > 0) {
-		w.contentLength = int64(len(p))
-		setHeader.contentLength = strconv.AppendInt(cw.res.clenBuf[:0], int64(len(p)), 10)
+	if res.handlerDone.isSet() && !trailers && !hasTE && bodyAllowedForStatus(res.status) && header.get(ContentLength) == "" && (!isHEAD || len(p) > 0) {
+		res.contentLength = int64(len(p))
+		setHeader.contentLength = strconv.AppendInt(w.res.clenBuf[:0], int64(len(p)), 10)
 	}
 
 	// If this was an HTTP/1.0 request with keep-alive and we sent a
 	// Content-Length back, we can make this a keep-alive response ...
-	if w.wants10KeepAlive && keepAlivesEnabled {
+	if res.wants10KeepAlive && keepAlivesEnabled {
 		sentLength := header.get(ContentLength) != ""
 		if sentLength && header.get(Connection) == DoKeepAlive {
-			w.closeAfterReply = false
+			res.closeAfterReply = false
 		}
 	}
 
 	// Check for a explicit (and valid) Content-Length header.
-	hasCL := w.contentLength != -1
+	hasCL := res.contentLength != -1
 
-	if w.wants10KeepAlive && (isHEAD || hasCL || !bodyAllowedForStatus(w.status)) {
+	if res.wants10KeepAlive && (isHEAD || hasCL || !bodyAllowedForStatus(res.status)) {
 		_, connectionHeaderSet := header[Connection]
 		if !connectionHeaderSet {
 			setHeader.connection = DoKeepAlive
 		}
-	} else if !w.req.ProtoAtLeast(1, 1) || w.wantsClose {
-		w.closeAfterReply = true
+	} else if !res.req.ProtoAtLeast(1, 1) || res.wantsClose {
+		res.closeAfterReply = true
 	}
 
 	if header.get(Connection) == DoClose || !keepAlivesEnabled {
-		w.closeAfterReply = true
+		res.closeAfterReply = true
 	}
 
 	// If the client wanted a 100-continue but we never sent it to
@@ -185,8 +185,8 @@ func (cw *chunkWriter) writeHeader(p []byte) {
 	// because we don't know if the next bytes on the wire will be
 	// the body-following-the-timer or the subsequent request.
 	// See Issue 11549.
-	if ecr, ok := w.req.Body.(*expectContinueReader); ok && !ecr.sawEOF {
-		w.closeAfterReply = true
+	if ecr, ok := res.req.Body.(*expectContinueReader); ok && !ecr.sawEOF {
+		res.closeAfterReply = true
 	}
 
 	// Per RFC 2616, we should consume the request body before
@@ -196,10 +196,10 @@ func (cw *chunkWriter) writeHeader(p []byte) {
 	// TODO(bradfitz): where does RFC 2616 say that? See Issue 15527
 	// about HTTP/1.x Handlers concurrently reading and writing, like
 	// HTTP/2 handlers can do. Maybe this code should be relaxed?
-	if w.req.ContentLength != 0 && !w.closeAfterReply {
+	if res.req.ContentLength != 0 && !res.closeAfterReply {
 		var discard, tooBig bool
 
-		switch bdy := w.req.Body.(type) {
+		switch bdy := res.req.Body.(type) {
 		case *expectContinueReader:
 			if bdy.resp.wroteContinue {
 				discard = true
@@ -207,10 +207,10 @@ func (cw *chunkWriter) writeHeader(p []byte) {
 		case *body:
 			bdy.mu.Lock()
 			switch {
-			case bdy.closed:
-				if !bdy.sawEOF {
+			case bdy.isClosed:
+				if !bdy.hasSawEOF {
 					// Body was closed in handler with non-EOF error.
-					w.closeAfterReply = true
+					res.closeAfterReply = true
 				}
 			case bdy.unreadDataSizeLocked() >= maxPostHandlerReadBytes:
 				tooBig = true
@@ -223,7 +223,7 @@ func (cw *chunkWriter) writeHeader(p []byte) {
 		}
 
 		if discard {
-			_, err := io.CopyN(ioutil.Discard, w.reqBody, maxPostHandlerReadBytes+1)
+			_, err := io.CopyN(ioutil.Discard, res.reqBody, maxPostHandlerReadBytes+1)
 			switch err {
 			case nil:
 				// There must be even more data left over.
@@ -232,26 +232,26 @@ func (cw *chunkWriter) writeHeader(p []byte) {
 				// Body was already consumed and closed.
 			case io.EOF:
 				// The remaining body was just consumed, close it.
-				err = w.reqBody.Close()
+				err = res.reqBody.Close()
 				if err != nil {
-					w.closeAfterReply = true
+					res.closeAfterReply = true
 				}
 			default:
 				// Some other kind of error occurred, like a read timeout, or
 				// corrupt chunked encoding. In any case, whatever remains
 				// on the wire must not be parsed as another HTTP request.
-				w.closeAfterReply = true
+				res.closeAfterReply = true
 			}
 		}
 
 		if tooBig {
-			w.requestTooLarge()
+			res.requestTooLarge()
 			delHeader(Connection)
 			setHeader.connection = DoClose
 		}
 	}
 
-	code := w.status
+	code := res.status
 	if bodyAllowedForStatus(code) {
 		// If no content type, apply sniffing algorithm to body.
 		_, haveType := header[ContentType]
@@ -265,36 +265,36 @@ func (cw *chunkWriter) writeHeader(p []byte) {
 	}
 
 	if _, ok := header[Date]; !ok {
-		setHeader.date = appendTime(cw.res.dateBuf[:0], time.Now())
+		setHeader.date = appendTime(w.res.dateBuf[:0], time.Now())
 	}
 
 	if hasCL && hasTE && te != DoIdentity {
 		// TODO: return an error if WriteHeader gets a return parameter
 		// For now just ignore the Content-Length.
-		w.conn.server.logf("http: WriteHeader called with both Transfer-Encoding of %q and a Content-Length of %d", te, w.contentLength)
+		res.conn.server.logf("http: WriteHeader called with both Transfer-Encoding of %q and a Content-Length of %d", te, res.contentLength)
 		delHeader(ContentLength)
 		hasCL = false
 	}
 
-	if w.req.Method == HEAD || !bodyAllowedForStatus(code) {
+	if res.req.Method == HEAD || !bodyAllowedForStatus(code) {
 		// do nothing
 	} else if code == StatusNoContent {
 		delHeader(TransferEncoding)
 	} else if hasCL {
 		delHeader(TransferEncoding)
-	} else if w.req.ProtoAtLeast(1, 1) {
+	} else if res.req.ProtoAtLeast(1, 1) {
 		// HTTP/1.1 or greater: Transfer-Encoding has been set to identity,  and no
 		// content-length has been provided. The connection must be closed after the
 		// reply is written, and no chunking is to be done. This is the setup
 		// recommended in the Server-Sent Events candidate recommendation 11,
 		// section 8.
 		if hasTE && te == DoIdentity {
-			cw.chunking = false
-			w.closeAfterReply = true
+			w.chunking = false
+			res.closeAfterReply = true
 		} else {
 			// HTTP/1.1 or greater: use chunked transfer encoding
 			// to avoid closing the connection at EOF.
-			cw.chunking = true
+			w.chunking = true
 			setHeader.transferEncoding = DoChunked
 			if hasTE && te == DoChunked {
 				// We will send the chunked Transfer-Encoding header later.
@@ -305,27 +305,27 @@ func (cw *chunkWriter) writeHeader(p []byte) {
 		// HTTP version < 1.1: cannot do chunked transfer
 		// encoding and we don't know the Content-Length so
 		// signal EOF by closing connection.
-		w.closeAfterReply = true
+		res.closeAfterReply = true
 		delHeader(TransferEncoding) // in case already set
 	}
 
 	// Cannot use Content-Length with non-identity Transfer-Encoding.
-	if cw.chunking {
+	if w.chunking {
 		delHeader(ContentLength)
 	}
-	if !w.req.ProtoAtLeast(1, 0) {
+	if !res.req.ProtoAtLeast(1, 0) {
 		return
 	}
 
-	if w.closeAfterReply && (!keepAlivesEnabled || !hasToken(cw.header.get(Connection), DoClose)) {
+	if res.closeAfterReply && (!keepAlivesEnabled || !hasToken(w.header.get(Connection), DoClose)) {
 		delHeader(Connection)
-		if w.req.ProtoAtLeast(1, 1) {
+		if res.req.ProtoAtLeast(1, 1) {
 			setHeader.connection = DoClose
 		}
 	}
 
-	writeStatusLine(w.conn.bufWriter, w.req.ProtoAtLeast(1, 1), code, w.statusBuf[:])
-	cw.header.WriteSubset(w.conn.bufWriter, excludeHeader)
-	setHeader.Write(w.conn.bufWriter)
-	w.conn.bufWriter.Write(crlf)
+	writeStatusLine(res.conn.bufWriter, res.req.ProtoAtLeast(1, 1), code, res.statusBuf[:])
+	w.header.WriteSubset(res.conn.bufWriter, excludeHeader)
+	setHeader.Write(res.conn.bufWriter)
+	res.conn.bufWriter.Write(crlf)
 }

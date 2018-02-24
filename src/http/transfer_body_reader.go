@@ -7,10 +7,10 @@ package http
 
 import "io"
 
-func (br transferBodyReader) Read(p []byte) (n int, err error) {
-	n, err = br.tw.Body.Read(p)
+func (b transferBodyReader) Read(p []byte) (int, error) {
+	n, err := b.transferWriter.Body.Read(p)
 	if err != nil && err != io.EOF {
-		br.tw.bodyReadError = err
+		b.transferWriter.bodyReadError = err
 	}
-	return
+	return n, err
 }

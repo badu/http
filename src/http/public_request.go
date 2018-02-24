@@ -28,7 +28,7 @@ func BasicAuth(username, password string) string {
 
 // ParseHTTPVersion parses a HTTP version string.
 // "HTTP/1.0" returns (1, 0, true).
-func ParseHTTPVersion(vers string) (major, minor int, ok bool) {
+func ParseHTTPVersion(vers string) (int, int, bool) {
 	const Big = 1000000 // arbitrary upper bound
 	switch vers {
 	case HTTP1_1:
@@ -47,7 +47,7 @@ func ParseHTTPVersion(vers string) (major, minor int, ok bool) {
 	if err != nil || major < 0 || major > Big {
 		return 0, 0, false
 	}
-	minor, err = strconv.Atoi(vers[dot+1:])
+	minor, err := strconv.Atoi(vers[dot+1:])
 	if err != nil || minor < 0 || minor > Big {
 		return 0, 0, false
 	}

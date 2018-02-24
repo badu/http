@@ -13,76 +13,80 @@ import (
 	"time"
 )
 
-func (cr *connReader) lock() {
-	cr.mu.Lock()
-	if cr.cond == nil {
-		cr.cond = sync.NewCond(&cr.mu)
+func (c *connReader) lock() {
+	c.mu.Lock()
+	if c.cond == nil {
+		// @comment : make a new condition having the locker c.mu
+		c.cond = sync.NewCond(&c.mu)
 	}
 }
 
-func (cr *connReader) unlock() { cr.mu.Unlock() }
+func (c *connReader) unlock() { c.mu.Unlock() }
 
-func (cr *connReader) startBackgroundRead() {
-	cr.lock()
-	defer cr.unlock()
-	if cr.inRead {
+// @comment : called directly and also callback which is set to body{}
+func (c *connReader) startBackgroundRead() {
+	c.lock()
+	defer c.unlock()
+	if c.inRead {
 		panic("invalid concurrent Body.Read call")
 	}
-	if cr.hasByte {
+	if c.hasByte {
 		return
 	}
-	cr.inRead = true
-	cr.conn.netConIface.SetReadDeadline(time.Time{})
-	go cr.backgroundRead()
+	c.inRead = true
+	c.conn.netConIface.SetReadDeadline(time.Time{})
+	go c.backgroundRead()
 }
 
-func (cr *connReader) backgroundRead() {
-	n, err := cr.conn.netConIface.Read(cr.byteBuf[:])
-	cr.lock()
+func (c *connReader) backgroundRead() {
+	n, err := c.conn.netConIface.Read(c.byteBuf[:])
+	c.lock()
 	if n == 1 {
-		cr.hasByte = true
+		c.hasByte = true
 		// We were at EOF already (since we wouldn't be in a
 		// background read otherwise), so this is a pipelined
 		// HTTP request.
-		cr.closeNotifyFromPipelinedRequest()
+		c.closeNotifyFromPipelinedRequest()
 	}
 	// @comment : net.Error is an interface : Timeout() bool and Temporary() bool
-	if ne, ok := err.(net.Error); ok && cr.aborted && ne.Timeout() {
+	if ne, ok := err.(net.Error); ok && c.aborted && ne.Timeout() {
 		// Ignore this error. It's the expected error from
 		// another goroutine calling abortPendingRead.
 	} else if err != nil {
-		cr.handleReadError(err)
+		c.handleReadError(err)
 	}
-	cr.aborted = false
-	cr.inRead = false
-	cr.unlock()
-	cr.cond.Broadcast()
+	c.aborted = false
+	c.inRead = false
+	c.unlock()
+	//@comment : wake all goroutines waiting on condition.
+	c.cond.Broadcast()
 }
 
-func (cr *connReader) abortPendingRead() {
-	cr.lock()
-	defer cr.unlock()
-	if !cr.inRead {
+func (c *connReader) abortPendingRead() {
+	c.lock()
+	defer c.unlock()
+	if !c.inRead {
 		return
 	}
-	cr.aborted = true
-	cr.conn.netConIface.SetReadDeadline(aLongTimeAgo)
-	for cr.inRead {
-		cr.cond.Wait()
+	c.aborted = true
+	c.conn.netConIface.SetReadDeadline(aLongTimeAgo)
+	//@comment : wait awoken by Broadcast or Signal
+	for c.inRead {
+		c.cond.Wait()
 	}
-	cr.conn.netConIface.SetReadDeadline(time.Time{})
+	c.conn.netConIface.SetReadDeadline(time.Time{})
 }
 
-func (cr *connReader) setReadLimit(remain int64) { cr.remain = remain }
+func (c *connReader) setReadLimit(remain int64) { c.remain = remain }
 
-func (cr *connReader) setInfiniteReadLimit() { cr.remain = MaxInt64 }
+func (c *connReader) setInfiniteReadLimit() { c.remain = MaxInt64 }
 
-func (cr *connReader) hitReadLimit() bool { return cr.remain <= 0 }
+func (c *connReader) hitReadLimit() bool { return c.remain <= 0 }
 
 // may be called from multiple goroutines.
-func (cr *connReader) handleReadError(err error) {
-	cr.conn.cancelCtx()
-	cr.closeNotify()
+func (c *connReader) handleReadError(err error) {
+	c.conn.cancelCtx()
+	c.closeNotify()
 }
 
 // closeNotifyFromPipelinedRequest simply calls closeNotify.
@@ -92,16 +96,15 @@ func (cr *connReader) handleReadError(err error) {
 // pipelined HTTP request, per the previous Go behavior and
 // documentation (that this "MAY" happen).
 //
-// TODO: consider changing this behavior and making context
-// cancelation and closenotify work the same.
-func (cr *connReader) closeNotifyFromPipelinedRequest() {
-	cr.closeNotify()
+// TODO: consider changing this behavior and making context cancelation and closenotify work the same.
+func (c *connReader) closeNotifyFromPipelinedRequest() {
+	c.closeNotify()
 }
 
 // may be called from multiple goroutines.
-func (cr *connReader) closeNotify() {
+func (c *connReader) closeNotify() {
 	// @comment : loads it from atomic value
-	res, _ := cr.conn.curReq.Load().(*response)
+	res, _ := c.conn.curReq.Load().(*response)
 	if res != nil {
 		if atomic.CompareAndSwapInt32(&res.didCloseNotify, 0, 1) {
 			res.closeNotifyCh <- true
@@ -109,41 +112,41 @@ func (cr *connReader) closeNotify() {
 	}
 }
 
-func (cr *connReader) Read(p []byte) (n int, err error) {
-	cr.lock()
-	if cr.inRead {
-		cr.unlock()
+func (c *connReader) Read(p []byte) (int, error) {
+	c.lock()
+	if c.inRead {
+		c.unlock()
 		panic("invalid concurrent Body.Read call")
 	}
-	if cr.hitReadLimit() {
-		cr.unlock()
+	if c.hitReadLimit() {
+		c.unlock()
 		return 0, io.EOF
 	}
 	if len(p) == 0 {
-		cr.unlock()
+		c.unlock()
 		return 0, nil
 	}
-	if int64(len(p)) > cr.remain {
-		p = p[:cr.remain]
+	if int64(len(p)) > c.remain {
+		p = p[:c.remain]
 	}
-	if cr.hasByte {
-		p[0] = cr.byteBuf[0]
-		cr.hasByte = false
-		cr.unlock()
+	if c.hasByte {
+		p[0] = c.byteBuf[0]
+		c.hasByte = false
+		c.unlock()
 		return 1, nil
 	}
-	cr.inRead = true
-	cr.unlock()
-	n, err = cr.conn.netConIface.Read(p)
+	c.inRead = true
+	c.unlock()
+	n, err := c.conn.netConIface.Read(p)
 
-	cr.lock()
-	cr.inRead = false
+	c.lock()
+	c.inRead = false
 	if err != nil {
-		cr.handleReadError(err)
+		c.handleReadError(err)
 	}
-	cr.remain -= int64(n)
-	cr.unlock()
-
-	cr.cond.Broadcast()
+	c.remain -= int64(n)
+	c.unlock()
+	//@comment : wake all goroutines waiting on condition.
+	c.cond.Broadcast()
 	return n, err
 }

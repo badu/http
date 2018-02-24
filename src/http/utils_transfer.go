@@ -209,17 +209,17 @@ func readTransfer(msg interface{}, r *bufio.Reader) error {
 		if noResponseBodyExpected(t.RequestMethod) {
 			t.Body = NoBody
 		} else {
-			t.Body = &body{src: chunks.NewChunkedReader(r), hdr: msg, r: r, closing: t.Close}
+			t.Body = &body{reader: chunks.NewChunkedReader(r), responseOrRequestIntf: msg, r: r, isClosing: t.Close}
 		}
 	case realLength == 0:
 		t.Body = NoBody
 	case realLength > 0:
-		t.Body = &body{src: io.LimitReader(r, realLength), closing: t.Close}
+		t.Body = &body{reader: io.LimitReader(r, realLength), isClosing: t.Close}
 	default:
 		// realLength < 0, i.e. "Content-Length" not mentioned in header
 		if t.Close {
 			// Close semantics (i.e. HTTP/1.0)
-			t.Body = &body{src: r, closing: t.Close}
+			t.Body = &body{reader: r, isClosing: t.Close}
 		} else {
 			// Persistent connection (i.e. HTTP/1.1)
 			t.Body = NoBody

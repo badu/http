@@ -5,14 +5,14 @@
 
 package http
 
-func (fr finishAsyncByteRead) Read(p []byte) (n int, err error) {
+func (f finishAsyncByteRead) Read(p []byte) (int, error) {
 	if len(p) == 0 {
-		return
+		return 0, nil
 	}
-	rres := <-fr.tw.ByteReadCh
-	n, err = rres.n, rres.err
+	rres := <-f.transferWriter.ByteReadCh
+	n, err := rres.n, rres.err
 	if n == 1 {
 		p[0] = rres.b
 	}
-	return
+	return n, err
 }

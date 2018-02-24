@@ -5,4 +5,4 @@
 
 package http
 
-func (k *contextKey) String() string { return "net/http context value " + k.name }
+func (k *contextKey) String() string { return "http context value " + k.name }

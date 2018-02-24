@@ -5,6 +5,6 @@
 
 package http
 
-func (w stringWriter) WriteString(s string) (n int, err error) {
+func (w stringWriter) WriteString(s string) (int, error) {
 	return w.w.Write([]byte(s))
 }

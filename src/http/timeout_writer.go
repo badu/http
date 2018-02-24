@@ -5,30 +5,30 @@
 
 package http
 
-func (tw *timeoutWriter) Header() Header { return tw.h }
+func (t *timeoutWriter) Header() Header { return t.h }
 
-func (tw *timeoutWriter) Write(p []byte) (int, error) {
-	tw.mu.Lock()
-	defer tw.mu.Unlock()
-	if tw.timedOut {
+func (t *timeoutWriter) Write(p []byte) (int, error) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.timedOut {
 		return 0, ErrHandlerTimeout
 	}
-	if !tw.wroteHeader {
-		tw.writeHeader(StatusOK)
+	if !t.wroteHeader {
+		t.writeHeader(StatusOK)
 	}
-	return tw.wbuf.Write(p)
+	return t.wbuf.Write(p)
 }
 
-func (tw *timeoutWriter) WriteHeader(code int) {
-	tw.mu.Lock()
-	defer tw.mu.Unlock()
-	if tw.timedOut || tw.wroteHeader {
+func (t *timeoutWriter) WriteHeader(code int) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.timedOut || t.wroteHeader {
 		return
 	}
-	tw.writeHeader(code)
+	t.writeHeader(code)
 }
 
-func (tw *timeoutWriter) writeHeader(code int) {
-	tw.wroteHeader = true
-	tw.code = code
+func (t *timeoutWriter) writeHeader(code int) {
+	t.wroteHeader = true
+	t.code = code
 }

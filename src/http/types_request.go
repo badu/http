@@ -284,6 +284,16 @@ type (
 	RequestBodyReadError struct {
 		error
 	}
+	// The server code and client code both use
+	// maxBytesReader. This "requestTooLarge" check is
+	// only used by the server code. To prevent binaries
+	// which only using the HTTP Client code (such as
+	// cmd/go) from also linking in the HTTP server, don't
+	// use a static type assertion to the server
+	// "*response" type. Check this interface instead:
+	requestTooLarger interface {
+		requestTooLarge()
+	}
 
 	maxBytesReader struct {
 		w   ResponseWriter

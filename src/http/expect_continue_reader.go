@@ -7,23 +7,23 @@ package http
 
 import "io"
 
-func (ecr *expectContinueReader) Read(p []byte) (n int, err error) {
-	if ecr.closed {
+func (r *expectContinueReader) Read(p []byte) (int, error) {
+	if r.closed {
 		return 0, ErrBodyReadAfterClose
 	}
-	if !ecr.resp.wroteContinue && !ecr.resp.conn.hijacked() {
-		ecr.resp.wroteContinue = true
-		ecr.resp.conn.bufWriter.WriteString("HTTP/1.1 100 Continue\r\n\r\n")
-		ecr.resp.conn.bufWriter.Flush()
+	if !r.resp.wroteContinue && !r.resp.conn.hijacked() {
+		r.resp.wroteContinue = true
+		r.resp.conn.bufWriter.WriteString("HTTP/1.1 100 Continue\r\n\r\n")
+		r.resp.conn.bufWriter.Flush()
 	}
-	n, err = ecr.readCloser.Read(p)
+	n, err := r.readCloser.Read(p)
 	if err == io.EOF {
-		ecr.sawEOF = true
+		r.sawEOF = true
 	}
-	return
+	return n, err
 }
 
-func (ecr *expectContinueReader) Close() error {
-	ecr.closed = true
-	return ecr.readCloser.Close()
+func (r *expectContinueReader) Close() error {
+	r.closed = true
+	return r.readCloser.Close()
 }

@@ -58,12 +58,3 @@ func (h *timeoutHandler) ServeHTTP(w ResponseWriter, r *Request) {
 		return
 	}
 }
-
-//TODO : @badu - exported for tests
-func NewBodylessTimeoutHandler(handler Handler, ch <-chan time.Time) Handler {
-	return &timeoutHandler{
-		handler:     handler,
-		testTimeout: ch,
-		// (no body)
-	}
-}

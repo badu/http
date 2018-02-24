@@ -14,6 +14,15 @@ import (
 	"time"
 )
 
+//TODO : @badu - exported for tests
+func NewBodylessTimeoutHandler(handler Handler, ch <-chan time.Time) Handler {
+	return &timeoutHandler{
+		handler:     handler,
+		testTimeout: ch,
+		// (no body)
+	}
+}
+
 // Error replies to the request with the specified error message and HTTP code.
 // It does not otherwise end the request; the caller should ensure no further
 // writes are done to w.

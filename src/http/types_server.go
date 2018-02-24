@@ -534,12 +534,11 @@ type (
 	// call blocked in a background goroutine to wait for activity and
 	// trigger a CloseNotifier channel.
 	connReader struct {
-		conn *conn
-
 		mu      sync.Mutex // guards following
-		hasByte bool
+		conn    *conn
 		byteBuf [1]byte
 		cond    *sync.Cond
+		hasByte bool
 		inRead  bool
 		aborted bool  // set true before conn.netConIface deadline is set to past
 		remain  int64 // bytes remaining

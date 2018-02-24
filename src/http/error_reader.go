@@ -5,6 +5,6 @@
 
 package http
 
-func (r errorReader) Read(p []byte) (n int, err error) {
+func (r errorReader) Read(p []byte) (int, error) {
 	return 0, r.err
 }

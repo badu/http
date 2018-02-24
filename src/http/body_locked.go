@@ -5,9 +5,9 @@
 
 package http
 
-func (bl bodyLocked) Read(p []byte) (n int, err error) {
-	if bl.b.closed {
+func (b bodyLocked) Read(p []byte) (int, error) {
+	if b.body.isClosed {
 		return 0, ErrBodyReadAfterClose
 	}
-	return bl.b.readLocked(p)
+	return b.body.readLocked(p)
 }

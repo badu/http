@@ -67,7 +67,7 @@ func (r *response) needsSniff() bool {
 
 // ReadFrom is here to optimize copying from an *os.File regular file
 // to a *net.TCPConn with sendfile.
-func (r *response) ReadFrom(src io.Reader) (n int64, err error) {
+func (r *response) ReadFrom(src io.Reader) (int64, error) {
 	// Our underlying r.conn.netConIface is usually a *TCPConn (with its
 	// own ReadFrom method). If not, or if our src isn't a regular
 	// file, just fall back to the normal copy method.
@@ -88,6 +88,7 @@ func (r *response) ReadFrom(src io.Reader) (n int64, err error) {
 		r.WriteHeader(StatusOK)
 	}
 
+	n := int64(0)
 	if r.needsSniff() {
 		n0, err := io.Copy(writerOnly{r}, io.LimitReader(src, SniffLen))
 		n += n0
@@ -185,16 +186,16 @@ func (r *response) bodyAllowed() bool {
 // 6. the netConIface, the net.Conn.
 //
 // TODO(bradfitz): short-circuit some of the buffering when the initial header contains both a Content-Type and Content-Length. Also short-circuit in (1) when the header's been sent and not in chunking mode, writing directly to (4) instead, if (2) has no buffered data. More generally, we could short-circuit from (1) to (3) even in chunking mode if the write size from (1) is over some threshold and nothing is in (2).  The answer might be mostly making bufferBeforeChunkingSize smaller and having bufio's fast-paths deal with this instead.
-func (r *response) Write(data []byte) (n int, err error) {
+func (r *response) Write(data []byte) (int, error) {
 	return r.write(len(data), data, "")
 }
 
-func (r *response) WriteString(data string) (n int, err error) {
+func (r *response) WriteString(data string) (int, error) {
 	return r.write(len(data), nil, data)
 }
 
 // either dataB or dataS is non-zero.
-func (r *response) write(lenData int, dataB []byte, dataS string) (n int, err error) {
+func (r *response) write(lenData int, dataB []byte, dataS string) (int, error) {
 	if r.conn.hijacked() {
 		if lenData > 0 {
 			r.conn.server.logf("http: response.Write on hijacked connection")
@@ -301,7 +302,7 @@ func (r *response) sendExpectationFailed() {
 
 // Hijack implements the Hijacker.Hijack method. Our response is both a ResponseWriter
 // and a Hijacker.
-func (r *response) Hijack() (rwc net.Conn, buf *bufio.ReadWriter, err error) {
+func (r *response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if r.handlerDone.isSet() {
 		panic("net/http: Hijack called after ServeHTTP finished")
 	}
@@ -315,7 +316,7 @@ func (r *response) Hijack() (rwc net.Conn, buf *bufio.ReadWriter, err error) {
 
 	// Release the bufioWriter that writes to the chunk writer, it is not
 	// used after a connection has been hijacked.
-	rwc, buf, err = c.hijackLocked()
+	rwc, buf, err := c.hijackLocked()
 	if err == nil {
 		putBufioWriter(r.w)
 		r.w = nil

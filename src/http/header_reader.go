@@ -7,7 +7,6 @@ package http
 
 import (
 	"bytes"
-
 	"errors"
 )
 
@@ -202,12 +201,13 @@ func (r *HeaderReader) ReadHeader() (Header, error) {
 
 // upcomingHeaderNewlines returns an approximation of the number of newlines
 // that will be in this header. If it gets confused, it returns 0.
-func (r *HeaderReader) upcomingHeaderNewlines() (n int) {
+func (r *HeaderReader) upcomingHeaderNewlines() int {
+	n := 0
 	// Try to determine the 'hint' size.
 	r.R.Peek(1) // force a buffer load if empty
 	s := r.R.Buffered()
 	if s == 0 {
-		return
+		return n
 	}
 	peek, _ := r.R.Peek(s)
 	for len(peek) > 0 {
@@ -215,10 +215,10 @@ func (r *HeaderReader) upcomingHeaderNewlines() (n int) {
 		if i < 3 {
 			// Not present (-1) or found within the next few bytes,
 			// implying we're at the end ("\r\n\r\n" or "\n\n")
-			return
+			return n
 		}
 		n++
 		peek = peek[i+1:]
 	}
-	return
+	return n
 }

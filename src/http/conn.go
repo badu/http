@@ -24,45 +24,47 @@ func (c *conn) hijacked() bool {
 }
 
 // c.mu must be held.
-func (c *conn) hijackLocked() (rwc net.Conn, buf *bufio.ReadWriter, err error) {
+func (c *conn) hijackLocked() (net.Conn, *bufio.ReadWriter, error) {
 	if c.wasHijacked {
 		return nil, nil, ErrHijacked
 	}
+
 	c.reader.abortPendingRead()
 
 	c.wasHijacked = true
-	rwc = c.netConIface
-	rwc.SetDeadline(time.Time{})
 
-	buf = bufio.NewReadWriter(c.bufReader, bufio.NewWriter(rwc))
+	netConn := c.netConIface
+	netConn.SetDeadline(time.Time{})
+
+	buf := bufio.NewReadWriter(c.bufReader, bufio.NewWriter(netConn))
 	if c.reader.hasByte {
 		if _, err := c.bufReader.Peek(c.bufReader.Buffered() + 1); err != nil {
 			return nil, nil, fmt.Errorf("unexpected Peek failure reading buffered byte: %v", err)
 		}
 	}
-	c.setState(rwc, StateHijacked)
-	return
+	c.setState(netConn, StateHijacked)
+	return netConn, buf, nil
 }
 
 // Read next request from connection.
-func (c *conn) readRequest(ctx context.Context) (w *response, err error) {
+func (c *conn) readRequest(ctx context.Context) (*response, error) {
 	if c.hijacked() {
 		return nil, ErrHijacked
 	}
 
-	var (
-		wholeReqDeadline time.Time // or zero if none
-		hdrDeadline      time.Time // or zero if none
-	)
-
+	var hdrDeadline time.Time // or zero if none
 	t0 := time.Now()
 	if d := c.server.readHeaderTimeout(); d != 0 {
 		hdrDeadline = t0.Add(d)
 	}
+
+	var wholeReqDeadline time.Time // or zero if none
 	if d := c.server.ReadTimeout; d != 0 {
 		wholeReqDeadline = t0.Add(d)
 	}
+
 	c.netConIface.SetReadDeadline(hdrDeadline)
+
 	if d := c.server.WriteTimeout; d != 0 {
 		defer func() {
 			c.netConIface.SetWriteDeadline(time.Now().Add(d))
@@ -76,6 +78,7 @@ func (c *conn) readRequest(ctx context.Context) (w *response, err error) {
 		peek, _ := c.bufReader.Peek(4) // ReadRequest will get err below
 		c.bufReader.Discard(numLeadingCRorLF(peek))
 	}
+
 	// @comment : reads info from the request (using textproto.Reader transforms bytes into textproto.MIMEHeader and other usefull info)
 	req, err := readRequest(c.bufReader, false)
 	if err != nil {
@@ -133,7 +136,7 @@ func (c *conn) readRequest(ctx context.Context) (w *response, err error) {
 		c.netConIface.SetReadDeadline(wholeReqDeadline)
 	}
 
-	w = &response{
+	w := &response{
 		conn:          c,
 		cancelCtx:     cancelCtx,
 		req:           req,

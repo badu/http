@@ -7,7 +7,7 @@ package http
 
 import "errors"
 
-func (l *maxBytesReader) Read(p []byte) (n int, err error) {
+func (l *maxBytesReader) Read(p []byte) (int, error) {
 	if l.err != nil {
 		return 0, l.err
 	}
@@ -20,7 +20,7 @@ func (l *maxBytesReader) Read(p []byte) (n int, err error) {
 	if int64(len(p)) > l.n+1 {
 		p = p[:l.n+1]
 	}
-	n, err = l.r.Read(p)
+	n, err := l.r.Read(p)
 
 	if int64(n) <= l.n {
 		l.n -= int64(n)
@@ -31,16 +31,6 @@ func (l *maxBytesReader) Read(p []byte) (n int, err error) {
 	n = int(l.n)
 	l.n = 0
 
-	// The server code and client code both use
-	// maxBytesReader. This "requestTooLarge" check is
-	// only used by the server code. To prevent binaries
-	// which only using the HTTP Client code (such as
-	// cmd/go) from also linking in the HTTP server, don't
-	// use a static type assertion to the server
-	// "*response" type. Check this interface instead:
-	type requestTooLarger interface {
-		requestTooLarge()
-	}
 	if res, ok := l.w.(requestTooLarger); ok {
 		res.requestTooLarge()
 	}
