@@ -43,7 +43,6 @@ func BenchmarkHeaderWriteSubset(b *testing.B) {
 }
 
 func BenchmarkServeMux(b *testing.B) {
-
 	type test struct {
 		path string
 		code int
