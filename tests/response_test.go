@@ -20,7 +20,7 @@ import (
 	"strings"
 	"testing"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 type respTest struct {

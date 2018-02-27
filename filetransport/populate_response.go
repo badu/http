@@ -8,7 +8,7 @@ package filetransport
 import (
 	"fmt"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 func (pr *populateResponse) finish() {

@@ -12,7 +12,7 @@ import (
 	"sync"
 	"testing"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 var (

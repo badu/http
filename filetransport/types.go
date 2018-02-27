@@ -12,7 +12,7 @@ import (
 	"strings"
 	"time"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 const (

@@ -11,7 +11,7 @@ import (
 	"net/url"
 	"os"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 // ProxyFromEnvironment returns the URL of the proxy to use for a

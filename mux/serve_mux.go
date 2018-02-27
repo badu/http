@@ -6,7 +6,7 @@
 package mux
 
 import (
-	. "http"
+	. "github.com/badu/http"
 	"net/url"
 	"strings"
 )

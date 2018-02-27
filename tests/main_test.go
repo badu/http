@@ -12,7 +12,7 @@ import (
 	"reflect"
 	"testing"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 func TestMain(m *testing.M) {

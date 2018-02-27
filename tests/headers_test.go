@@ -11,7 +11,7 @@ import (
 	"testing"
 	"time"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 func TestHeaderWrite(t *testing.T) {

@@ -18,11 +18,11 @@ import (
 	"strings"
 	"time"
 
-	"http/mime"
+	"github.com/badu/http/mime"
 
-	. "http"
-	"http/sniff"
-	. "http/tport"
+	. "github.com/badu/http"
+	"github.com/badu/http/sniff"
+	. "github.com/badu/http/tport"
 )
 
 // mapDirOpenError maps the provided non-nil error from opening name

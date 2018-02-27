@@ -16,8 +16,8 @@ import (
 	"strings"
 	"testing"
 
-	. "http"
-	"http/sniff"
+	. "github.com/badu/http"
+	"github.com/badu/http/sniff"
 )
 
 var sniffTests = []struct {

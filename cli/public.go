@@ -10,7 +10,7 @@ import (
 	"io"
 	"net/url"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 //TODO : @badu - exported so tests can access it

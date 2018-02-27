@@ -20,10 +20,10 @@ import (
 	"testing"
 	"time"
 
-	. "http"
-	"http/cli"
-	"http/mux"
-	"http/th"
+	. "github.com/badu/http"
+	"github.com/badu/http/cli"
+	"github.com/badu/http/mux"
+	"github.com/badu/http/th"
 )
 
 func BenchmarkHeaderWriteSubset(b *testing.B) {

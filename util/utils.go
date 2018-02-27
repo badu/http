@@ -16,8 +16,8 @@ import (
 	"net/url"
 	"strings"
 
-	. "http"
-	. "http/tport"
+	. "github.com/badu/http"
+	. "github.com/badu/http/tport"
 )
 
 // drainBody reads all of b to memory and then returns two equivalent

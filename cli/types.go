@@ -11,8 +11,8 @@ import (
 	"sync"
 	"time"
 
-	. "http"
-	. "http/tport"
+	. "github.com/badu/http"
+	. "github.com/badu/http/tport"
 )
 
 // A Client is an HTTP client. Its zero value (DefaultClient) is a

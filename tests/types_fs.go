@@ -9,7 +9,7 @@ import (
 	"io"
 	"time"
 
-	"http/filetransport"
+	"github.com/badu/http/filetransport"
 )
 
 const (

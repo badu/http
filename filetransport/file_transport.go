@@ -6,7 +6,7 @@
 package filetransport
 
 import (
-	. "http"
+	. "github.com/badu/http"
 )
 
 func (t fileTransport) RoundTrip(req *Request) (resp *Response, err error) {

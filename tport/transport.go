@@ -18,9 +18,9 @@ import (
 	"strings"
 	"time"
 
-	"http/trc"
+	"github.com/badu/http/trc"
 
-	. "http"
+	. "github.com/badu/http"
 
 	"golang.org/x/net/proxy"
 )

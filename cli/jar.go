@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 // Cookies implements the Cookies method of the http.CookieJar interface.

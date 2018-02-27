@@ -14,8 +14,8 @@ import (
 	"sync"
 	"time"
 
-	. "http"
-	. "http/tport"
+	. "github.com/badu/http"
+	. "github.com/badu/http/tport"
 )
 
 // This is an API usage error - the local side is closed.

@@ -9,7 +9,7 @@ import (
 	"path"
 	"strings"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 func (f *fileHandler) ServeHTTP(w ResponseWriter, r *Request) {

@@ -10,7 +10,7 @@ import (
 	"path"
 	"strings"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 // NewServeMux allocates and returns a new ServeMux.

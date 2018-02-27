@@ -33,12 +33,12 @@ import (
 	"testing"
 	"time"
 
-	. "http"
-	"http/cli"
-	"http/filetransport"
-	"http/mux"
-	"http/th"
-	. "http/tport"
+	. "github.com/badu/http"
+	"github.com/badu/http/cli"
+	"github.com/badu/http/filetransport"
+	"github.com/badu/http/mux"
+	"github.com/badu/http/th"
+	. "github.com/badu/http/tport"
 )
 
 func TestConsumingBodyOnNextConn(t *testing.T) {

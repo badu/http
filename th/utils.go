@@ -16,7 +16,7 @@ import (
 	"strconv"
 	"strings"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 // NewRequest returns a new incoming server Request, suitable

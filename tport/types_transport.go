@@ -19,8 +19,8 @@ import (
 	"sync/atomic"
 	"time"
 
-	. "http"
-	"http/trc"
+	. "github.com/badu/http"
+	"github.com/badu/http/trc"
 )
 
 const (

@@ -17,7 +17,7 @@ import (
 	"testing"
 	"time"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 func (c byteFromChanReader) Read(p []byte) (n int, err error) {

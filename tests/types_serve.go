@@ -14,7 +14,7 @@ import (
 	"testing"
 	"time"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 type (

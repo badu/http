@@ -6,7 +6,7 @@
 package tport
 
 import (
-	. "http"
+	. "github.com/badu/http"
 	"time"
 )
 

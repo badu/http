@@ -9,7 +9,7 @@ import (
 	"net/url"
 	"strings"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 // proxyAuth returns the Proxy-Authorization header to set

@@ -10,7 +10,7 @@ import (
 	"log"
 	"strconv"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 // String returns the serialization of the cookie for use in a Cookie

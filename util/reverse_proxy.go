@@ -12,8 +12,8 @@ import (
 	"net"
 	"strings"
 
-	. "http"
-	. "http/tport"
+	. "github.com/badu/http"
+	. "github.com/badu/http/tport"
 )
 
 func (p *ReverseProxy) ServeHTTP(rw ResponseWriter, req *Request) {

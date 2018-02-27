@@ -12,7 +12,7 @@ import (
 	"io"
 	"sort"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 // Boundary returns the Writer's boundary.

@@ -15,7 +15,7 @@ import (
 	"mime/multipart"
 	"net/url"
 
-	"http/trc"
+	"github.com/badu/http/trc"
 )
 
 // Context returns the request's context. To change the context, use

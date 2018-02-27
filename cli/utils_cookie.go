@@ -11,7 +11,7 @@ import (
 	"strings"
 	"time"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 // validCookieDomain returns whether v is a valid cookie domain-value.

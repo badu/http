@@ -15,8 +15,8 @@ import (
 	"sort"
 	"strings"
 
-	. "http"
-	. "http/tport"
+	. "github.com/badu/http"
+	. "github.com/badu/http/tport"
 )
 
 func (c *Client) send(req *Request) (resp *Response, err error) {

@@ -18,8 +18,8 @@ import (
 	"time"
 	"unicode/utf8"
 
-	. "http"
-	. "http/tport"
+	. "github.com/badu/http"
+	. "github.com/badu/http/tport"
 )
 
 // refererForURL returns a referer without any authentication info or

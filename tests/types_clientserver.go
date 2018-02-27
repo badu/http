@@ -15,10 +15,10 @@ import (
 	"sync"
 	"testing"
 
-	. "http"
-	"http/cli"
-	"http/th"
-	. "http/tport"
+	. "github.com/badu/http"
+	"github.com/badu/http/cli"
+	"github.com/badu/http/th"
+	. "github.com/badu/http/tport"
 )
 
 var (

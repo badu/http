@@ -11,8 +11,8 @@ import (
 	"net/url"
 	"strings"
 
+	. "github.com/badu/http"
 	"golang.org/x/net/proxy"
-	. "http"
 )
 
 func newOneConnDialer(c net.Conn) proxy.Dialer {

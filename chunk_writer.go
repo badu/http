@@ -13,7 +13,7 @@ import (
 	"strings"
 	"time"
 
-	"http/sniff"
+	"github.com/badu/http/sniff"
 )
 
 func (w *chunkWriter) Write(p []byte) (int, error) {

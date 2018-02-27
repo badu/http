@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 type canonicalHeaderKeyTest struct {

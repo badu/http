@@ -10,8 +10,8 @@ import (
 	"os"
 	"testing"
 
-	. "http"
-	. "http/tport"
+	. "github.com/badu/http"
+	. "github.com/badu/http/tport"
 )
 
 func TestUseProxy(t *testing.T) {

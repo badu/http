@@ -8,7 +8,7 @@ package filetransport
 import (
 	"fmt"
 
-	. "http"
+	. "github.com/badu/http"
 )
 
 func (r httpRange) contentRange(size int64) string {

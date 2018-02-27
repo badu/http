@@ -12,8 +12,8 @@ import (
 	"strings"
 	"time"
 
-	. "http"
-	"http/trc"
+	. "github.com/badu/http"
+	"github.com/badu/http/trc"
 )
 
 // shouldRetryRequest reports whether we should retry sending a failed

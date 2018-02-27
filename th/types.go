@@ -13,8 +13,8 @@ import (
 	"net"
 	"sync"
 
-	. "http"
-	"http/cli"
+	. "github.com/badu/http"
+	"github.com/badu/http/cli"
 )
 
 type (

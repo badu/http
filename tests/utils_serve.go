@@ -16,8 +16,8 @@ import (
 	"testing"
 	"time"
 
-	. "http"
-	"http/cli"
+	. "github.com/badu/http"
+	"github.com/badu/http/cli"
 )
 
 func (cr countReader) Read(p []byte) (n int, err error) {

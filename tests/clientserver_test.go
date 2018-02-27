@@ -23,11 +23,11 @@ import (
 	"testing"
 	"time"
 
-	. "http"
-	"http/cli"
-	"http/th"
-	. "http/tport"
-	"http/util"
+	. "github.com/badu/http"
+	"github.com/badu/http/cli"
+	"github.com/badu/http/th"
+	. "github.com/badu/http/tport"
+	"github.com/badu/http/util"
 )
 
 // Testing the newClientServerTest helper itself.

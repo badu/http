@@ -15,9 +15,9 @@ import (
 	"os"
 	"time"
 
-	. "http"
-	"http/cli"
-	. "http/tport"
+	. "github.com/badu/http"
+	"github.com/badu/http/cli"
+	. "github.com/badu/http/tport"
 )
 
 // Start starts a server from NewUnstartedServer.

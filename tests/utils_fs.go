@@ -14,9 +14,9 @@ import (
 	"testing"
 	"time"
 
-	. "http"
-	"http/cli"
-	"http/filetransport"
+	. "github.com/badu/http"
+	"github.com/badu/http/cli"
+	"github.com/badu/http/filetransport"
 )
 
 func (issue12991FS) Open(string) (filetransport.File, error) { return issue12991File{}, nil }
