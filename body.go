@@ -71,9 +71,9 @@ func (b *body) readLocked(p []byte) (int, error) {
 
 func (b *body) readTrailer() error {
 	// The common case, since nobody uses trailers.
-	buf, err := b.r.Peek(2)
+	buf, err := b.bufReader.Peek(2)
 	if bytes.Equal(buf, singleCRLF) {
-		b.r.Discard(2)
+		b.bufReader.Discard(2)
 		return nil
 	}
 	if len(buf) < 2 {
@@ -91,11 +91,11 @@ func (b *body) readTrailer() error {
 	// this bufio.Reader. Instead, a hack: we iteratively Peek up
 	// to the bufio.Reader's max size, looking for a double CRLF.
 	// This limits the trailer to the underlying buffer size, typically 4kB.
-	if !seeUpcomingDoubleCRLF(b.r) {
+	if !seeUpcomingDoubleCRLF(b.bufReader) {
 		return errors.New("http: suspiciously long trailer after chunked body")
 	}
 
-	hdr, err := NewHeaderReader(b.r).ReadHeader()
+	hdr, err := NewHeaderReader(b.bufReader).ReadHeader()
 	if err != nil {
 		if err == io.EOF {
 			return errTrailerEOF

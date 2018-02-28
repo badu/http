@@ -123,7 +123,7 @@ func readTransferResponse(resp *Response, r *bufio.Reader) error {
 		if noResponseBodyExpected(t.RequestMethod) {
 			t.Body = NoBody
 		} else {
-			t.Body = &body{reader: &chunkedReader{r: r}, responseOrRequestIntf: resp, r: r, isClosing: t.Close}
+			t.Body = &body{reader: &chunkedReader{r: r}, responseOrRequestIntf: resp, bufReader: r, isClosing: t.Close}
 		}
 	case realLength == 0:
 		t.Body = NoBody
@@ -191,7 +191,7 @@ func readTransferRequest(req *Request, r *bufio.Reader) error {
 		if noResponseBodyExpected(t.RequestMethod) {
 			t.Body = NoBody
 		} else {
-			t.Body = &body{reader: &chunkedReader{r: r}, responseOrRequestIntf: req, r: r, isClosing: t.Close}
+			t.Body = &body{reader: &chunkedReader{r: r}, responseOrRequestIntf: req, bufReader: r, isClosing: t.Close}
 		}
 	case realLength == 0:
 		t.Body = NoBody

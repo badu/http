@@ -40,13 +40,14 @@ type (
 	}
 
 	byteReader struct {
-		b    byte
+		byt  byte
 		done bool
 	}
 
 	// transferBodyReader is an io.Reader that reads from transferWriter.Body
 	// and records any non-EOF error in transferWriter.bodyReadError.
 	// It is exactly 1 pointer wide to avoid allocations into interfaces.
+	// TODO : @badu investigate "It is exactly 1 pointer wide to avoid allocations into interfaces."
 	transferBodyReader struct{ transferWriter *transferWriter }
 
 	// transferWriter inspects the fields of a user-supplied Request or Response,
@@ -68,6 +69,7 @@ type (
 		ByteReadCh       chan readResult // non-nil if probeRequestBody called
 	}
 
+	//TODO : @badu - whay all these properties are public?
 	transferReader struct {
 		// Input
 		Header        Header
@@ -90,7 +92,7 @@ type (
 		mu                    sync.Mutex // guards following, and calls to Read and Close
 		reader                io.Reader
 		responseOrRequestIntf interface{}   // non-nil (Response or Request) value means read trailer
-		r                     *bufio.Reader // underlying wire-format reader for the trailer
+		bufReader             *bufio.Reader // underlying wire-format reader for the trailer
 		isClosing             bool          // is the connection to be closed after reading body?
 		doEarlyClose          bool          // whether Close should stop early
 		hasSawEOF             bool

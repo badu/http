@@ -6,10 +6,10 @@
 package http
 
 func (w checkConnErrorWriter) Write(p []byte) (int, error) {
-	n, err := w.c.netConIface.Write(p)
-	if err != nil && w.c.wErr == nil {
-		w.c.wErr = err
-		w.c.cancelCtx()
+	n, err := w.con.netConIface.Write(p)
+	if err != nil && w.con.wErr == nil {
+		w.con.wErr = err
+		w.con.cancelCtx()
 	}
 	return n, err
 }

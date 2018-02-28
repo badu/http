@@ -29,9 +29,6 @@ var (
 	headerSorterPool = sync.Pool{
 		New: func() interface{} { return new(headerSorter) },
 	}
-	crnl = []byte{'\r', '\n'}
-
-	dotcrnl = []byte{'.', '\r', '\n'}
 
 	// commonHeader interns common header strings.
 	commonHeader = make(map[string]string)
@@ -121,11 +118,13 @@ type (
 	}
 
 	// A Header represents the key-value pairs in an HTTP header.
-	Header        map[string][]string
+	Header map[string][]string
+	// @comment : in "strings" package there is the same thing called stringWriterIface
 	writeStringer interface {
 		WriteString(string) (int, error)
 	}
 
+	// @comment : in "strings" package there is something similar called stringWriter
 	// stringWriter implements the interface above WriteString on a Writer.
 	stringWriter struct {
 		w io.Writer

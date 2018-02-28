@@ -79,7 +79,9 @@ func (t *transferWriter) probeRequestBody() {
 		}
 		t.ByteReadCh <- rres
 	}(t.Body)
-	//TODO : @badu - should be configurable
+	// TODO : @badu - should be configurable
+	// TODO : @badu replace with `case <-time.After(200 * time.Millisecond)` ?
+	// @comment : seems the old way of timing out
 	timer := time.NewTimer(200 * time.Millisecond)
 	select {
 	case rres := <-t.ByteReadCh:
@@ -90,9 +92,9 @@ func (t *transferWriter) probeRequestBody() {
 			t.ContentLength = 0
 		} else if rres.n == 1 {
 			if rres.err != nil {
-				t.Body = io.MultiReader(&byteReader{b: rres.b}, errorReader{rres.err})
+				t.Body = io.MultiReader(&byteReader{byt: rres.b}, errorReader{rres.err})
 			} else {
-				t.Body = io.MultiReader(&byteReader{b: rres.b}, t.Body)
+				t.Body = io.MultiReader(&byteReader{byt: rres.b}, t.Body)
 			}
 		} else if rres.err != nil {
 			t.Body = errorReader{rres.err}

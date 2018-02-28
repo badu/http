@@ -296,9 +296,9 @@ type (
 	}
 
 	maxBytesReader struct {
-		w   ResponseWriter
-		r   io.ReadCloser // underlying reader
-		n   int64         // max bytes remaining
-		err error         // sticky error
+		respWriter     ResponseWriter
+		readCloser     io.ReadCloser // underlying reader
+		bytesRemaining int64         // max bytes remaining
+		err            error         // sticky error
 	}
 )

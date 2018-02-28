@@ -15,6 +15,6 @@ func (r *byteReader) Read(p []byte) (int, error) {
 		return 0, nil
 	}
 	r.done = true
-	p[0] = r.b
+	p[0] = r.byt
 	return 1, io.EOF
 }

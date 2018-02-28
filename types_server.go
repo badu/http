@@ -705,6 +705,6 @@ type (
 	// It only contains one field (and a pointer field at that), so it
 	// fits in an interface value without an extra allocation.
 	checkConnErrorWriter struct {
-		c *conn
+		con *conn
 	}
 )

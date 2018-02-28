@@ -25,36 +25,36 @@ func (h *timeoutHandler) ServeHTTP(w ResponseWriter, r *Request) {
 		timeout = t.C
 	}
 	done := make(chan struct{})
-	tw := &timeoutWriter{
+	timeOutWriter := &timeoutWriter{
 		w: w,
 		h: make(Header),
 	}
 	go func() {
-		h.handler.ServeHTTP(tw, r)
+		h.handler.ServeHTTP(timeOutWriter, r)
 		close(done)
 	}()
 	select {
 	case <-done:
-		tw.mu.Lock()
-		defer tw.mu.Unlock()
+		timeOutWriter.mu.Lock()
+		defer timeOutWriter.mu.Unlock()
 		dst := w.Header()
-		for k, vv := range tw.h {
+		for k, vv := range timeOutWriter.h {
 			dst[k] = vv
 		}
-		if !tw.wroteHeader {
-			tw.code = StatusOK
+		if !timeOutWriter.wroteHeader {
+			timeOutWriter.code = StatusOK
 		}
-		w.WriteHeader(tw.code)
-		w.Write(tw.wbuf.Bytes())
+		w.WriteHeader(timeOutWriter.code)
+		w.Write(timeOutWriter.wbuf.Bytes())
 		if t != nil {
 			t.Stop()
 		}
 	case <-timeout:
-		tw.mu.Lock()
-		defer tw.mu.Unlock()
+		timeOutWriter.mu.Lock()
+		defer timeOutWriter.mu.Unlock()
 		w.WriteHeader(StatusServiceUnavailable)
 		io.WriteString(w, h.errorBody())
-		tw.timedOut = true
+		timeOutWriter.timedOut = true
 		return
 	}
 }

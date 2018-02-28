@@ -256,7 +256,7 @@ func (c *conn) serve(ctx context.Context) {
 
 	c.reader = &connReader{conn: c}
 	c.bufReader = newBufioReader(c.reader)
-	c.bufWriter = newBufioWriterSize(checkConnErrorWriter{c}, 4<<10) //TODO : @badu - this should be configurable
+	c.bufWriter = newBufioWriterSize(checkConnErrorWriter{c}, 4<<10) //TODO : @badu - this should be configurable - this is about bufioWriter4kPool
 
 	for {
 		// @comment : starts to read request
