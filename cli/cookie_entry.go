@@ -7,7 +7,6 @@ package cli
 
 import (
 	"fmt"
-	"strings"
 )
 
 // id returns the domain;path;name triple of e as an id.
@@ -35,7 +34,8 @@ func (e *cookieEntry) pathMatch(requestPath string) bool {
 	if requestPath == e.Path {
 		return true
 	}
-	if strings.HasPrefix(requestPath, e.Path) {
+	//@comment : was `if strings.HasPrefix(requestPath, e.Path) {`
+	if len(requestPath) >= len(e.Path) && requestPath[0:len(e.Path)] == e.Path {
 		if e.Path[len(e.Path)-1] == '/' {
 			return true // The "/any/" matches "/any/path" case.
 		} else if requestPath[len(e.Path)] == '/' {

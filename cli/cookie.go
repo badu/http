@@ -43,7 +43,7 @@ func (c *Cookie) String() string {
 			b.WriteString("; Domain=")
 			b.WriteString(d)
 		} else {
-			log.Printf("net/http: invalid Cookie.Domain %q; dropping domain attribute", c.Domain)
+			log.Printf("github.com/badu//http/cli: invalid Cookie.Domain %q; dropping domain attribute", c.Domain)
 		}
 	}
 	if validCookieExpires(c.Expires) {

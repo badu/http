@@ -11,8 +11,9 @@ import (
 	"errors"
 	"io"
 	"mime/multipart"
-	"net/url"
 	"sync"
+
+	"github.com/badu/http/url"
 )
 
 const (

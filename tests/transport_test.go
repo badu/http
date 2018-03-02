@@ -19,7 +19,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"net/url"
 	"os"
 	"reflect"
 	"runtime"
@@ -36,6 +35,7 @@ import (
 	"github.com/badu/http/th"
 	. "github.com/badu/http/tport"
 	"github.com/badu/http/trc"
+	"github.com/badu/http/url"
 	"github.com/badu/http/util"
 )
 
@@ -1853,7 +1853,7 @@ func TestProxyFromEnvironment(t *testing.T) {
 		// where HTTP_PROXY can be attacker-controlled.
 		{env: "http://10.1.2.3:8080", reqmeth: POST,
 			want:    "<nil>",
-			wanterr: errors.New("net/http: refusing to use HTTP_PROXY value in CGI environment; see golang.org/s/cgihttpproxy")},
+			wanterr: errors.New("github.com/badu/http/tport: refusing to use HTTP_PROXY value in CGI environment; see golang.org/s/cgihttpproxy")},
 
 		{want: "<nil>"},
 

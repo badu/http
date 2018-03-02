@@ -9,10 +9,11 @@ import (
 	"fmt"
 	"io"
 	"net"
-	"net/url"
 	"path"
 	"strings"
 	"time"
+
+	"github.com/badu/http/url"
 )
 
 //TODO : @badu - exported for tests
@@ -70,9 +71,9 @@ func StripPrefix(prefix string, h Handler) Handler {
 //
 // The provided code should be in the 3xx range and is usually
 // StatusMovedPermanently, StatusFound or StatusSeeOther.
-func Redirect(w ResponseWriter, r *Request, url string, code int) {
+func Redirect(w ResponseWriter, r *Request, toURL string, code int) {
 	// parseURL is just url.Parse (url is shadowed for godoc).
-	if u, err := parseURL(url); err == nil {
+	if u, err := url.Parse(toURL); err == nil {
 		// If url was relative, make absolute by
 		// combining with request path.
 		// The browser would probably do this for us,
@@ -96,35 +97,36 @@ func Redirect(w ResponseWriter, r *Request, url string, code int) {
 			}
 
 			// no leading http://server
-			if url == "" || url[0] != '/' {
+			if toURL == "" || toURL[0] != '/' {
 				// make relative path absolute
 				olddir, _ := path.Split(oldpath)
-				url = olddir + url
+				toURL = olddir + toURL
 			}
 
 			var query string
-			if i := strings.Index(url, "?"); i != -1 {
-				url, query = url[:i], url[i:]
+			// TODO : use strings.IndexByte instead of strings.Index - it's only one char
+			if i := strings.Index(toURL, "?"); i != -1 {
+				toURL, query = toURL[:i], toURL[i:]
 			}
 
 			// clean up but preserve trailing slash
-			trailing := strings.HasSuffix(url, "/")
-			url = path.Clean(url)
-			if trailing && !strings.HasSuffix(url, "/") {
-				url += "/"
+			trailing := strings.HasSuffix(toURL, "/")
+			toURL = path.Clean(toURL)
+			if trailing && !strings.HasSuffix(toURL, "/") {
+				toURL += "/"
 			}
-			url += query
+			toURL += query
 		}
 	}
 
-	w.Header().Set(Location, hexEscapeNonASCII(url))
+	w.Header().Set(Location, hexEscapeNonASCII(toURL))
 	w.WriteHeader(code)
 
 	// RFC 2616 recommends that a short note "SHOULD" be included in the
 	// response because older user agents may not understand 301/307.
 	// Shouldn't send the response for POST or HEAD; that leaves GET.
 	if r.Method == GET {
-		note := "<a href=\"" + htmlEscape(url) + "\">" + statusText[code] + "</a>.\n"
+		note := "<a href=\"" + htmlEscape(toURL) + "\">" + statusText[code] + "</a>.\n"
 		fmt.Fprintln(w, note)
 	}
 }
@@ -177,7 +179,7 @@ func ServeTLS(l net.Listener, handler Handler, certFile, keyFile string) error {
 //
 //	import (
 //		"io"
-//		"net/http"
+//		"github.com/badu/http"
 //		"log"
 //	)
 //
@@ -207,7 +209,7 @@ func ListenAndServe(addr string, handler Handler) error {
 //
 //	import (
 //		"log"
-//		"net/http"
+//		"github.com/badu//http"
 //	)
 //
 //	func handler(w http.ResponseWriter, req *http.Request) {

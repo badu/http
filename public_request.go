@@ -8,12 +8,13 @@ package http
 import (
 	"bufio"
 	"bytes"
-	"encoding/base64"
 	"fmt"
 	"io"
 	"io/ioutil"
 	"strconv"
 	"strings"
+
+	"github.com/badu/http/url"
 )
 
 //TODO : @badu - exported for tests
@@ -46,16 +47,6 @@ func ValidMethod(method string) bool {
 	return len(method) > 0 && strings.IndexFunc(method, IsNotToken) == -1
 }
 
-// See 2 (end of page 4) http://www.ietf.org/rfc/rfc2617.txt
-// "To receive authorization, the client sends the userid and password,
-// separated by a single colon (":") character, within a base64
-// encoded string in the credentials."
-// It is not meant to be urlencoded.
-func BasicAuth(username, password string) string {
-	auth := username + ":" + password
-	return base64.StdEncoding.EncodeToString([]byte(auth))
-}
-
 //TODO : @badu - exported for tests
 func CleanHost(in string) string {
 	return cleanHost(in)
@@ -74,6 +65,7 @@ func ParseHTTPVersion(vers string) (int, int, bool) {
 	if !strings.HasPrefix(vers, "HTTP/") {
 		return 0, 0, false
 	}
+	// TODO : use strings.IndexByte instead of strings.Index - it's only one char
 	dot := strings.Index(vers, ".")
 	if dot < 0 {
 		return 0, 0, false
@@ -107,7 +99,7 @@ func ParseHTTPVersion(vers string) (int, int, bool) {
 // exact value (instead of -1), GetBody is populated (so 307 and 308
 // redirects can replay the body), and Body is set to NoBody if the
 // ContentLength is 0.
-func NewRequest(method, url string, body io.Reader) (*Request, error) {
+func NewRequest(method, toURL string, body io.Reader) (*Request, error) {
 	if method == "" {
 		// We document that "" means "GET" for Request.Method, and people have
 		// relied on that from NewRequest, so keep that working.
@@ -115,9 +107,9 @@ func NewRequest(method, url string, body io.Reader) (*Request, error) {
 		method = GET
 	}
 	if !ValidMethod(method) {
-		return nil, fmt.Errorf("net/http: invalid method %q", method)
+		return nil, fmt.Errorf("github.com/badu//http: invalid method %q", method)
 	}
-	u, err := parseURL(url) // Just url.Parse (url is shadowed for godoc).
+	u, err := url.Parse(toURL) // Just url.Parse (url is shadowed for godoc).
 	if err != nil {
 		return nil, err
 	}

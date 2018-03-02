@@ -7,9 +7,10 @@ package cli
 
 import (
 	"errors"
-	"net/url"
 	"sync"
 	"time"
+
+	"github.com/badu/http/url"
 
 	. "github.com/badu/http"
 	. "github.com/badu/http/tport"
@@ -85,7 +86,7 @@ var DefaultClient = &Client{}
 // control how redirects are processed. If returned, the next request
 // is not sent and the most recent response is returned with its body
 // unclosed.
-var ErrUseLastResponse = errors.New("net/http: use last response")
+var ErrUseLastResponse = errors.New("github.com/badu/http/cli: use last response")
 
 // A CookieJar manages storage and use of cookies in HTTP requests.
 //

@@ -9,4 +9,6 @@ func (tlsHandshakeTimeoutError) Timeout() bool { return true }
 
 func (tlsHandshakeTimeoutError) Temporary() bool { return true }
 
-func (tlsHandshakeTimeoutError) Error() string { return "net/http: TLS handshake timeout" }
+func (tlsHandshakeTimeoutError) Error() string {
+	return "github.com/badu/http/tport: TLS handshake timeout"
+}

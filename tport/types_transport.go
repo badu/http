@@ -14,13 +14,13 @@ import (
 	"errors"
 	"io"
 	"net"
-	"net/url"
 	"sync"
 	"sync/atomic"
 	"time"
 
 	. "github.com/badu/http"
 	"github.com/badu/http/trc"
+	"github.com/badu/http/url"
 )
 
 const (
@@ -49,7 +49,7 @@ var (
 	}
 
 	// ErrSkipAltProtocol is a sentinel error value defined by Transport.RegisterProtocol.
-	ErrSkipAltProtocol = errors.New("net/http: skip alternate protocol")
+	ErrSkipAltProtocol = errors.New("github.com/badu/http/tport: skip alternate protocol")
 
 	//TODO : @badu - all below exposed for tests
 	HttpProxyEnv = &envOnce{
@@ -81,7 +81,7 @@ var (
 	errTimeout error = &httpError{err: "net/http: timeout awaiting response headers", timeout: true}
 
 	//TODO : @badu - exported, so tests can access it
-	ErrRequestCanceled = errors.New("net/http: request canceled")
+	ErrRequestCanceled = errors.New("github.com/badu/http/tport: request canceled")
 
 	//TODO : @badu - exported, so tests can access it
 	ErrRequestCanceledConn = errors.New("net/http: request canceled while waiting for connection") // TODO: unify?

@@ -10,7 +10,6 @@ import (
 	"io"
 	"net"
 	"strconv"
-	"strings"
 )
 
 // finalTrailers is called after the Handler exits and returns a non-nil
@@ -18,11 +17,13 @@ import (
 func (r *response) finalTrailers() Header {
 	var t Header
 	for k, vv := range r.handlerHeader {
-		if strings.HasPrefix(k, TrailerPrefix) {
+		//@comment : was `if strings.HasPrefix(k, TrailerPrefix) {`
+		if len(k) >= len(TrailerPrefix) && k[0:len(TrailerPrefix)] == TrailerPrefix {
 			if t == nil {
 				t = make(Header)
 			}
-			t[strings.TrimPrefix(k, TrailerPrefix)] = vv
+			//@comment : was `t[strings.TrimPrefix(k, TrailerPrefix)] = vv`
+			t[k[len(TrailerPrefix):]] = vv
 		}
 	}
 	for _, k := range r.trailers {
@@ -317,7 +318,7 @@ func (r *response) sendExpectationFailed() {
 // and a Hijacker.
 func (r *response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if r.handlerDone.isSet() {
-		panic("net/http: Hijack called after ServeHTTP finished")
+		panic("github.com/badu//http: Hijack called after ServeHTTP finished")
 	}
 	if r.wroteHeader {
 		r.chunkWriter.flush()
@@ -339,7 +340,7 @@ func (r *response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 
 func (r *response) CloseNotify() <-chan bool {
 	if r.handlerDone.isSet() {
-		panic("net/http: CloseNotify called after ServeHTTP finished")
+		panic("github.com/badu//http: CloseNotify called after ServeHTTP finished")
 	}
 	return r.closeNotifyCh
 }

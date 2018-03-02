@@ -10,7 +10,6 @@ import (
 	"io"
 	"io/ioutil"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/badu/http/sniff"
@@ -113,7 +112,8 @@ func (w *chunkWriter) writeHeader(p []byte) {
 	// Don't write out the fake "Trailer:foo" keys. See TrailerPrefix.
 	trailers := false
 	for k := range w.header {
-		if strings.HasPrefix(k, TrailerPrefix) {
+		//@comment : was `if strings.HasPrefix(k, TrailerPrefix) {`
+		if len(k) >= len(TrailerPrefix) && k[0:len(TrailerPrefix)] == TrailerPrefix {
 			if excludeHeader == nil {
 				excludeHeader = make(map[string]bool)
 			}

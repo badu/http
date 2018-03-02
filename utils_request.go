@@ -13,9 +13,9 @@ import (
 	"io/ioutil"
 	"mime"
 	"net"
-	"net/url"
 	"strings"
 
+	"github.com/badu/http/url"
 	"golang.org/x/net/idna"
 )
 
@@ -146,6 +146,7 @@ func parseBasicAuth(auth string) (string, string, bool) {
 // parseRequestLine parses "GET /foo HTTP/1.1" into its three parts.
 // returns method, requestURI, proto string, ok bool
 func parseRequestLine(line string) (string, string, string, bool) {
+	// TODO : use strings.IndexByte instead of strings.Index - it's only one char
 	s1 := strings.Index(line, " ")
 	s2 := strings.Index(line[s1+1:], " ")
 	if s1 < 0 || s2 < 0 {

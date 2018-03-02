@@ -9,7 +9,6 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"net/url"
 	"os"
 	"path"
 	"path/filepath"
@@ -18,11 +17,11 @@ import (
 	"strings"
 	"time"
 
-	"github.com/badu/http/mime"
-
 	. "github.com/badu/http"
+	"github.com/badu/http/mime"
 	"github.com/badu/http/sniff"
 	. "github.com/badu/http/tport"
+	"github.com/badu/http/url"
 )
 
 // mapDirOpenError maps the provided non-nil error from opening name
@@ -246,7 +245,8 @@ func serveContent(w ResponseWriter, r *Request, name string, modtime time.Time, 
 func scanETag(s string) (etag string, remain string) {
 	s = TrimString(s)
 	start := 0
-	if strings.HasPrefix(s, "W/") {
+	//@comment : was `if strings.HasPrefix(s, "W/") {`
+	if len(s) >= len("W/") && s[0:len("W/")] == "W/" {
 		start = 2
 	}
 	if len(s[start:]) < 2 || s[start] != '"' {
@@ -664,6 +664,7 @@ func parseRange(s string, size int64) ([]httpRange, error) {
 		if ra == "" {
 			continue
 		}
+		// TODO : use strings.IndexByte instead of strings.Index - it's only one char
 		i := strings.Index(ra, "-")
 		if i < 0 {
 			return nil, errors.New("invalid range")

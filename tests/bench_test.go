@@ -12,13 +12,14 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"net/url"
 	"os"
 	"os/exec"
 	"strconv"
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/badu/http/url"
 
 	. "github.com/badu/http"
 	"github.com/badu/http/cli"

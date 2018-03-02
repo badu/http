@@ -12,7 +12,6 @@ import (
 	"fmt"
 	"log"
 	"net"
-	"net/url"
 	"strconv"
 	"strings"
 	"time"
@@ -20,6 +19,7 @@ import (
 
 	. "github.com/badu/http"
 	. "github.com/badu/http/tport"
+	"github.com/badu/http/url"
 )
 
 // refererForURL returns a referer without any authentication info or
@@ -467,6 +467,7 @@ func readCookies(h Header, filter string) []*Cookie {
 				continue
 			}
 			name, val := parts[i], ""
+			// TODO : use strings.IndexByte instead of strings.Index - it's only one char
 			if j := strings.Index(name, "="); j >= 0 {
 				name, val = name[:j], name[j+1:]
 			}
@@ -501,6 +502,7 @@ func readSetCookies(h Header) []*Cookie {
 			continue
 		}
 		parts[0] = strings.TrimSpace(parts[0])
+		// TODO : use strings.IndexByte instead of strings.Index - it's only one char
 		j := strings.Index(parts[0], "=")
 		if j < 0 {
 			continue
@@ -525,6 +527,7 @@ func readSetCookies(h Header) []*Cookie {
 			}
 
 			attr, val := parts[i], ""
+			// TODO : use strings.IndexByte instead of strings.Index - it's only one char
 			if j := strings.Index(attr, "="); j >= 0 {
 				attr, val = attr[:j], attr[j+1:]
 			}

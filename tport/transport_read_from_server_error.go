@@ -8,5 +8,5 @@ package tport
 import "fmt"
 
 func (e transportReadFromServerError) Error() string {
-	return fmt.Sprintf("net/http: Transport failed to read from server: %v", e.err)
+	return fmt.Sprintf("github.com/badu/http/tport: Transport failed to read from server: %v", e.err)
 }

@@ -10,7 +10,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/url"
 	"strings"
 	"sync/atomic"
 	"testing"
@@ -19,6 +18,7 @@ import (
 	"github.com/badu/http/cli"
 	"github.com/badu/http/th"
 	. "github.com/badu/http/tport"
+	"github.com/badu/http/url"
 )
 
 func (b issue18239Body) Read([]byte) (int, error) {

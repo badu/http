@@ -8,8 +8,9 @@ package tport
 import (
 	"crypto/tls"
 	"net"
-	"net/url"
 	"strings"
+
+	"github.com/badu/http/url"
 
 	. "github.com/badu/http"
 	"golang.org/x/net/proxy"

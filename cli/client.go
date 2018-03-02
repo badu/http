@@ -11,12 +11,12 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"net/url"
 	"sort"
 	"strings"
 
 	. "github.com/badu/http"
 	. "github.com/badu/http/tport"
+	"github.com/badu/http/url"
 )
 
 func (c *Client) send(req *Request) (resp *Response, err error) {

@@ -14,13 +14,13 @@ import (
 	"go/ast"
 	"io"
 	"io/ioutil"
-	"net/url"
 	"reflect"
 	"regexp"
 	"strings"
 	"testing"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/url"
 )
 
 type respTest struct {

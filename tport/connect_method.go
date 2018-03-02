@@ -6,10 +6,10 @@
 package tport
 
 import (
-	"net/url"
 	"strings"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/url"
 )
 
 // proxyAuth returns the Proxy-Authorization header to set
@@ -21,7 +21,7 @@ func (m *connectMethod) proxyAuth() string {
 	if u := m.proxyURL.User; u != nil {
 		username := u.Username()
 		password, _ := u.Password()
-		return "Basic " + BasicAuth(username, password)
+		return "Basic " + url.BasicAuth(username, password)
 	}
 	return ""
 }
@@ -31,7 +31,8 @@ func (m *connectMethod) key() connectMethodKey {
 	targetAddr := m.targetAddr
 	if m.proxyURL != nil {
 		proxyStr = m.proxyURL.String()
-		if strings.HasPrefix(m.proxyURL.Scheme, HTTP) && m.targetScheme == HTTP {
+		//@comment : was `if strings.HasPrefix(m.proxyURL.Scheme, HTTP) && m.targetScheme == HTTP {`
+		if len(m.proxyURL.Scheme) >= len(HTTP) && m.proxyURL.Scheme[0:len(HTTP)] == HTTP && m.targetScheme == HTTP {
 			targetAddr = ""
 		}
 	}

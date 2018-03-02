@@ -180,7 +180,7 @@ func (p *persistConn) mapRoundTripError(req *transportRequest, startBytesWritten
 		if p.nwrite == startBytesWritten {
 			return nothingWrittenError{err}
 		}
-		return fmt.Errorf("net/http: HTTP/1.x transport connection broken: %v", err)
+		return fmt.Errorf("github.com/badu/http/tport: HTTP/1.x transport connection broken: %v", err)
 	}
 	return err
 }
@@ -238,7 +238,7 @@ func (p *persistConn) readLoop() {
 
 		if err != nil {
 			if p.readLimit <= 0 {
-				err = fmt.Errorf("net/http: server response headers exceeded %d bytes; aborted", p.maxHeaderResponseSize())
+				err = fmt.Errorf("github.com/badu/http/tport: server response headers exceeded %d bytes; aborted", p.maxHeaderResponseSize())
 			}
 
 			select {

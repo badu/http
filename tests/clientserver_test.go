@@ -13,7 +13,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"net/url"
 	"os"
 	"reflect"
 	"runtime"
@@ -27,6 +26,7 @@ import (
 	"github.com/badu/http/cli"
 	"github.com/badu/http/th"
 	. "github.com/badu/http/tport"
+	"github.com/badu/http/url"
 	"github.com/badu/http/util"
 )
 

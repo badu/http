@@ -14,7 +14,6 @@ import (
 	"io"
 	"log"
 	"net"
-	"net/url"
 	"strings"
 	"sync"
 	"sync/atomic"
@@ -176,11 +175,7 @@ var (
 	// While any panic from ServeHTTP aborts the response to the client,
 	// panicking with ErrAbortHandler also suppresses logging of a stack
 	// trace to the server's error log.
-	ErrAbortHandler = errors.New("net/http: abort Handler")
-
-	// parseURL is just url.Parse. It exists only so that url.Parse can be called
-	// in places where url is shadowed for godoc. See https://golang.org/cl/49930.
-	parseURL = url.Parse
+	ErrAbortHandler = errors.New("github.com/badu//http: abort Handler")
 
 	htmlReplacer = strings.NewReplacer(
 		"&", "&amp;",

@@ -6,12 +6,12 @@
 package tests
 
 import (
-	"net/url"
 	"os"
 	"testing"
 
 	. "github.com/badu/http"
 	. "github.com/badu/http/tport"
+	"github.com/badu/http/url"
 )
 
 func TestUseProxy(t *testing.T) {

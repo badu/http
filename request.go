@@ -13,9 +13,9 @@ import (
 	"io"
 	"mime"
 	"mime/multipart"
-	"net/url"
 
 	"github.com/badu/http/trc"
+	"github.com/badu/http/url"
 )
 
 // Context returns the request's context. To change the context, use
@@ -349,7 +349,7 @@ func (r *Request) BasicAuth() (string, string, bool) {
 // With HTTP Basic Authentication the provided username and password
 // are not encrypted.
 func (r *Request) SetBasicAuth(username, password string) {
-	r.Header.Set(Authorization, "Basic "+BasicAuth(username, password))
+	r.Header.Set(Authorization, "Basic "+url.BasicAuth(username, password))
 }
 
 // ParseForm populates r.Form and r.PostForm.

@@ -16,7 +16,6 @@ import (
 	"io/ioutil"
 	"log"
 	"net"
-	"net/url"
 	"reflect"
 	"strconv"
 	"strings"
@@ -24,6 +23,8 @@ import (
 	"sync/atomic"
 	"testing"
 	"time"
+
+	"github.com/badu/http/url"
 
 	. "github.com/badu/http"
 	"github.com/badu/http/cli"

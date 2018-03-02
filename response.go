@@ -9,9 +9,10 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"net/url"
 	"strconv"
 	"strings"
+
+	"github.com/badu/http/url"
 )
 
 // Location returns the URL of the response's Location header,

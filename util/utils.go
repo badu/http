@@ -13,11 +13,11 @@ import (
 	"io"
 	"io/ioutil"
 	"net"
-	"net/url"
 	"strings"
 
 	. "github.com/badu/http"
 	. "github.com/badu/http/tport"
+	"github.com/badu/http/url"
 )
 
 // drainBody reads all of b to memory and then returns two equivalent
@@ -250,7 +250,7 @@ func DumpResponse(resp *Response, body bool) ([]byte, error) {
 
 func singleJoiningSlash(a, b string) string {
 	aslash := strings.HasSuffix(a, "/")
-	bslash := strings.HasPrefix(b, "/")
+	bslash := len(b) >= len("/") && b[0:len("/")] == "/" //@comment : was `strings.HasPrefix(b, "/")`
 	switch {
 	case aslash && bslash:
 		return a + b[1:]

@@ -7,7 +7,7 @@ package mux
 
 import (
 	. "github.com/badu/http"
-	"net/url"
+	"github.com/badu/http/url"
 	"strings"
 )
 
@@ -140,6 +140,7 @@ func (mux *ServeMux) Handle(pattern string, handler Handler) {
 		if pattern[0] != '/' {
 			// In pattern, at least the last character is a '/', so
 			// strings.Index can't be -1.
+			// TODO : use strings.IndexByte instead of strings.Index - it's only one char
 			path = pattern[strings.Index(pattern, "/"):]
 		}
 		pathUrl := &url.URL{Path: path}

@@ -6,12 +6,12 @@
 package cli
 
 import (
-	"net/url"
 	"sort"
 	"strings"
 	"time"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/url"
 )
 
 // Cookies implements the Cookies method of the http.CookieJar interface.

@@ -19,7 +19,6 @@ import (
 	"log"
 	"math/rand"
 	"net"
-	"net/url"
 	"os"
 	"reflect"
 	"runtime"
@@ -39,6 +38,7 @@ import (
 	"github.com/badu/http/mux"
 	"github.com/badu/http/th"
 	. "github.com/badu/http/tport"
+	"github.com/badu/http/url"
 )
 
 func TestConsumingBodyOnNextConn(t *testing.T) {

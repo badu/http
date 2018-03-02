@@ -8,9 +8,9 @@ package cli
 import (
 	"fmt"
 	"io"
-	"net/url"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/url"
 )
 
 //TODO : @badu - exported so tests can access it

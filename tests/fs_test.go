@@ -15,7 +15,6 @@ import (
 	"mime"
 	"mime/multipart"
 	"net"
-	"net/url"
 	"os"
 	"os/exec"
 	"path/filepath"
@@ -32,6 +31,7 @@ import (
 	"github.com/badu/http/mux"
 	"github.com/badu/http/th"
 	. "github.com/badu/http/tport"
+	"github.com/badu/http/url"
 )
 
 func TestServeFile(t *testing.T) {
