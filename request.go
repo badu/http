@@ -11,8 +11,9 @@ import (
 	"errors"
 	"fmt"
 	"io"
-	"mime"
-	"mime/multipart"
+
+	"github.com/badu/http/hdr"
+	"github.com/badu/http/mime"
 
 	"github.com/badu/http/trc"
 	"github.com/badu/http/url"
@@ -67,7 +68,7 @@ func (r *Request) ProtoAtLeast(major, minor int) bool {
 
 // UserAgent returns the client's User-Agent, if sent in the request.
 func (r *Request) UserAgent() string {
-	return r.Header.Get(UserAgent)
+	return r.Header.Get(hdr.UserAgent)
 }
 
 // Referer returns the referring URL, if sent in the request.
@@ -79,30 +80,30 @@ func (r *Request) UserAgent() string {
 // alternate (correct English) spelling req.Referrer() but cannot
 // diagnose programs that use Header["Referrer"].
 func (r *Request) Referer() string {
-	return r.Header.Get(Referer)
+	return r.Header.Get(hdr.Referer)
 }
 
-// MultipartReader returns a MIME multipart reader if this is a
-// multipart/form-data POST request, else returns nil and an error.
+// MultipartReader returns a MIME mime reader if this is a
+// mime/form-data POST request, else returns nil and an error.
 // Use this function instead of ParseMultipartForm to
 // process the request body as a stream.
-func (r *Request) MultipartReader() (*multipart.Reader, error) {
+func (r *Request) MultipartReader() (*mime.Reader, error) {
 	if r.MultipartForm == multipartByReader {
 		return nil, errors.New("http: MultipartReader called twice")
 	}
 	if r.MultipartForm != nil {
-		return nil, errors.New("http: multipart handled by ParseMultipartForm")
+		return nil, errors.New("http: mime handled by ParseMultipartForm")
 	}
 	r.MultipartForm = multipartByReader
 	return r.multipartReader()
 }
 
-func (r *Request) multipartReader() (*multipart.Reader, error) {
-	v := r.Header.Get(ContentType)
+func (r *Request) multipartReader() (*mime.Reader, error) {
+	v := r.Header.Get(hdr.ContentType)
 	if v == "" {
 		return nil, ErrNotMultipart
 	}
-	d, params, err := mime.ParseMediaType(v)
+	d, params, err := mime.MIMEParseMediaType(v)
 	if err != nil || d != FormData {
 		return nil, ErrNotMultipart
 	}
@@ -110,7 +111,7 @@ func (r *Request) multipartReader() (*multipart.Reader, error) {
 	if !ok {
 		return nil, ErrMissingBoundary
 	}
-	return multipart.NewReader(r.Body, boundary), nil
+	return mime.NewReader(r.Body, boundary), nil
 }
 
 // Write writes an HTTP/1.1 request, which is the header and body, in wire format.
@@ -141,13 +142,13 @@ func (r *Request) WriteProxy(w io.Writer) error {
 }
 
 // @comment : used only in persist_conn.go of the transport
-func (r *Request) IWrite(w io.Writer, usingProxy bool, extraHeaders Header, waitForContinue func() bool) error {
+func (r *Request) IWrite(w io.Writer, usingProxy bool, extraHeaders hdr.Header, waitForContinue func() bool) error {
 	return r.write(w, usingProxy, extraHeaders, waitForContinue)
 }
 
 // extraHeaders may be nil
 // waitForContinue may be nil
-func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitForContinue func() bool) error {
+func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders hdr.Header, waitForContinue func() bool) error {
 	tracer := trc.ContextClientTrace(r.Context())
 	if tracer != nil && tracer.WroteRequest != nil {
 		defer func() {
@@ -206,8 +207,8 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders Header, waitF
 	// Use the DefaultUserAgent unless the Header contains one, which
 	// may be blank to not send the header.
 	userAgent := DefaultUserAgent
-	if _, ok := r.Header[UserAgent]; ok {
-		userAgent = r.Header.Get(UserAgent)
+	if _, ok := r.Header[hdr.UserAgent]; ok {
+		userAgent = r.Header.Get(hdr.UserAgent)
 	}
 	if userAgent != "" {
 		_, err = fmt.Fprintf(w, "User-Agent: %s\r\n", userAgent)
@@ -336,7 +337,7 @@ func (r *Request) createWriter() (*transferWriter, error) {
 // Authorization header, if the request uses HTTP Basic Authentication.
 // See RFC 2617, Section 2.
 func (r *Request) BasicAuth() (string, string, bool) {
-	auth := r.Header.Get(Authorization)
+	auth := r.Header.Get(hdr.Authorization)
 	if auth == "" {
 		return "", "", false
 	}
@@ -349,7 +350,7 @@ func (r *Request) BasicAuth() (string, string, bool) {
 // With HTTP Basic Authentication the provided username and password
 // are not encrypted.
 func (r *Request) SetBasicAuth(username, password string) {
-	r.Header.Set(Authorization, "Basic "+url.BasicAuth(username, password))
+	r.Header.Set(hdr.Authorization, "Basic "+url.BasicAuth(username, password))
 }
 
 // ParseForm populates r.Form and r.PostForm.
@@ -405,7 +406,7 @@ func (r *Request) ParseForm() error {
 	return err
 }
 
-// ParseMultipartForm parses a request body as multipart/form-data.
+// ParseMultipartForm parses a request body as mime/form-data.
 // The whole request body is parsed and up to a total of maxMemory bytes of
 // its file parts are stored in memory, with the remainder stored on
 // disk in temporary files.
@@ -413,7 +414,7 @@ func (r *Request) ParseForm() error {
 // After one call to ParseMultipartForm, subsequent calls have no effect.
 func (r *Request) ParseMultipartForm(maxMemory int64) error {
 	if r.MultipartForm == multipartByReader {
-		return errors.New("http: multipart handled by MultipartReader")
+		return errors.New("http: mime handled by MultipartReader")
 	}
 	if r.Form == nil {
 		err := r.ParseForm()
@@ -483,9 +484,9 @@ func (r *Request) PostFormValue(key string) string {
 
 // FormFile returns the first file for the provided form key.
 // FormFile calls ParseMultipartForm and ParseForm if necessary.
-func (r *Request) FormFile(key string) (multipart.File, *multipart.FileHeader, error) {
+func (r *Request) FormFile(key string) (mime.File, *mime.FileHeader, error) {
 	if r.MultipartForm == multipartByReader {
-		return nil, nil, errors.New("http: multipart handled by MultipartReader")
+		return nil, nil, errors.New("http: mime handled by MultipartReader")
 	}
 	if r.MultipartForm == nil {
 		err := r.ParseMultipartForm(defaultMaxMemory)
@@ -503,18 +504,18 @@ func (r *Request) FormFile(key string) (multipart.File, *multipart.FileHeader, e
 }
 
 func (r *Request) ExpectsContinue() bool {
-	return hasToken(r.Header.get(Expect), "100-continue")
+	return hasToken(r.Header.Get(hdr.Expect), "100-continue")
 }
 
 func (r *Request) wantsHttp10KeepAlive() bool {
 	if r.ProtoMajor != 1 || r.ProtoMinor != 0 {
 		return false
 	}
-	return hasToken(r.Header.get(Connection), DoKeepAlive)
+	return hasToken(r.Header.Get(hdr.Connection), DoKeepAlive)
 }
 
 func (r *Request) wantsClose() bool {
-	return hasToken(r.Header.get(Connection), DoClose)
+	return hasToken(r.Header.Get(hdr.Connection), DoClose)
 }
 
 // @comment : decide to go public with this function, because it's called in so many places

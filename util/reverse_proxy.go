@@ -13,6 +13,7 @@ import (
 	"strings"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 	. "github.com/badu/http/tport"
 )
 
@@ -49,7 +50,7 @@ func (p *ReverseProxy) ServeHTTP(rw ResponseWriter, req *Request) {
 
 	// Remove hop-by-hop headers listed in the Connection header.
 	// See RFC 2616, section 14.10.
-	if c := outreq.Header.Get(Connection); c != "" {
+	if c := outreq.Header.Get(hdr.Connection); c != "" {
 		for _, f := range strings.Split(c, ",") {
 			if f = strings.TrimSpace(f); f != "" {
 				outreq.Header.Del(f)
@@ -70,10 +71,10 @@ func (p *ReverseProxy) ServeHTTP(rw ResponseWriter, req *Request) {
 		// If we aren't the first proxy retain prior
 		// X-Forwarded-For information as a comma+space
 		// separated list and fold multiple headers into one.
-		if prior, ok := outreq.Header[XForwardedFor]; ok {
+		if prior, ok := outreq.Header[hdr.XForwardedFor]; ok {
 			clientIP = strings.Join(prior, ", ") + ", " + clientIP
 		}
-		outreq.Header.Set(XForwardedFor, clientIP)
+		outreq.Header.Set(hdr.XForwardedFor, clientIP)
 	}
 
 	res, err := trns.RoundTrip(outreq)
@@ -85,7 +86,7 @@ func (p *ReverseProxy) ServeHTTP(rw ResponseWriter, req *Request) {
 
 	// Remove hop-by-hop headers listed in the
 	// Connection header of the response.
-	if c := res.Header.Get(Connection); c != "" {
+	if c := res.Header.Get(hdr.Connection); c != "" {
 		for _, f := range strings.Split(c, ",") {
 			if f = strings.TrimSpace(f); f != "" {
 				res.Header.Del(f)
@@ -115,7 +116,7 @@ func (p *ReverseProxy) ServeHTTP(rw ResponseWriter, req *Request) {
 		for k := range res.Trailer {
 			trailerKeys = append(trailerKeys, k)
 		}
-		rw.Header().Add(Trailer, strings.Join(trailerKeys, ", "))
+		rw.Header().Add(hdr.Trailer, strings.Join(trailerKeys, ", "))
 	}
 
 	rw.WriteHeader(res.StatusCode)

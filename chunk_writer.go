@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"time"
 
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/sniff"
 )
 
@@ -121,12 +122,12 @@ func (w *chunkWriter) writeHeader(p []byte) {
 			trailers = true
 		}
 	}
-	for _, v := range w.header[Trailer] {
+	for _, v := range w.header[hdr.Trailer] {
 		trailers = true
 		foreachHeaderElement(v, w.res.declareTrailer)
 	}
 
-	te := header.get(TransferEncoding)
+	te := header.Get(hdr.TransferEncoding)
 	hasTE := te != ""
 
 	// If the handler is done but never sent a Content-Length
@@ -143,7 +144,7 @@ func (w *chunkWriter) writeHeader(p []byte) {
 	// send a Content-Length header.
 	// Further, we don't send an automatic Content-Length if they
 	// set a Transfer-Encoding, because they're generally incompatible.
-	if res.handlerDone.isSet() && !trailers && !hasTE && bodyAllowedForStatus(res.status) && header.get(ContentLength) == "" && (!isHEAD || len(p) > 0) {
+	if res.handlerDone.isSet() && !trailers && !hasTE && bodyAllowedForStatus(res.status) && header.Get(hdr.ContentLength) == "" && (!isHEAD || len(p) > 0) {
 		res.contentLength = int64(len(p))
 		setHeader.contentLength = strconv.AppendInt(w.res.clenBuf[:0], int64(len(p)), 10)
 	}
@@ -151,8 +152,8 @@ func (w *chunkWriter) writeHeader(p []byte) {
 	// If this was an HTTP/1.0 request with keep-alive and we sent a
 	// Content-Length back, we can make this a keep-alive response ...
 	if res.wants10KeepAlive && keepAlivesEnabled {
-		sentLength := header.get(ContentLength) != ""
-		if sentLength && header.get(Connection) == DoKeepAlive {
+		sentLength := header.Get(hdr.ContentLength) != ""
+		if sentLength && header.Get(hdr.Connection) == DoKeepAlive {
 			res.closeAfterReply = false
 		}
 	}
@@ -161,7 +162,7 @@ func (w *chunkWriter) writeHeader(p []byte) {
 	hasCL := res.contentLength != -1
 
 	if res.wants10KeepAlive && (isHEAD || hasCL || !bodyAllowedForStatus(res.status)) {
-		_, connectionHeaderSet := header[Connection]
+		_, connectionHeaderSet := header[hdr.Connection]
 		if !connectionHeaderSet {
 			setHeader.connection = DoKeepAlive
 		}
@@ -169,7 +170,7 @@ func (w *chunkWriter) writeHeader(p []byte) {
 		res.closeAfterReply = true
 	}
 
-	if header.get(Connection) == DoClose || !keepAlivesEnabled {
+	if header.Get(hdr.Connection) == DoClose || !keepAlivesEnabled {
 		res.closeAfterReply = true
 	}
 
@@ -246,7 +247,7 @@ func (w *chunkWriter) writeHeader(p []byte) {
 
 		if tooBig {
 			res.requestTooLarge()
-			delHeader(Connection)
+			delHeader(hdr.Connection)
 			setHeader.connection = DoClose
 		}
 	}
@@ -254,7 +255,7 @@ func (w *chunkWriter) writeHeader(p []byte) {
 	code := res.status
 	if bodyAllowedForStatus(code) {
 		// If no content type, apply sniffing algorithm to body.
-		_, haveType := header[ContentType]
+		_, haveType := header[hdr.ContentType]
 		if !haveType && !hasTE {
 			setHeader.contentType = sniff.DetectContentType(p)
 		}
@@ -264,7 +265,7 @@ func (w *chunkWriter) writeHeader(p []byte) {
 		}
 	}
 
-	if _, ok := header[Date]; !ok {
+	if _, ok := header[hdr.Date]; !ok {
 		setHeader.date = appendTime(w.res.dateBuf[:0], time.Now())
 	}
 
@@ -272,16 +273,16 @@ func (w *chunkWriter) writeHeader(p []byte) {
 		// TODO: return an error if WriteHeader gets a return parameter
 		// For now just ignore the Content-Length.
 		res.conn.server.logf("http: WriteHeader called with both Transfer-Encoding of %q and a Content-Length of %d", te, res.contentLength)
-		delHeader(ContentLength)
+		delHeader(hdr.ContentLength)
 		hasCL = false
 	}
 
 	if res.req.Method == HEAD || !bodyAllowedForStatus(code) {
 		// do nothing
 	} else if code == StatusNoContent {
-		delHeader(TransferEncoding)
+		delHeader(hdr.TransferEncoding)
 	} else if hasCL {
-		delHeader(TransferEncoding)
+		delHeader(hdr.TransferEncoding)
 	} else if res.req.ProtoAtLeast(1, 1) {
 		// HTTP/1.1 or greater: Transfer-Encoding has been set to identity,  and no
 		// content-length has been provided. The connection must be closed after the
@@ -298,7 +299,7 @@ func (w *chunkWriter) writeHeader(p []byte) {
 			setHeader.transferEncoding = DoChunked
 			if hasTE && te == DoChunked {
 				// We will send the chunked Transfer-Encoding header later.
-				delHeader(TransferEncoding)
+				delHeader(hdr.TransferEncoding)
 			}
 		}
 	} else {
@@ -306,19 +307,19 @@ func (w *chunkWriter) writeHeader(p []byte) {
 		// encoding and we don't know the Content-Length so
 		// signal EOF by closing connection.
 		res.closeAfterReply = true
-		delHeader(TransferEncoding) // in case already set
+		delHeader(hdr.TransferEncoding) // in case already set
 	}
 
 	// Cannot use Content-Length with non-identity Transfer-Encoding.
 	if w.chunking {
-		delHeader(ContentLength)
+		delHeader(hdr.ContentLength)
 	}
 	if !res.req.ProtoAtLeast(1, 0) {
 		return
 	}
 
-	if res.closeAfterReply && (!keepAlivesEnabled || !hasToken(w.header.get(Connection), DoClose)) {
-		delHeader(Connection)
+	if res.closeAfterReply && (!keepAlivesEnabled || !hasToken(w.header.Get(hdr.Connection), DoClose)) {
+		delHeader(hdr.Connection)
 		if res.req.ProtoAtLeast(1, 1) {
 			setHeader.connection = DoClose
 		}

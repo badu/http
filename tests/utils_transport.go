@@ -18,6 +18,7 @@ import (
 	"time"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 )
 
 func (c byteFromChanReader) Read(p []byte) (n int, err error) {
@@ -36,7 +37,7 @@ func (fooProto) RoundTrip(req *Request) (*Response, error) {
 	res := &Response{
 		Status:     "200 OK",
 		StatusCode: 200,
-		Header:     make(Header),
+		Header:     make(hdr.Header),
 		Body:       ioutil.NopCloser(strings.NewReader("You wanted " + req.URL.String())),
 	}
 	return res, nil

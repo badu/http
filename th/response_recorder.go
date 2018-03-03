@@ -12,14 +12,15 @@ import (
 	"strings"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/sniff"
 )
 
 // Header returns the response headers.
-func (rw *ResponseRecorder) Header() Header {
+func (rw *ResponseRecorder) Header() hdr.Header {
 	m := rw.HeaderMap
 	if m == nil {
-		m = make(Header)
+		m = make(hdr.Header)
 		rw.HeaderMap = m
 	}
 	return m
@@ -42,13 +43,13 @@ func (rw *ResponseRecorder) writeHeader(b []byte, str string) {
 
 	m := rw.Header()
 
-	_, hasType := m[ContentType]
-	hasTE := m.Get(TransferEncoding) != ""
+	_, hasType := m[hdr.ContentType]
+	hasTE := m.Get(hdr.TransferEncoding) != ""
 	if !hasType && !hasTE {
 		if b == nil {
 			b = []byte(str)
 		}
-		m.Set(ContentType, sniff.DetectContentType(b))
+		m.Set(hdr.ContentType, sniff.DetectContentType(b))
 	}
 
 	rw.WriteHeader(200)
@@ -81,7 +82,7 @@ func (rw *ResponseRecorder) WriteHeader(code int) {
 	rw.Code = code
 	rw.wroteHeader = true
 	if rw.HeaderMap == nil {
-		rw.HeaderMap = make(Header)
+		rw.HeaderMap = make(hdr.Header)
 	}
 	rw.snapHeader = rw.HeaderMap.Clone()
 }
@@ -131,17 +132,17 @@ func (rw *ResponseRecorder) Result() *Response {
 	if rw.Body != nil {
 		res.Body = ioutil.NopCloser(bytes.NewReader(rw.Body.Bytes()))
 	}
-	res.ContentLength = parseContentLength(res.Header.Get(ContentLength))
+	res.ContentLength = parseContentLength(res.Header.Get(hdr.ContentLength))
 
-	if trailers, ok := rw.snapHeader[Trailer]; ok {
-		res.Trailer = make(Header, len(trailers))
+	if trailers, ok := rw.snapHeader[hdr.Trailer]; ok {
+		res.Trailer = make(hdr.Header, len(trailers))
 		for _, k := range trailers {
 			switch k {
-			case TransferEncoding, ContentLength, Trailer:
+			case hdr.TransferEncoding, hdr.ContentLength, hdr.Trailer:
 				// Ignore since forbidden by RFC 2616 14.40.
 				continue
 			}
-			k = CanonicalHeaderKey(k)
+			k = hdr.CanonicalHeaderKey(k)
 			vv, ok := rw.HeaderMap[k]
 			if !ok {
 				continue
@@ -157,7 +158,7 @@ func (rw *ResponseRecorder) Result() *Response {
 			continue
 		}
 		if res.Trailer == nil {
-			res.Trailer = make(Header)
+			res.Trailer = make(hdr.Header)
 		}
 		for _, v := range vv {
 			res.Trailer.Add(strings.TrimPrefix(k, TrailerPrefix), v)

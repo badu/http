@@ -18,6 +18,7 @@ import (
 	"unicode/utf8"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 	. "github.com/badu/http/tport"
 	"github.com/badu/http/url"
 )
@@ -80,15 +81,15 @@ func send(ireq *Request, rt RoundTripper) (resp *Response, err error) {
 	// Transport that this has been initialized, though.
 	if req.Header == nil {
 		forkReq()
-		req.Header = make(Header)
+		req.Header = make(hdr.Header)
 	}
 
-	if u := req.URL.User; u != nil && req.Header.Get(Authorization) == "" {
+	if u := req.URL.User; u != nil && req.Header.Get(hdr.Authorization) == "" {
 		username := u.Username()
 		password, _ := u.Password()
 		forkReq()
 		req.Header = ireq.Header.Clone()
-		req.Header.Set(Authorization, "Basic "+basicAuth(username, password))
+		req.Header.Set(hdr.Authorization, "Basic "+basicAuth(username, password))
 	}
 
 	stopTimer := func() {}
@@ -147,7 +148,7 @@ func redirectBehavior(reqMethod string, resp *Response, ireq *Request) (redirect
 
 		// Treat 307 and 308 specially, since they're new in
 		// Go 1.8, and they also require re-sending the request body.
-		if resp.Header.Get(Location) == "" {
+		if resp.Header.Get(hdr.Location) == "" {
 			// 308s have been observed in the wild being served
 			// without Location headers. Since Go 1.7 and earlier
 			// didn't follow these codes, just stop here instead
@@ -175,8 +176,8 @@ func defaultCheckRedirect(req *Request, via []*Request) error {
 }
 
 func shouldCopyHeaderOnRedirect(headerKey string, initial, dest *url.URL) bool {
-	switch CanonicalHeaderKey(headerKey) {
-	case Authorization, "Www-Authenticate", CookieHeader, "Cookie2":
+	switch hdr.CanonicalHeaderKey(headerKey) {
+	case hdr.Authorization, "Www-Authenticate", hdr.CookieHeader, "Cookie2":
 		// Permit sending auth/cookie headers from "foo.com"
 		// to "sub.foo.com".
 
@@ -449,9 +450,9 @@ func ascii(s string) bool {
 // returns the successfully parsed Cookies.
 //
 // if filter isn't empty, only cookies of that name are returned
-func readCookies(h Header, filter string) []*Cookie {
+func readCookies(h hdr.Header, filter string) []*Cookie {
 	var result []*Cookie
-	lines, ok := h[CookieHeader]
+	lines, ok := h[hdr.CookieHeader]
 	if !ok {
 		return result
 	}
@@ -491,13 +492,13 @@ func readCookies(h Header, filter string) []*Cookie {
 
 // readSetCookies parses all "Set-Cookie" values from
 // the header h and returns the successfully parsed Cookies.
-func readSetCookies(h Header) []*Cookie {
-	cookieCount := len(h[SetCookieHeader])
+func readSetCookies(h hdr.Header) []*Cookie {
+	cookieCount := len(h[hdr.SetCookieHeader])
 	if cookieCount == 0 {
 		return []*Cookie{}
 	}
 	cookies := make([]*Cookie, 0, cookieCount)
-	for _, line := range h[SetCookieHeader] {
+	for _, line := range h[hdr.SetCookieHeader] {
 		parts := strings.Split(strings.TrimSpace(line), ";")
 		if len(parts) == 1 && parts[0] == "" {
 			continue

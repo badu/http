@@ -31,6 +31,7 @@ import (
 
 	. "github.com/badu/http"
 	"github.com/badu/http/cli"
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/mux"
 	"github.com/badu/http/th"
 	. "github.com/badu/http/tport"
@@ -241,7 +242,7 @@ func TestTransportReadToEndReusesConn(t *testing.T) {
 			w.WriteHeader(200)
 			w.(Flusher).Flush()
 		} else {
-			w.Header().Set(ContentType, strconv.Itoa(len(msg)))
+			w.Header().Set(hdr.ContentType, strconv.Itoa(len(msg)))
 			w.WriteHeader(200)
 		}
 		w.Write([]byte(msg))
@@ -463,8 +464,8 @@ func TestStressSurpriseServerCloses(t *testing.T) {
 		t.Skip("skipping test in short mode")
 	}
 	ts := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(ContentLength, "5")
-		w.Header().Set(ContentType, "text/plain")
+		w.Header().Set(hdr.ContentLength, "5")
+		w.Header().Set(hdr.ContentType, "text/plain")
 		w.Write([]byte("Hello"))
 		w.(Flusher).Flush()
 		conn, buf, _ := w.(Hijacker).Hijack()
@@ -521,7 +522,7 @@ func TestTransportHeadResponses(t *testing.T) {
 		if r.Method != HEAD {
 			panic("expected HEAD; got " + r.Method)
 		}
-		w.Header().Set(ContentLength, "123")
+		w.Header().Set(hdr.ContentLength, "123")
 		w.WriteHeader(200)
 	}))
 	defer ts.Close()
@@ -533,7 +534,7 @@ func TestTransportHeadResponses(t *testing.T) {
 			t.Errorf("error on loop %d: %v", i, err)
 			continue
 		}
-		if e, g := "123", res.Header.Get(ContentLength); e != g {
+		if e, g := "123", res.Header.Get(hdr.ContentLength); e != g {
 			t.Errorf("loop %d: expected Content-Length header of %q, got %q", i, e, g)
 		}
 		if e, g := int64(123), res.ContentLength; e != g {
@@ -557,7 +558,7 @@ func TestTransportHeadChunkedResponse(t *testing.T) {
 		if r.Method != HEAD {
 			panic("expected HEAD; got " + r.Method)
 		}
-		w.Header().Set(TransferEncoding, DoChunked) // client should ignore
+		w.Header().Set(hdr.TransferEncoding, DoChunked) // client should ignore
 		w.Header().Set("x-client-ipport", r.RemoteAddr)
 		w.WriteHeader(200)
 	}))
@@ -596,18 +597,18 @@ func TestRoundTripGzip(t *testing.T) {
 	defer afterTest(t)
 	const responseBody = "test response body"
 	ts := th.NewServer(HandlerFunc(func(rw ResponseWriter, req *Request) {
-		accept := req.Header.Get(AcceptEncoding)
+		accept := req.Header.Get(hdr.AcceptEncoding)
 		if expect := req.FormValue("expect_accept"); accept != expect {
 			t.Errorf("in handler, test %v: Accept-Encoding = %q, want %q",
 				req.FormValue("testnum"), accept, expect)
 		}
 		if accept == "gzip" {
-			rw.Header().Set(ContentEncoding, "gzip")
+			rw.Header().Set(hdr.ContentEncoding, "gzip")
 			gz := gzip.NewWriter(rw)
 			gz.Write([]byte(responseBody))
 			gz.Close()
 		} else {
-			rw.Header().Set(ContentEncoding, accept)
+			rw.Header().Set(hdr.ContentEncoding, accept)
 			rw.Write([]byte(responseBody))
 		}
 	}))
@@ -618,7 +619,7 @@ func TestRoundTripGzip(t *testing.T) {
 		// Test basic request (no accept-encoding)
 		req, _ := NewRequest(GET, fmt.Sprintf("%s/?testnum=%d&expect_accept=%s", ts.URL, i, test.expectAccept), nil)
 		if test.accept != "" {
-			req.Header.Set(AcceptEncoding, test.accept)
+			req.Header.Set(hdr.AcceptEncoding, test.accept)
 		}
 		res, err := tr.RoundTrip(req)
 		var body []byte
@@ -641,10 +642,10 @@ func TestRoundTripGzip(t *testing.T) {
 		if g, e := string(body), responseBody; g != e {
 			t.Errorf("%d. body = %q; want %q", i, g, e)
 		}
-		if g, e := req.Header.Get(AcceptEncoding), test.accept; g != e {
+		if g, e := req.Header.Get(hdr.AcceptEncoding), test.accept; g != e {
 			t.Errorf("%d. Accept-Encoding = %q; want %q (it was mutated, in violation of RoundTrip contract)", i, g, e)
 		}
-		if g, e := res.Header.Get(ContentEncoding), test.accept; g != e {
+		if g, e := res.Header.Get(hdr.ContentEncoding), test.accept; g != e {
 			t.Errorf("%d. Content-Encoding = %q; want %q", i, g, e)
 		}
 	}
@@ -658,15 +659,15 @@ func TestTransportGzip(t *testing.T) {
 	const nRandBytes = 1024 * 1024
 	ts := th.NewServer(HandlerFunc(func(rw ResponseWriter, req *Request) {
 		if req.Method == HEAD {
-			if g := req.Header.Get(AcceptEncoding); g != "" {
+			if g := req.Header.Get(hdr.AcceptEncoding); g != "" {
 				t.Errorf("HEAD request sent with Accept-Encoding of %q; want none", g)
 			}
 			return
 		}
-		if g, e := req.Header.Get(AcceptEncoding), "gzip"; g != e {
+		if g, e := req.Header.Get(hdr.AcceptEncoding), "gzip"; g != e {
 			t.Errorf("Accept-Encoding = %q, want %q", g, e)
 		}
-		rw.Header().Set(ContentEncoding, "gzip")
+		rw.Header().Set(hdr.ContentEncoding, "gzip")
 
 		var w io.Writer = rw
 		var buf bytes.Buffer
@@ -674,7 +675,7 @@ func TestTransportGzip(t *testing.T) {
 			w = &buf
 			defer io.Copy(rw, &buf)
 			defer func() {
-				rw.Header().Set(ContentLength, strconv.Itoa(buf.Len()))
+				rw.Header().Set(hdr.ContentLength, strconv.Itoa(buf.Len()))
 			}()
 		}
 		gz := gzip.NewWriter(w)
@@ -720,7 +721,7 @@ func TestTransportGzip(t *testing.T) {
 		if g, e := string(body), testString; g != e {
 			t.Fatalf("body = %q; want %q", g, e)
 		}
-		if g, e := res.Header.Get(ContentEncoding), ""; g != e {
+		if g, e := res.Header.Get(hdr.ContentEncoding), ""; g != e {
 			t.Fatalf("Content-Encoding = %q; want %q", g, e)
 		}
 
@@ -819,7 +820,7 @@ func TestTransportExpect100Continue(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		req.Header.Set(Expect, "100-continue")
+		req.Header.Set(hdr.Expect, "100-continue")
 		req.ContentLength = int64(len(v.body))
 
 		resp, err := c.Do(req)
@@ -1013,7 +1014,7 @@ func TestTransportDialPreservesNetOpProxyError(t *testing.T) {
 func TestTransportGzipRecursive(t *testing.T) {
 	defer afterTest(t)
 	ts := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(ContentEncoding, "gzip")
+		w.Header().Set(hdr.ContentEncoding, "gzip")
 		w.Write(rgz)
 	}))
 	defer ts.Close()
@@ -1031,7 +1032,7 @@ func TestTransportGzipRecursive(t *testing.T) {
 		t.Fatalf("Incorrect result from recursive gz:\nhave=%x\nwant=%x",
 			body, rgz)
 	}
-	if g, e := res.Header.Get(ContentEncoding), ""; g != e {
+	if g, e := res.Header.Get(hdr.ContentEncoding), ""; g != e {
 		t.Fatalf("Content-Encoding = %q; want %q", g, e)
 	}
 }
@@ -1041,7 +1042,7 @@ func TestTransportGzipRecursive(t *testing.T) {
 func TestTransportGzipShort(t *testing.T) {
 	defer afterTest(t)
 	ts := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(ContentEncoding, "gzip")
+		w.Header().Set(hdr.ContentEncoding, "gzip")
 		w.Write([]byte{0x1f, 0x8b})
 	}))
 	defer ts.Close()
@@ -1072,7 +1073,7 @@ func TestTransportPersistConnLeak(t *testing.T) {
 	ts := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		gotReqCh <- true
 		<-unblockCh
-		w.Header().Set(ContentLength, "0")
+		w.Header().Set(hdr.ContentLength, "0")
 		w.WriteHeader(204)
 	}))
 	defer ts.Close()
@@ -1206,7 +1207,7 @@ func TestIssue3644(t *testing.T) {
 	defer afterTest(t)
 	const numFoos = 5000
 	ts := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(Connection, DoClose)
+		w.Header().Set(hdr.Connection, DoClose)
 		for i := 0; i < numFoos; i++ {
 			w.Write([]byte("foo "))
 		}
@@ -1644,7 +1645,7 @@ func TestTransportNoHost(t *testing.T) {
 	defer afterTest(t)
 	tr := &Transport{}
 	_, err := tr.RoundTrip(&Request{
-		Header: make(Header),
+		Header: make(hdr.Header),
 		URL: &url.URL{
 			Scheme: HTTP,
 		},
@@ -2515,7 +2516,7 @@ func TestTransportRangeAndGzip(t *testing.T) {
 
 	select {
 	case r := <-reqc:
-		if strings.Contains(r.Header.Get(AcceptEncoding), "gzip") {
+		if strings.Contains(r.Header.Get(hdr.AcceptEncoding), "gzip") {
 			t.Error("Transport advertised gzip support in the Accept header")
 		}
 		if r.Header.Get("Range") == "" {
@@ -2575,7 +2576,7 @@ func TestTransportContentEncodingCaseInsensitive(t *testing.T) {
 		t.Run(ce, func(t *testing.T) {
 			const encodedString = "Hello Gopher"
 			ts := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-				w.Header().Set(ContentEncoding, ce)
+				w.Header().Set(hdr.ContentEncoding, ce)
 				gz := gzip.NewWriter(w)
 				gz.Write([]byte(encodedString))
 				gz.Close()
@@ -2624,7 +2625,7 @@ func TestTransportFlushesBodyChunks(t *testing.T) {
 	resc := make(chan *Response)
 	go func() {
 		req, _ := NewRequest(POST, "http://localhost:8080", bodyr)
-		req.Header.Set(UserAgent, "x") // known value for test
+		req.Header.Set(hdr.UserAgent, "x") // known value for test
 		res, err := tr.RoundTrip(req)
 		if err != nil {
 			t.Errorf("RoundTrip: %v", err)
@@ -2758,7 +2759,7 @@ func testTransportReuseConnectionGzip(t *testing.T, chunked bool) {
 	addr := make(chan string, 2)
 	ts := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		addr <- r.RemoteAddr
-		w.Header().Set(ContentEncoding, "gzip")
+		w.Header().Set(hdr.ContentEncoding, "gzip")
 		if chunked {
 			w.(Flusher).Flush()
 		}
@@ -2993,9 +2994,9 @@ func TestTransportProxyConnectHeader(t *testing.T) {
 	c.Transport.(*Transport).Proxy = func(r *Request) (*url.URL, error) {
 		return url.Parse(ts.URL)
 	}
-	c.Transport.(*Transport).ProxyConnectHeader = Header{
-		UserAgent: {"foo"},
-		"Other":   {"bar"},
+	c.Transport.(*Transport).ProxyConnectHeader = hdr.Header{
+		hdr.UserAgent: {"foo"},
+		"Other":       {"bar"},
 	}
 
 	res, err := c.Get("https://dummy.tld/") // https to force a CONNECT
@@ -3007,7 +3008,7 @@ func TestTransportProxyConnectHeader(t *testing.T) {
 	case <-time.After(3 * time.Second):
 		t.Fatal("timeout")
 	case r := <-reqc:
-		if got, want := r.Header.Get(UserAgent), "foo"; got != want {
+		if got, want := r.Header.Get(hdr.UserAgent), "foo"; got != want {
 			t.Errorf("CONNECT request User-Agent = %q; want %q", got, want)
 		}
 		if got, want := r.Header.Get("Other"), "bar"; got != want {

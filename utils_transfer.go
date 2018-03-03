@@ -13,6 +13,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/badu/http/hdr"
 )
 
 // requestMethodUsuallyLacksBody reports whether the given request
@@ -91,7 +93,7 @@ func readTransferResponse(resp *Response, r *bufio.Reader) error {
 	}
 
 	if t.RequestMethod == HEAD {
-		if n, err := parseContentLength(t.Header.get(ContentLength)); err != nil {
+		if n, err := parseContentLength(t.Header.Get(hdr.ContentLength)); err != nil {
 			return err
 		} else {
 			t.ContentLength = n
@@ -227,9 +229,9 @@ func isIdentity(te []string) bool { return len(te) == 1 && te[0] == DoIdentity }
 // Determine the expected body length, using RFC 2616 Section 4.4. This
 // function is not a method, because ultimately it should be shared by
 // ReadResponse and ReadRequest.
-func fixLength(isResponse bool, status int, requestMethod string, header Header, te []string) (int64, error) {
+func fixLength(isResponse bool, status int, requestMethod string, header hdr.Header, te []string) (int64, error) {
 	isRequest := !isResponse
-	contentLens := header[ContentLength]
+	contentLens := header[hdr.ContentLength]
 
 	// Hardening against HTTP request smuggling
 	if len(contentLens) > 1 {
@@ -245,10 +247,10 @@ func fixLength(isResponse bool, status int, requestMethod string, header Header,
 		}
 
 		// deduplicate Content-Length
-		header.Del(ContentLength)
-		header.Add(ContentLength, first)
+		header.Del(hdr.ContentLength)
+		header.Add(hdr.ContentLength, first)
 
-		contentLens = header[ContentLength]
+		contentLens = header[hdr.ContentLength]
 	}
 
 	// Logic based on response type or status
@@ -287,7 +289,7 @@ func fixLength(isResponse bool, status int, requestMethod string, header Header,
 		}
 		return n, nil
 	} else {
-		header.Del(ContentLength)
+		header.Del(hdr.ContentLength)
 	}
 
 	if isRequest {
@@ -308,19 +310,19 @@ func fixLength(isResponse bool, status int, requestMethod string, header Header,
 // Determine whether to hang up after sending a request and body, or
 // receiving a response and body
 // 'header' is the request headers
-func shouldClose(major, minor int, header Header, removeCloseHeader bool) bool {
+func shouldClose(major, minor int, header hdr.Header, removeCloseHeader bool) bool {
 	if major < 1 {
 		return true
 	}
 
-	conv := header[Connection]
+	conv := header[hdr.Connection]
 	hasClose := headersValuesContainsToken(conv, DoClose)
 	if major == 1 && minor == 0 {
 		return hasClose || !headersValuesContainsToken(conv, DoKeepAlive)
 	}
 
 	if hasClose && removeCloseHeader {
-		header.Del(Connection)
+		header.Del(hdr.Connection)
 	}
 
 	return hasClose
@@ -385,20 +387,20 @@ func lowerASCII(b byte) byte {
 }
 
 // Parse the trailer header
-func fixTrailer(header Header, te []string) (Header, error) {
-	vv, ok := header[Trailer]
+func fixTrailer(header hdr.Header, te []string) (hdr.Header, error) {
+	vv, ok := header[hdr.Trailer]
 	if !ok {
 		return nil, nil
 	}
-	header.Del(Trailer)
+	header.Del(hdr.Trailer)
 
-	trailer := make(Header)
+	trailer := make(hdr.Header)
 	var err error
 	for _, v := range vv {
 		foreachHeaderElement(v, func(key string) {
-			key = CanonicalHeaderKey(key)
+			key = hdr.CanonicalHeaderKey(key)
 			switch key {
-			case TransferEncoding, Trailer, ContentLength:
+			case hdr.TransferEncoding, hdr.Trailer, hdr.ContentLength:
 				if err == nil {
 					err = &badStringError{"bad trailer key", key}
 					return
@@ -436,7 +438,7 @@ func seeUpcomingDoubleCRLF(r *bufio.Reader) bool {
 	return false
 }
 
-func mergeSetHeader(dst *Header, src Header) {
+func mergeSetHeader(dst *hdr.Header, src hdr.Header) {
 	if *dst == nil {
 		*dst = src
 		return

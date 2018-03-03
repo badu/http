@@ -14,6 +14,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/url"
 )
 
@@ -126,7 +127,7 @@ func NewRequest(method, toURL string, body io.Reader) (*Request, error) {
 		Proto:      HTTP1_1,
 		ProtoMajor: 1,
 		ProtoMinor: 1,
-		Header:     make(Header),
+		Header:     make(hdr.Header),
 		Body:       rc,
 		Host:       u.Host,
 	}

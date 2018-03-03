@@ -10,6 +10,7 @@ import (
 	"io"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/url"
 )
 
@@ -145,10 +146,10 @@ func GetCookie(name string, fromReq *Request) (*Cookie, error) {
 // separated by semicolon.
 func AddCookie(c *Cookie, toReq *Request) {
 	s := fmt.Sprintf("%s=%s", sanitizeCookieName(c.Name), sanitizeCookieValue(c.Value))
-	if c := toReq.Header.Get(CookieHeader); c != "" {
-		toReq.Header.Set(CookieHeader, c+"; "+s)
+	if c := toReq.Header.Get(hdr.CookieHeader); c != "" {
+		toReq.Header.Set(hdr.CookieHeader, c+"; "+s)
 	} else {
-		toReq.Header.Set(CookieHeader, s)
+		toReq.Header.Set(hdr.CookieHeader, s)
 	}
 }
 
@@ -157,6 +158,6 @@ func AddCookie(c *Cookie, toReq *Request) {
 // silently dropped.
 func SetCookie(w ResponseWriter, cookie *Cookie) {
 	if v := cookie.String(); v != "" {
-		w.Header().Add(SetCookieHeader, v)
+		w.Header().Add(hdr.SetCookieHeader, v)
 	}
 }

@@ -13,6 +13,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/url"
 )
 
@@ -30,7 +31,7 @@ func NewBodylessTimeoutHandler(handler Handler, ch <-chan time.Time) Handler {
 // writes are done to w.
 // The error message should be plain text.
 func Error(w ResponseWriter, error string, code int) {
-	w.Header().Set(ContentType, "text/plain; charset=utf-8")
+	w.Header().Set(hdr.ContentType, "text/plain; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(code)
 	fmt.Fprintln(w, error)
@@ -120,7 +121,7 @@ func Redirect(w ResponseWriter, r *Request, toURL string, code int) {
 		}
 	}
 
-	w.Header().Set(Location, hexEscapeNonASCII(toURL))
+	w.Header().Set(hdr.Location, hexEscapeNonASCII(toURL))
 	w.WriteHeader(code)
 
 	// RFC 2616 recommends that a short note "SHOULD" be included in the

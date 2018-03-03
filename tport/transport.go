@@ -17,6 +17,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/trc"
 	"github.com/badu/http/url"
 
@@ -45,11 +46,11 @@ func (t *Transport) RoundTrip(req *Request) (*Response, error) {
 	isHTTP := scheme == HTTP || scheme == HTTPS
 	if isHTTP {
 		for k, vv := range req.Header {
-			if !ValidHeaderFieldName(k) {
+			if !hdr.ValidHeaderFieldName(k) {
 				return nil, fmt.Errorf("github.com/badu/http/tport: invalid header field name %q", k)
 			}
 			for _, v := range vv {
-				if !ValidHeaderFieldValue(v) {
+				if !hdr.ValidHeaderFieldValue(v) {
 					return nil, fmt.Errorf("github.com/badu/http/tport: invalid header field value %q for key %v", v, k)
 				}
 			}
@@ -599,21 +600,21 @@ func (t *Transport) dialConn(ctx context.Context, cm connectMethod) (*persistCon
 	case cm.targetScheme == HTTP:
 		pconn.isProxy = true
 		if pa := cm.proxyAuth(); pa != "" {
-			pconn.mutateHeaderFunc = func(h Header) {
+			pconn.mutateHeaderFunc = func(h hdr.Header) {
 				h.Set(ProxyAuthorization, pa)
 			}
 		}
 	case cm.targetScheme == HTTPS:
 		conn := pconn.conn
-		hdr := t.ProxyConnectHeader
-		if hdr == nil {
-			hdr = make(Header)
+		header := t.ProxyConnectHeader
+		if header == nil {
+			header = make(hdr.Header)
 		}
 		connectReq := &Request{
 			Method: CONNECT,
 			URL:    &url.URL{Opaque: cm.targetAddr},
 			Host:   cm.targetAddr,
-			Header: hdr,
+			Header: header,
 		}
 		if pa := cm.proxyAuth(); pa != "" {
 			connectReq.Header.Set(ProxyAuthorization, pa)

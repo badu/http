@@ -24,6 +24,7 @@ import (
 
 	. "github.com/badu/http"
 	"github.com/badu/http/cli"
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/th"
 	. "github.com/badu/http/tport"
 	"github.com/badu/http/url"
@@ -59,7 +60,7 @@ func TestChunkedResponseHeaders(t *testing.T) {
 	log.SetOutput(ioutil.Discard) // is noisy otherwise
 	defer log.SetOutput(os.Stderr)
 	cst := newClientServerTest(t, HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(ContentLength, "intentional gibberish") // we check that this is deleted
+		w.Header().Set(hdr.ContentLength, "intentional gibberish") // we check that this is deleted
 		w.(Flusher).Flush()
 		fmt.Fprintf(w, "I am a chunked response.")
 	}))
@@ -78,7 +79,7 @@ func TestChunkedResponseHeaders(t *testing.T) {
 	if !reflect.DeepEqual(res.TransferEncoding, wantTE) {
 		t.Errorf("TransferEncoding = %v; want %v", res.TransferEncoding, wantTE)
 	}
-	if got, haveCL := res.Header[ContentLength]; haveCL {
+	if got, haveCL := res.Header[hdr.ContentLength]; haveCL {
 		t.Errorf("Unexpected Content-Length: %q", got)
 	}
 }
@@ -137,7 +138,7 @@ func TestSmallBody(t *testing.T) {
 
 func TestExplicitContentLength(t *testing.T) {
 	runWrapper{Handler: func(w ResponseWriter, r *Request) {
-		w.Header().Set(ContentLength, "3")
+		w.Header().Set(hdr.ContentLength, "3")
 		io.WriteString(w, "foo")
 	}}.run(t)
 }
@@ -164,7 +165,7 @@ func TestHead_ExplicitLen(t *testing.T) {
 			if r.Method != HEAD {
 				t.Errorf("unexpected method %q", r.Method)
 			}
-			w.Header().Set(ContentLength, "1235")
+			w.Header().Set(hdr.ContentLength, "1235")
 		},
 	}.run(t)
 }
@@ -184,7 +185,7 @@ func TestHead_ImplicitLen(t *testing.T) {
 func TestHandlerWritesTooLittle(t *testing.T) {
 	runWrapper{
 		Handler: func(w ResponseWriter, r *Request) {
-			w.Header().Set(ContentLength, "3")
+			w.Header().Set(hdr.ContentLength, "3")
 			io.WriteString(w, "12") // one byte short
 		},
 		CheckResponse: func(res *Response) {
@@ -212,7 +213,7 @@ func TestHandlerWritesTooLittle(t *testing.T) {
 func TestHandlerWritesTooMuch(t *testing.T) {
 	runWrapper{
 		Handler: func(w ResponseWriter, r *Request) {
-			w.Header().Set(ContentLength, "3")
+			w.Header().Set(hdr.ContentLength, "3")
 			w.(Flusher).Flush()
 			io.WriteString(w, "123")
 			w.(Flusher).Flush()
@@ -229,10 +230,10 @@ func TestHandlerWritesTooMuch(t *testing.T) {
 func TestAutoGzip(t *testing.T) {
 	runWrapper{
 		Handler: func(w ResponseWriter, r *Request) {
-			if ae := r.Header.Get(AcceptEncoding); ae != "gzip" {
+			if ae := r.Header.Get(hdr.AcceptEncoding); ae != "gzip" {
 				t.Errorf("%s Accept-Encoding = %q; want gzip", r.Proto, ae)
 			}
-			w.Header().Set(ContentEncoding, "gzip")
+			w.Header().Set(hdr.ContentEncoding, "gzip")
 			gz := gzip.NewWriter(w)
 			io.WriteString(gz, "I am some gzipped content. Go go go go go go go go go go go go should compress well.")
 			gz.Close()
@@ -246,8 +247,8 @@ func TestAutoGzipDisabled(t *testing.T) {
 			func(tr *Transport) { tr.DisableCompression = true },
 		},
 		Handler: func(w ResponseWriter, r *Request) {
-			fmt.Fprintf(w, "%q", r.Header[AcceptEncoding])
-			if ae := r.Header.Get(AcceptEncoding); ae != "" {
+			fmt.Fprintf(w, "%q", r.Header[hdr.AcceptEncoding])
+			if ae := r.Header.Get(hdr.AcceptEncoding); ae != "" {
 				t.Errorf("%s Accept-Encoding = %q; want empty", r.Proto, ae)
 			}
 		},
@@ -286,7 +287,7 @@ func Test304Responses(t *testing.T) {
 func TestServerEmptyContentLength(t *testing.T) {
 	runWrapper{
 		Handler: func(w ResponseWriter, r *Request) {
-			w.Header()[ContentType] = []string{""}
+			w.Header()[hdr.ContentType] = []string{""}
 			io.WriteString(w, "<html><body>hi</body></html>")
 		},
 	}.run(t)
@@ -359,7 +360,7 @@ func TestTrailersClientToServer(t *testing.T) {
 			req.Trailer["Client-Trailer-B"] = []string{"valueb"}
 		}),
 	))
-	req.Trailer = Header{
+	req.Trailer = hdr.Header{
 		"Client-Trailer-A": nil, //  to be set later
 		"Client-Trailer-B": nil, //  to be set later
 	}
@@ -382,8 +383,8 @@ func testTrailersServerToClient(t *testing.T, flush bool) {
 	defer afterTest(t)
 	const body = "Some body"
 	cst := newClientServerTest(t, HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(Trailer, "Server-Trailer-A, Server-Trailer-B")
-		w.Header().Add(Trailer, "Server-Trailer-C")
+		w.Header().Set(hdr.Trailer, "Server-Trailer-A, Server-Trailer-B")
+		w.Header().Add(hdr.Trailer, "Server-Trailer-C")
 
 		io.WriteString(w, body)
 		if flush {
@@ -405,8 +406,8 @@ func testTrailersServerToClient(t *testing.T, flush bool) {
 		t.Fatal(err)
 	}
 
-	wantHeader := Header{
-		ContentType: {"text/plain; charset=utf-8"},
+	wantHeader := hdr.Header{
+		hdr.ContentType: {"text/plain; charset=utf-8"},
 	}
 	wantLen := -1
 
@@ -414,12 +415,12 @@ func testTrailersServerToClient(t *testing.T, flush bool) {
 		t.Errorf("ContentLength = %v; want %v", res.ContentLength, wantLen)
 	}
 
-	delete(res.Header, Date) // irrelevant for test
+	delete(res.Header, hdr.Date) // irrelevant for test
 	if !reflect.DeepEqual(res.Header, wantHeader) {
 		t.Errorf("Header = %v; want %v", res.Header, wantHeader)
 	}
 
-	if got, want := res.Trailer, (Header{
+	if got, want := res.Trailer, (hdr.Header{
 		"Server-Trailer-A": nil,
 		"Server-Trailer-B": nil,
 		"Server-Trailer-C": nil,
@@ -431,7 +432,7 @@ func testTrailersServerToClient(t *testing.T, flush bool) {
 		t.Fatal(err)
 	}
 
-	if got, want := res.Trailer, (Header{
+	if got, want := res.Trailer, (hdr.Header{
 		"Server-Trailer-A": {"valuea"},
 		"Server-Trailer-B": nil,
 		"Server-Trailer-C": {"valuec"},
@@ -494,7 +495,7 @@ func TestConcurrentReadWriteReqBody(t *testing.T) {
 	}))
 	defer cst.close()
 	req, _ := NewRequest(POST, cst.ts.URL, strings.NewReader(reqBody))
-	req.Header.Add(Expect, "100-continue") // just to complicate things
+	req.Header.Add(hdr.Expect, "100-continue") // just to complicate things
 	res, err := cst.c.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -529,7 +530,7 @@ func TestConnectRequest(t *testing.T) {
 		{
 			req: &Request{
 				Method: CONNECT,
-				Header: Header{},
+				Header: hdr.Header{},
 				URL:    u,
 			},
 			want: u.Host,
@@ -537,7 +538,7 @@ func TestConnectRequest(t *testing.T) {
 		{
 			req: &Request{
 				Method: CONNECT,
-				Header: Header{},
+				Header: hdr.Header{},
 				URL:    u,
 				Host:   "example.com:123",
 			},
@@ -568,7 +569,7 @@ func TestConnectRequest(t *testing.T) {
 func TestTransportUserAgent(t *testing.T) {
 	defer afterTest(t)
 	cst := newClientServerTest(t, HandlerFunc(func(w ResponseWriter, r *Request) {
-		fmt.Fprintf(w, "%q", r.Header[UserAgent])
+		fmt.Fprintf(w, "%q", r.Header[hdr.UserAgent])
 	}))
 	defer cst.close()
 
@@ -585,19 +586,19 @@ func TestTransportUserAgent(t *testing.T) {
 			either(`["Go-http-client/1.1"]`, `["Go-http-client/2.0"]`),
 		},
 		{
-			func(r *Request) { r.Header.Set(UserAgent, "foo/1.2.3") },
+			func(r *Request) { r.Header.Set(hdr.UserAgent, "foo/1.2.3") },
 			`["foo/1.2.3"]`,
 		},
 		{
-			func(r *Request) { r.Header[UserAgent] = []string{"single", "or", "multiple"} },
+			func(r *Request) { r.Header[hdr.UserAgent] = []string{"single", "or", "multiple"} },
 			`["single"]`,
 		},
 		{
-			func(r *Request) { r.Header.Set(UserAgent, "") },
+			func(r *Request) { r.Header.Set(hdr.UserAgent, "") },
 			`[]`,
 		},
 		{
-			func(r *Request) { r.Header[UserAgent] = nil },
+			func(r *Request) { r.Header[hdr.UserAgent] = nil },
 			`[]`,
 		},
 	}
@@ -643,7 +644,7 @@ func testStarRequest(t *testing.T, method string) {
 
 	req := &Request{
 		Method: method,
-		Header: Header{},
+		Header: hdr.Header{},
 		URL:    u,
 	}
 
@@ -883,9 +884,9 @@ func TestAutoGzipWithDumpResponse(t *testing.T) {
 	runWrapper{
 		Handler: func(w ResponseWriter, r *Request) {
 			h := w.Header()
-			h.Set(ContentEncoding, "gzip")
-			h.Set(ContentLength, "23")
-			h.Set(Connection, DoKeepAlive)
+			h.Set(hdr.ContentEncoding, "gzip")
+			h.Set(hdr.ContentLength, "23")
+			h.Set(hdr.Connection, DoKeepAlive)
 			io.WriteString(w, "\x1f\x8b\b\x00\x00\x00\x00\x00\x00\x00s\xf3\xf7\a\x00\xab'\xd4\x1a\x03\x00\x00\x00")
 		},
 		EarlyCheckResponse: func(res *Response) {
@@ -950,7 +951,7 @@ func TestNoSniffExpectRequestBody(t *testing.T) {
 		t.Fatal(err)
 	}
 	req.ContentLength = 0 // so transport is tempted to sniff it
-	req.Header.Set(Expect, "100-continue")
+	req.Header.Set(hdr.Expect, "100-continue")
 	res, err := cst.tr.RoundTrip(req)
 	if err != nil {
 		t.Fatal(err)
@@ -979,13 +980,13 @@ func TestServerUndeclaredTrailers(t *testing.T) {
 		t.Fatal(err)
 	}
 	res.CloseBody()
-	delete(res.Header, Date)
-	delete(res.Header, ContentType)
+	delete(res.Header, hdr.Date)
+	delete(res.Header, hdr.ContentType)
 
-	if want := (Header{"Foo": {"Bar"}}); !reflect.DeepEqual(res.Header, want) {
+	if want := (hdr.Header{"Foo": {"Bar"}}); !reflect.DeepEqual(res.Header, want) {
 		t.Errorf("Header = %#v; want %#v", res.Header, want)
 	}
-	if want := (Header{"Foo": {"Baz", "Baz2"}, "Bar": {"Quux"}}); !reflect.DeepEqual(res.Trailer, want) {
+	if want := (hdr.Header{"Foo": {"Baz", "Baz2"}, "Bar": {"Quux"}}); !reflect.DeepEqual(res.Trailer, want) {
 		t.Errorf("Trailer = %#v; want %#v", res.Trailer, want)
 	}
 }

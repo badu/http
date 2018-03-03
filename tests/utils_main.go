@@ -20,6 +20,7 @@ import (
 
 	. "github.com/badu/http"
 	"github.com/badu/http/cli"
+	"github.com/badu/http/hdr"
 	. "github.com/badu/http/tport"
 )
 
@@ -96,8 +97,8 @@ func (tt runWrapper) normalizeRes(t *testing.T, res *Response) {
 		body:       slurp,
 		err:        err,
 	}
-	for i, v := range res.Header[Date] {
-		res.Header[Date][i] = strings.Repeat("x", len(v))
+	for i, v := range res.Header[hdr.Date] {
+		res.Header[hdr.Date][i] = strings.Repeat("x", len(v))
 	}
 	if res.Request == nil {
 		t.Errorf("for %s, no request", HTTP1_1)
@@ -259,7 +260,7 @@ func ResetCachedEnvironment() {
 // foreachHeaderElement splits v according to the "#rule" construction
 // in RFC 2616 section 2.1 and calls fn for each non-empty element.
 func foreachHeaderElement(v string, fn func(string)) {
-	v = TrimString(v)
+	v = hdr.TrimString(v)
 	if v == "" {
 		return
 	}
@@ -268,7 +269,7 @@ func foreachHeaderElement(v string, fn func(string)) {
 		return
 	}
 	for _, f := range strings.Split(v, ",") {
-		if f = TrimString(f); f != "" {
+		if f = hdr.TrimString(f); f != "" {
 			fn(f)
 		}
 	}

@@ -9,6 +9,7 @@ import (
 	"fmt"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 )
 
 func (pr *populateResponse) finish() {
@@ -33,7 +34,7 @@ func (pr *populateResponse) sendResponse() {
 	pr.ch <- pr.res
 }
 
-func (pr *populateResponse) Header() Header {
+func (pr *populateResponse) Header() hdr.Header {
 	return pr.res.Header
 }
 

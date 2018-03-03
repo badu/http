@@ -12,8 +12,6 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"mime"
-	"mime/multipart"
 	"net"
 	"os"
 	"os/exec"
@@ -24,6 +22,9 @@ import (
 	"strings"
 	"testing"
 	"time"
+
+	"github.com/badu/http/hdr"
+	"github.com/badu/http/mime"
 
 	. "github.com/badu/http"
 	"github.com/badu/http/cli"
@@ -82,7 +83,7 @@ func TestServeFile(t *testing.T) {
 
 	// set up the Request (re-used for all tests)
 	var req Request
-	req.Header = make(Header)
+	req.Header = make(hdr.Header)
 	if req.URL, err = url.Parse(ts.URL); err != nil {
 		t.Fatal("ParseURL:", err)
 	}
@@ -112,11 +113,11 @@ Cases:
 			rng := rt.ranges[0]
 			wantContentRange = fmt.Sprintf("bytes %d-%d/%d", rng.start, rng.end-1, testFileLen)
 		}
-		cr := resp.Header.Get(ContentRange)
+		cr := resp.Header.Get(hdr.ContentRange)
 		if cr != wantContentRange {
 			t.Errorf("range=%q: Content-Range = %q, want %q", rt.r, cr, wantContentRange)
 		}
-		ct := resp.Header.Get(ContentType)
+		ct := resp.Header.Get(hdr.ContentType)
 		if len(rt.ranges) == 1 {
 			rng := rt.ranges[0]
 			wantBody := file[rng.start:rng.end]
@@ -128,7 +129,7 @@ Cases:
 			}
 		}
 		if len(rt.ranges) > 1 {
-			typ, params, err := mime.ParseMediaType(ct)
+			typ, params, err := mime.MIMEParseMediaType(ct)
 			if err != nil {
 				t.Errorf("range=%q content-type = %q; %v", rt.r, ct, err)
 				continue
@@ -145,7 +146,7 @@ Cases:
 				t.Errorf("range=%q Content-Length = %d; want %d", rt.r, g, w)
 				continue
 			}
-			mr := multipart.NewReader(bytes.NewReader(body), params["boundary"])
+			mr := mime.NewReader(bytes.NewReader(body), params["boundary"])
 			for ri, rng := range rt.ranges {
 				part, err := mr.NextPart()
 				if err != nil {
@@ -153,7 +154,7 @@ Cases:
 					continue Cases
 				}
 				wantContentRange = fmt.Sprintf("bytes %d-%d/%d", rng.start, rng.end-1, testFileLen)
-				if g, w := part.Header.Get(ContentRange), wantContentRange; g != w {
+				if g, w := part.Header.Get(hdr.ContentRange), wantContentRange; g != w {
 					t.Errorf("range=%q: part Content-Range = %q; want %q", rt.r, g, w)
 				}
 				body, err := ioutil.ReadAll(part)
@@ -435,10 +436,10 @@ func TestServeFileContentType(t *testing.T) {
 	ts := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
 		switch r.FormValue("override") {
 		case "1":
-			w.Header().Set(ContentType, ctype)
+			w.Header().Set(hdr.ContentType, ctype)
 		case "2":
 			// Explicitly inhibit sniffing.
-			w.Header()[ContentType] = []string{}
+			w.Header()[hdr.ContentType] = []string{}
 		}
 		filetransport.ServeFile(w, r, "testdata/file")
 	}))
@@ -448,7 +449,7 @@ func TestServeFileContentType(t *testing.T) {
 		if err != nil {
 			t.Fatal(err)
 		}
-		if h := resp.Header[ContentType]; !reflect.DeepEqual(h, want) {
+		if h := resp.Header[hdr.ContentType]; !reflect.DeepEqual(h, want) {
 			t.Errorf("Content-Type mismatch: got %v, want %v", h, want)
 		}
 		resp.CloseBody()
@@ -470,7 +471,7 @@ func TestServeFileMimeType(t *testing.T) {
 	}
 	resp.CloseBody()
 	want := "text/css; charset=utf-8"
-	if h := resp.Header.Get(ContentType); h != want {
+	if h := resp.Header.Get(hdr.ContentType); h != want {
 		t.Errorf("Content-Type mismatch: got %q, want %q", h, want)
 	}
 }
@@ -512,7 +513,7 @@ func TestServeDirWithoutTrailingSlash(t *testing.T) {
 func TestServeFileWithContentEncoding(t *testing.T) {
 	defer afterTest(t)
 	cst := newClientServerTest(t, HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(ContentEncoding, "foo")
+		w.Header().Set(hdr.ContentEncoding, "foo")
 		filetransport.ServeFile(w, r, "testdata/file")
 
 		// Because the testdata is so small, it would fit in
@@ -611,13 +612,13 @@ func TestDirectoryIfNotModified(t *testing.T) {
 	}
 	res.CloseBody()
 
-	lastMod := res.Header.Get(LastModified)
+	lastMod := res.Header.Get(hdr.LastModified)
 	if lastMod != fileModStr {
 		t.Fatalf("initial Last-Modified = %q; want %q", lastMod, fileModStr)
 	}
 
 	req, _ := NewRequest(GET, ts.URL, nil)
-	req.Header.Set(IfModifiedSince, lastMod)
+	req.Header.Set(hdr.IfModifiedSince, lastMod)
 
 	c := ts.Client()
 	res, err = c.Do(req)
@@ -658,7 +659,7 @@ func TestServeContent(t *testing.T) {
 			w.Header().Set("ETag", p.etag)
 		}
 		if p.contentType != "" {
-			w.Header().Set(ContentType, p.contentType)
+			w.Header().Set(hdr.ContentType, p.contentType)
 		}
 		filetransport.ServeContent(w, r, p.name, p.modtime, p.content)
 	}))
@@ -697,7 +698,7 @@ func TestServeContent(t *testing.T) {
 			serveETag: `"foo"`, // Last-Modified sent only when no ETag
 			modtime:   htmlModTime,
 			reqHeader: map[string]string{
-				IfModifiedSince: htmlModTime.UTC().Format(TimeFormat),
+				hdr.IfModifiedSince: htmlModTime.UTC().Format(TimeFormat),
 			},
 			wantStatus: 304,
 		},
@@ -707,7 +708,7 @@ func TestServeContent(t *testing.T) {
 			serveETag:        `"foo"`,    // Last-Modified sent only when no ETag
 			modtime:          htmlModTime,
 			reqHeader: map[string]string{
-				IfModifiedSince: htmlModTime.UTC().Format(TimeFormat),
+				hdr.IfModifiedSince: htmlModTime.UTC().Format(TimeFormat),
 			},
 			wantStatus: 304,
 		},
@@ -715,7 +716,7 @@ func TestServeContent(t *testing.T) {
 			file:      "testdata/style.css",
 			serveETag: `"foo"`,
 			reqHeader: map[string]string{
-				IfNoneMatch: `"foo"`,
+				hdr.IfNoneMatch: `"foo"`,
 			},
 			wantStatus: 304,
 		},
@@ -723,7 +724,7 @@ func TestServeContent(t *testing.T) {
 			content:   panicOnSeek{nil}, // should never be called
 			serveETag: `W/"foo"`,        // If-None-Match uses weak ETag comparison
 			reqHeader: map[string]string{
-				IfNoneMatch: `"baz", W/"foo"`,
+				hdr.IfNoneMatch: `"baz", W/"foo"`,
 			},
 			wantStatus: 304,
 		},
@@ -731,7 +732,7 @@ func TestServeContent(t *testing.T) {
 			file:      "testdata/style.css",
 			serveETag: `"foo"`,
 			reqHeader: map[string]string{
-				IfNoneMatch: `"Foo"`,
+				hdr.IfNoneMatch: `"Foo"`,
 			},
 			wantStatus:      200,
 			wantContentType: "text/css; charset=utf-8",
@@ -915,13 +916,13 @@ func TestServeContent(t *testing.T) {
 		if res.StatusCode != tt.wantStatus {
 			t.Errorf("test %q: status = %d; want %d", testName, res.StatusCode, tt.wantStatus)
 		}
-		if g, e := res.Header.Get(ContentType), tt.wantContentType; g != e {
+		if g, e := res.Header.Get(hdr.ContentType), tt.wantContentType; g != e {
 			t.Errorf("test %q: content-type = %q, want %q", testName, g, e)
 		}
-		if g, e := res.Header.Get(ContentRange), tt.wantContentRange; g != e {
+		if g, e := res.Header.Get(hdr.ContentRange), tt.wantContentRange; g != e {
 			t.Errorf("test %q: content-range = %q, want %q", testName, g, e)
 		}
-		if g, e := res.Header.Get(LastModified), tt.wantLastMod; g != e {
+		if g, e := res.Header.Get(hdr.LastModified), tt.wantLastMod; g != e {
 			t.Errorf("test %q: last-modified = %q, want %q", testName, g, e)
 		}
 	}

@@ -13,6 +13,9 @@ import (
 	"net"
 	"runtime"
 	"time"
+
+	"github.com/badu/http/hdr"
+	"github.com/badu/http/url"
 )
 
 func (c *conn) hijacked() bool {
@@ -94,7 +97,7 @@ func (c *conn) readRequest(ctx context.Context) (*response, error) {
 	c.lastMethod = req.Method
 	c.reader.setInfiniteReadLimit()
 
-	hosts, haveHost := req.Header[Host]
+	hosts, haveHost := req.Header[hdr.Host]
 	if req.ProtoAtLeast(1, 1) && (!haveHost || len(hosts) == 0) && req.Method != CONNECT {
 		//TODO : @badu - document
 		return nil, badRequestError("missing required Host header")
@@ -103,23 +106,23 @@ func (c *conn) readRequest(ctx context.Context) (*response, error) {
 		//TODO : @badu - document
 		return nil, badRequestError("too many Host headers")
 	}
-	if len(hosts) == 1 && !ValidHostHeader(hosts[0]) {
+	if len(hosts) == 1 && !url.ValidHostHeader(hosts[0]) {
 		//TODO : @badu - document
 		return nil, badRequestError("malformed Host header")
 	}
 	for k, vv := range req.Header {
-		if !ValidHeaderFieldName(k) {
+		if !hdr.ValidHeaderFieldName(k) {
 			//TODO : @badu - document
 			return nil, badRequestError("invalid header name")
 		}
 		for _, v := range vv {
-			if !ValidHeaderFieldValue(v) {
+			if !hdr.ValidHeaderFieldValue(v) {
 				//TODO : @badu - document
 				return nil, badRequestError("invalid header value")
 			}
 		}
 	}
-	delete(req.Header, Host)
+	delete(req.Header, hdr.Host)
 
 	ctx, cancelCtx := context.WithCancel(ctx)
 	req.ctx = ctx
@@ -139,7 +142,7 @@ func (c *conn) readRequest(ctx context.Context) (*response, error) {
 		cancelCtx:     cancelCtx,
 		req:           req,
 		reqBody:       req.Body,
-		handlerHeader: make(Header),
+		handlerHeader: make(hdr.Header),
 		contentLength: -1,
 		closeNotifyCh: make(chan bool, 1),
 
@@ -297,7 +300,7 @@ func (c *conn) serve(ctx context.Context) {
 				// Wrap the Body reader with one that replies on the connection
 				req.Body = &expectContinueReader{readCloser: req.Body, resp: resp}
 			}
-		} else if req.Header.get(Expect) != "" {
+		} else if req.Header.Get(hdr.Expect) != "" {
 			resp.sendExpectationFailed()
 			return
 		}

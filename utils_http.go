@@ -9,6 +9,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode/utf8"
+
+	"github.com/badu/http/hdr"
 )
 
 // Given a string of the form "host", "host:port", or "[ipv6::address]:port",
@@ -25,7 +27,7 @@ func removeEmptyPort(host string) string {
 }
 
 func IsNotToken(r rune) bool {
-	return !IsTokenRune(r)
+	return !hdr.IsTokenRune(r)
 }
 
 func isASCII(s string) bool {

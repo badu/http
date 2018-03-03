@@ -18,16 +18,17 @@ import (
 
 	. "github.com/badu/http"
 	"github.com/badu/http/cli"
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/th"
 	. "github.com/badu/http/tport"
 )
 
 type http09Writer struct {
 	io.Writer
-	h Header
+	h hdr.Header
 }
 
-func (w http09Writer) Header() Header { return w.h }
+func (w http09Writer) Header() hdr.Header { return w.h }
 
 func (w http09Writer) WriteHeader(int) {}
 
@@ -66,7 +67,7 @@ func TestNextProtoUpgrade(t *testing.T) {
 			req.Proto = "HTTP/0.9"
 			req.ProtoMajor = 0
 			req.ProtoMinor = 9
-			rw := &http09Writer{conn, make(Header)}
+			rw := &http09Writer{conn, make(hdr.Header)}
 			h.ServeHTTP(rw, req)
 		},
 	}

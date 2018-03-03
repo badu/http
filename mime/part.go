@@ -5,20 +5,60 @@
 
 package mime
 
-import "errors"
+import (
+	. "github.com/badu/http/hdr"
+	"io"
+	"io/ioutil"
+)
 
-func (p *part) close() error {
-	p.closed = true
-	return p.we
+// FormName returns the name parameter if p has a Content-Disposition
+// of type "form-data".  Otherwise it returns the empty string.
+func (p *Part) FormName() string {
+	// See http://tools.ietf.org/html/rfc2183 section 2 for EBNF
+	// of Content-Disposition value format.
+	if p.dispositionParams == nil {
+		p.parseContentDisposition()
+	}
+	if p.disposition != "form-data" {
+		return ""
+	}
+	return p.dispositionParams["name"]
 }
 
-func (p *part) Write(d []byte) (n int, err error) {
-	if p.closed {
-		return 0, errors.New("multipart: can't write to finished part")
+// FileName returns the filename parameter of the Part's
+// Content-Disposition header.
+func (p *Part) FileName() string {
+	if p.dispositionParams == nil {
+		p.parseContentDisposition()
 	}
-	n, err = p.mw.w.Write(d)
+	return p.dispositionParams["filename"]
+}
+
+func (p *Part) parseContentDisposition() {
+	v := p.Header.Get(ContentDisposition)
+	var err error
+	p.disposition, p.dispositionParams, err = MIMEParseMediaType(v)
 	if err != nil {
-		p.we = err
+		p.dispositionParams = emptyParams
 	}
-	return
+}
+
+func (bp *Part) populateHeaders() error {
+	r := NewHeaderReader(bp.mr.bufReader)
+	header, err := r.ReadHeader()
+	if err == nil {
+		bp.Header = header
+	}
+	return err
+}
+
+// Read reads the body of a part, after its headers and before the
+// next part (if any) begins.
+func (p *Part) Read(d []byte) (n int, err error) {
+	return p.r.Read(d)
+}
+
+func (p *Part) Close() error {
+	io.Copy(ioutil.Discard, p)
+	return nil
 }

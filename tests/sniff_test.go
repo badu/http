@@ -17,6 +17,7 @@ import (
 	"testing"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/sniff"
 )
 
@@ -90,7 +91,7 @@ func TestServerContentType(t *testing.T) {
 			t.Errorf("%v: %v", tt.desc, err)
 			continue
 		}
-		if ct := resp.Header.Get(ContentType); ct != tt.contentType {
+		if ct := resp.Header.Get(hdr.ContentType); ct != tt.contentType {
 			t.Errorf("%v: Content-Type = %q, want %q", tt.desc, ct, tt.contentType)
 		}
 		data, err := ioutil.ReadAll(resp.Body)
@@ -106,7 +107,7 @@ func TestServerContentType(t *testing.T) {
 func TestServerIssue5953(t *testing.T) {
 	defer afterTest(t)
 	cst := newClientServerTest(t, HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header()[ContentType] = []string{""}
+		w.Header()[hdr.ContentType] = []string{""}
 		fmt.Fprintf(w, "<html><head></head><body>hi</body></html>")
 	}))
 	defer cst.close()
@@ -116,7 +117,7 @@ func TestServerIssue5953(t *testing.T) {
 		t.Fatal(err)
 	}
 
-	got := resp.Header[ContentType]
+	got := resp.Header[hdr.ContentType]
 	want := []string{""}
 	if !reflect.DeepEqual(got, want) {
 		t.Errorf("Content-Type = %q; want %q", got, want)
@@ -146,7 +147,7 @@ func TestContentTypeWithCopy(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Get: %v", err)
 	}
-	if ct := resp.Header.Get(ContentType); ct != expected {
+	if ct := resp.Header.Get(hdr.ContentType); ct != expected {
 		t.Errorf("Content-Type = %q, want %q", ct, expected)
 	}
 	data, err := ioutil.ReadAll(resp.Body)

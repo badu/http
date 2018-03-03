@@ -14,6 +14,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	"github.com/badu/http/hdr"
 )
 
 // shouldSendChunkedRequestBody reports whether we should try to send a
@@ -137,7 +139,7 @@ func (t *transferWriter) shouldSendContentLength() bool {
 }
 
 func (t *transferWriter) WriteHeader(w io.Writer) error {
-	if t.Close && !hasToken(t.Header.get(Connection), DoClose) {
+	if t.Close && !hasToken(t.Header.Get(hdr.Connection), DoClose) {
 		if _, err := io.WriteString(w, "Connection: close\r\n"); err != nil {
 			return err
 		}
@@ -163,9 +165,9 @@ func (t *transferWriter) WriteHeader(w io.Writer) error {
 	if t.Trailer != nil {
 		keys := make([]string, 0, len(t.Trailer))
 		for k := range t.Trailer {
-			k = CanonicalHeaderKey(k)
+			k = hdr.CanonicalHeaderKey(k)
 			switch k {
-			case TransferEncoding, Trailer, ContentLength:
+			case hdr.TransferEncoding, hdr.Trailer, hdr.ContentLength:
 				return &badStringError{"invalid Trailer key", k}
 			}
 			keys = append(keys, k)

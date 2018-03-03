@@ -17,6 +17,7 @@ import (
 
 	. "github.com/badu/http"
 	"github.com/badu/http/cli"
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/th"
 	. "github.com/badu/http/tport"
 )
@@ -26,7 +27,7 @@ var (
 		ts.Server.ErrorLog = log.New(ioutil.Discard, "", 0)
 	}
 	robotsTxtHandler = HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(LastModified, "sometime")
+		w.Header().Set(hdr.LastModified, "sometime")
 		fmt.Fprintf(w, "User-agent: go\nDisallow: /something/")
 	})
 

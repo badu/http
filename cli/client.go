@@ -15,6 +15,7 @@ import (
 	"strings"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 	. "github.com/badu/http/tport"
 	"github.com/badu/http/url"
 )
@@ -161,7 +162,7 @@ func (c *Client) Do(req *Request) (*Response, error) {
 		// For all but the first request, create the next
 		// request hop and replace req.
 		if len(reqs) > 0 {
-			loc := resp.Header.Get(Location)
+			loc := resp.Header.Get(hdr.Location)
 			if loc == "" {
 				if resp.Body != nil {
 					resp.Body.Close()
@@ -187,7 +188,7 @@ func (c *Client) Do(req *Request) (*Response, error) {
 				Method:   redirectMethod,
 				Response: resp,
 				URL:      u,
-				Header:   make(Header),
+				Header:   make(hdr.Header),
 				Host:     host,
 			}
 			req.SetCtx(ireq.Context())
@@ -211,7 +212,7 @@ func (c *Client) Do(req *Request) (*Response, error) {
 			// Add the Referer header from the most recent
 			// request URL to the new one, if it's not https->http:
 			if ref := refererForURL(reqs[len(reqs)-1].URL, req.URL); ref != "" {
-				req.Header.Set(Referer, ref)
+				req.Header.Set(hdr.Referer, ref)
 			}
 			err = c.checkRedirect(req, reqs)
 
@@ -271,7 +272,7 @@ func (c *Client) makeHeadersCopier(ireq *Request) func(*Request) {
 		ireqhdr  = ireq.Header.Clone()
 		icookies map[string][]*Cookie
 	)
-	if c.Jar != nil && ireq.Header.Get(CookieHeader) != "" {
+	if c.Jar != nil && ireq.Header.Get(hdr.CookieHeader) != "" {
 		icookies = make(map[string][]*Cookie)
 		for _, c := range ReqCookies(ireq) {
 			icookies[c.Name] = append(icookies[c.Name], c)
@@ -301,7 +302,7 @@ func (c *Client) makeHeadersCopier(ireq *Request) func(*Request) {
 				}
 			}
 			if changed {
-				ireqhdr.Del(CookieHeader)
+				ireqhdr.Del(hdr.CookieHeader)
 				var ss []string
 				for _, cs := range icookies {
 					for _, c := range cs {
@@ -309,7 +310,7 @@ func (c *Client) makeHeadersCopier(ireq *Request) func(*Request) {
 					}
 				}
 				sort.Strings(ss) // Ensure deterministic headers
-				ireqhdr.Set(CookieHeader, strings.Join(ss, "; "))
+				ireqhdr.Set(hdr.CookieHeader, strings.Join(ss, "; "))
 			}
 		}
 
@@ -341,7 +342,7 @@ func (c *Client) Post(url string, contentType string, body io.Reader) (resp *Res
 	if err != nil {
 		return nil, err
 	}
-	req.Header.Set(ContentType, contentType)
+	req.Header.Set(hdr.ContentType, contentType)
 	return c.Do(req)
 }
 

@@ -12,61 +12,62 @@ import (
 	"time"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 )
 
 func TestHeaderWrite(t *testing.T) {
 	var buf bytes.Buffer
 
 	var headerWriteTests = []struct {
-		h        Header
+		h        hdr.Header
 		exclude  map[string]bool
 		expected string
 	}{
-		{Header{}, nil, ""},
+		{hdr.Header{}, nil, ""},
 		{
-			Header{
-				ContentType:   {"text/html; charset=UTF-8"},
-				ContentLength: {"0"},
+			hdr.Header{
+				hdr.ContentType:   {"text/html; charset=UTF-8"},
+				hdr.ContentLength: {"0"},
 			},
 			nil,
 			"Content-Length: 0\r\nContent-Type: text/html; charset=UTF-8\r\n",
 		},
 		{
-			Header{
-				ContentLength: {"0", "1", "2"},
+			hdr.Header{
+				hdr.ContentLength: {"0", "1", "2"},
 			},
 			nil,
 			"Content-Length: 0\r\nContent-Length: 1\r\nContent-Length: 2\r\n",
 		},
 		{
-			Header{
-				Expires:         {"-1"},
-				ContentLength:   {"0"},
-				ContentEncoding: {"gzip"},
+			hdr.Header{
+				hdr.Expires:         {"-1"},
+				hdr.ContentLength:   {"0"},
+				hdr.ContentEncoding: {"gzip"},
 			},
-			map[string]bool{ContentLength: true},
+			map[string]bool{hdr.ContentLength: true},
 			"Content-Encoding: gzip\r\nExpires: -1\r\n",
 		},
 		{
-			Header{
-				Expires:         {"-1"},
-				ContentLength:   {"0", "1", "2"},
-				ContentEncoding: {"gzip"},
+			hdr.Header{
+				hdr.Expires:         {"-1"},
+				hdr.ContentLength:   {"0", "1", "2"},
+				hdr.ContentEncoding: {"gzip"},
 			},
-			map[string]bool{ContentLength: true},
+			map[string]bool{hdr.ContentLength: true},
 			"Content-Encoding: gzip\r\nExpires: -1\r\n",
 		},
 		{
-			Header{
-				Expires:         {"-1"},
-				ContentLength:   {"0"},
-				ContentEncoding: {"gzip"},
+			hdr.Header{
+				hdr.Expires:         {"-1"},
+				hdr.ContentLength:   {"0"},
+				hdr.ContentEncoding: {"gzip"},
 			},
-			map[string]bool{ContentLength: true, Expires: true, ContentEncoding: true},
+			map[string]bool{hdr.ContentLength: true, hdr.Expires: true, hdr.ContentEncoding: true},
 			"",
 		},
 		{
-			Header{
+			hdr.Header{
 				"Nil":          nil,
 				"Empty":        {},
 				"Blank":        {""},
@@ -77,7 +78,7 @@ func TestHeaderWrite(t *testing.T) {
 		},
 		// Tests header sorting when over the insertion sort threshold side:
 		{
-			Header{
+			hdr.Header{
 				"k1": {"1a", "1b"},
 				"k2": {"2a", "2b"},
 				"k3": {"3a", "3b"},
@@ -106,20 +107,20 @@ func TestHeaderWrite(t *testing.T) {
 
 func TestParseTime(t *testing.T) {
 	var parseTimeTests = []struct {
-		h   Header
+		h   hdr.Header
 		err bool
 	}{
-		{Header{Date: {""}}, true},
-		{Header{Date: {"invalid"}}, true},
-		{Header{Date: {"1994-11-06T08:49:37Z00:00"}}, true},
-		{Header{Date: {"Sun, 06 Nov 1994 08:49:37 GMT"}}, false},
-		{Header{Date: {"Sunday, 06-Nov-94 08:49:37 GMT"}}, false},
-		{Header{Date: {"Sun Nov  6 08:49:37 1994"}}, false},
+		{hdr.Header{hdr.Date: {""}}, true},
+		{hdr.Header{hdr.Date: {"invalid"}}, true},
+		{hdr.Header{hdr.Date: {"1994-11-06T08:49:37Z00:00"}}, true},
+		{hdr.Header{hdr.Date: {"Sun, 06 Nov 1994 08:49:37 GMT"}}, false},
+		{hdr.Header{hdr.Date: {"Sunday, 06-Nov-94 08:49:37 GMT"}}, false},
+		{hdr.Header{hdr.Date: {"Sun Nov  6 08:49:37 1994"}}, false},
 	}
 
 	expect := time.Date(1994, 11, 6, 8, 49, 37, 0, time.UTC)
 	for i, test := range parseTimeTests {
-		d, err := ParseTime(test.h.Get(Date))
+		d, err := hdr.ParseTime(test.h.Get(hdr.Date))
 		if err != nil {
 			if !test.err {
 				t.Errorf("#%d:\n got err: %v", i, err)
@@ -194,11 +195,11 @@ func TestHeaderWriteSubsetAllocs(t *testing.T) {
 	}
 
 	var buf bytes.Buffer
-	var testHeader = Header{
-		ContentLength: {"123"},
-		ContentType:   {"text/plain"},
-		Date:          {"some date at some time Z"},
-		ServerHeader:  {DefaultUserAgent},
+	var testHeader = hdr.Header{
+		hdr.ContentLength: {"123"},
+		hdr.ContentType:   {"text/plain"},
+		hdr.Date:          {"some date at some time Z"},
+		hdr.ServerHeader:  {DefaultUserAgent},
 	}
 
 	n := testing.AllocsPerRun(100, func() {

@@ -16,6 +16,7 @@ import (
 	"strings"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 	. "github.com/badu/http/tport"
 	"github.com/badu/http/url"
 )
@@ -280,9 +281,9 @@ func NewSingleHostReverseProxy(target *url.URL) *ReverseProxy {
 		} else {
 			req.URL.RawQuery = targetQuery + "&" + req.URL.RawQuery
 		}
-		if _, ok := req.Header[UserAgent]; !ok {
+		if _, ok := req.Header[hdr.UserAgent]; !ok {
 			// explicitly disable User-Agent so it's not set to default value
-			req.Header.Set(UserAgent, "")
+			req.Header.Set(hdr.UserAgent, "")
 		}
 	}
 	return &ReverseProxy{Director: director}

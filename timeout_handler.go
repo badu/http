@@ -8,6 +8,8 @@ package http
 import (
 	"io"
 	"time"
+
+	"github.com/badu/http/hdr"
 )
 
 func (h *timeoutHandler) errorBody() string {
@@ -27,7 +29,7 @@ func (h *timeoutHandler) ServeHTTP(w ResponseWriter, r *Request) {
 	done := make(chan struct{})
 	timeOutWriter := &timeoutWriter{
 		w: w,
-		h: make(Header),
+		h: make(hdr.Header),
 	}
 	go func() {
 		h.handler.ServeHTTP(timeOutWriter, r)

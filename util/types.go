@@ -15,6 +15,7 @@ import (
 	"time"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 	. "github.com/badu/http/tport"
 )
 
@@ -107,9 +108,9 @@ type (
 var (
 	// TODO : @badu - seems these are present somewhere else
 	reqWriteExcludeHeaderDump = map[string]bool{
-		Host:             true, // not in Header map anyway
-		TransferEncoding: true,
-		Trailer:          true,
+		hdr.Host:             true, // not in Header map anyway
+		hdr.TransferEncoding: true,
+		hdr.Trailer:          true,
 	}
 
 	// errNoBody is a sentinel error value used by failureToReadBody so we
@@ -126,15 +127,15 @@ var (
 	// Hop-by-hop headers. These are removed when sent to the backend.
 	// http://www.w3.org/Protocols/rfc2616/rfc2616-sec13.html
 	hopHeaders = []string{
-		Connection,
+		hdr.Connection,
 		ProxyConnection, // non-standard but still sent by libcurl and rejected by e.g. google
 		KeepAlive,
 		ProxyAuthenticate,
 		ProxyAuthorization,
-		Te,      // canonicalized version of "TE"
-		Trailer, // not Trailers per URL above; http://www.rfc-editor.org/errata_search.php?eid=4522
-		TransferEncoding,
-		UpgradeHeader,
+		Te,          // canonicalized version of "TE"
+		hdr.Trailer, // not Trailers per URL above; http://www.rfc-editor.org/errata_search.php?eid=4522
+		hdr.TransferEncoding,
+		hdr.UpgradeHeader,
 	}
 	doubleCRLF = []byte("\r\n\r\n")
 )

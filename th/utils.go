@@ -17,6 +17,7 @@ import (
 	"strings"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 )
 
 // NewRequest returns a new incoming server Request, suitable
@@ -98,7 +99,7 @@ func NewTRequest(method, target string, body io.Reader) *Request {
 // NewRecorder returns an initialized ResponseRecorder.
 func NewRecorder() *ResponseRecorder {
 	return &ResponseRecorder{
-		HeaderMap: make(Header),
+		HeaderMap: make(hdr.Header),
 		Body:      new(bytes.Buffer),
 		Code:      200,
 	}

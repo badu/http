@@ -11,10 +11,11 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
-	"mime"
 	"net"
 	"strings"
 
+	"github.com/badu/http/hdr"
+	"github.com/badu/http/mime"
 	"github.com/badu/http/url"
 	"golang.org/x/net/idna"
 )
@@ -156,17 +157,17 @@ func parseRequestLine(line string) (string, string, string, bool) {
 	return line[:s1], line[s1+1 : s2], line[s2+1:], true
 }
 
-func newHeaderReader(br *bufio.Reader) *HeaderReader {
+func newHeaderReader(br *bufio.Reader) *hdr.HeaderReader {
 	// @comment : getting Reader from the pool
 	if v := headerReaderPool.Get(); v != nil {
-		tr := v.(*HeaderReader)
+		tr := v.(*hdr.HeaderReader)
 		tr.R = br
 		return tr
 	}
-	return NewHeaderReader(br)
+	return hdr.NewHeaderReader(br)
 }
 
-func putHeaderReader(r *HeaderReader) {
+func putHeaderReader(r *hdr.HeaderReader) {
 	r.R = nil
 	headerReaderPool.Put(r)
 }
@@ -233,7 +234,7 @@ func readRequest(b *bufio.Reader, deleteHostHeader bool) (*Request, error) {
 	}
 	// @comment : since ReadHeader returns MIMEHeader map[string][]string, we're converting it to Header
 	// TODO : @badu - for different approach, might need to rewrite Reader as well
-	req.Header = Header(mimeHeader)
+	req.Header = hdr.Header(mimeHeader)
 
 	// RFC 2616: Must treat
 	//	GET /index.html HTTP/1.1
@@ -244,10 +245,10 @@ func readRequest(b *bufio.Reader, deleteHostHeader bool) (*Request, error) {
 	// the same. In the second case, any Host line is ignored.
 	req.Host = req.URL.Host
 	if req.Host == "" {
-		req.Host = req.Header.get(Host)
+		req.Host = req.Header.Get(hdr.Host)
 	}
 	if deleteHostHeader {
-		delete(req.Header, Host)
+		delete(req.Header, hdr.Host)
 	}
 
 	fixPragmaCacheControl(req.Header)
@@ -276,13 +277,13 @@ func parsePostForm(r *Request) (url.Values, error) {
 		err = errors.New("missing form body")
 		return vs, err
 	}
-	ct := r.Header.Get(ContentType)
+	ct := r.Header.Get(hdr.ContentType)
 	// RFC 2616, section 7.2.1 - empty type
 	//   SHOULD be treated as application/octet-stream
 	if ct == "" {
 		ct = OctetStream
 	}
-	ct, _, err = mime.ParseMediaType(ct)
+	ct, _, err = mime.MIMEParseMediaType(ct)
 	switch {
 	case ct == XFormData:
 		var reader io.Reader = r.Body

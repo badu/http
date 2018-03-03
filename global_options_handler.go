@@ -8,10 +8,12 @@ package http
 import (
 	"io"
 	"io/ioutil"
+
+	"github.com/badu/http/hdr"
 )
 
 func (globalOptionsHandler) ServeHTTP(w ResponseWriter, r *Request) {
-	w.Header().Set(ContentLength, "0")
+	w.Header().Set(hdr.ContentLength, "0")
 	if r.ContentLength != 0 {
 		// Read up to 4KB of OPTIONS body (as mentioned in the
 		// spec as being reserved for future use), but anything

@@ -15,6 +15,7 @@ import (
 
 	. "github.com/badu/http"
 	"github.com/badu/http/cli"
+	"github.com/badu/http/hdr"
 )
 
 type (
@@ -64,7 +65,7 @@ type (
 		//
 		// To get the implicit headers set by the server (such as
 		// automatic Content-Type), use the Result method.
-		HeaderMap Header
+		HeaderMap hdr.Header
 
 		// Body is the buffer to which the Handler's Write calls are sent.
 		// If nil, the Writes are silently discarded.
@@ -73,8 +74,8 @@ type (
 		// Flushed is whether the Handler called Flush.
 		Flushed bool
 
-		result      *Response // cache of Result's return value
-		snapHeader  Header    // snapshot of HeaderMap at first Write
+		result      *Response  // cache of Result's return value
+		snapHeader  hdr.Header // snapshot of HeaderMap at first Write
 		wroteHeader bool
 	}
 

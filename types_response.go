@@ -9,13 +9,15 @@ import (
 	"crypto/tls"
 	"errors"
 	"io"
+
+	"github.com/badu/http/hdr"
 )
 
 var (
 	respExcludeHeader = map[string]bool{
-		ContentLength:    true,
-		TransferEncoding: true,
-		Trailer:          true,
+		hdr.ContentLength:    true,
+		hdr.TransferEncoding: true,
+		hdr.Trailer:          true,
 	}
 	// ErrNoLocation is returned by Response's Location method
 	// when no Location header is present.
@@ -41,7 +43,7 @@ type (
 		// authoritative.
 		//
 		// Keys in the map are canonicalized (see CanonicalHeaderKey).
-		Header Header
+		Header hdr.Header
 
 		// Body represents the response body.
 		//
@@ -93,7 +95,7 @@ type (
 		//
 		// After Body.Read has returned io.EOF, Trailer will contain
 		// any trailer values sent by the server.
-		Trailer Header
+		Trailer hdr.Header
 
 		// Request is the request that was sent to obtain this Response.
 		// Request's Body is nil (having already been consumed).

@@ -16,6 +16,7 @@ import (
 
 	. "github.com/badu/http"
 	"github.com/badu/http/cli"
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/th"
 	. "github.com/badu/http/tport"
 	"github.com/badu/http/url"
@@ -34,7 +35,7 @@ func (b issue18239Body) Close() error {
 func (issue15577Tripper) RoundTrip(*Request) (*Response, error) {
 	resp := &Response{
 		StatusCode: 303,
-		Header:     map[string][]string{Location: {"http://www.example.com/"}},
+		Header:     map[string][]string{hdr.Location: {"http://www.example.com/"}},
 		Body:       ioutil.NopCloser(strings.NewReader("")),
 	}
 	return resp, nil

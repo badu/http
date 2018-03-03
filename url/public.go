@@ -117,3 +117,24 @@ func ParseQuery(query string) (Values, error) {
 	err := parseQuery(m, query)
 	return m, err
 }
+
+// ValidHostHeader reports whether h is a valid host header.
+func ValidHostHeader(h string) bool {
+	// The latest spec is actually this:
+	//
+	// http://tools.ietf.org/html/rfc7230#section-5.4
+	//     Host = uri-host [ ":" port ]
+	//
+	// Where uri-host is:
+	//     http://tools.ietf.org/html/rfc3986#section-3.2.2
+	//
+	// But we're going to be much more lenient for now and just
+	// search for any byte that's not a valid byte in any of those
+	// expressions.
+	for i := 0; i < len(h); i++ {
+		if !validHostByte[h[i]] {
+			return false
+		}
+	}
+	return true
+}

@@ -35,6 +35,7 @@ import (
 	. "github.com/badu/http"
 	"github.com/badu/http/cli"
 	"github.com/badu/http/filetransport"
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/mux"
 	"github.com/badu/http/th"
 	. "github.com/badu/http/tport"
@@ -150,7 +151,7 @@ func TestServeMuxHandlerRedirects(t *testing.T) {
 				t.Errorf("%s %s %s, unexpected redirect", tt.method, tt.host, tt.url)
 				break
 			}
-			turl = rr.HeaderMap.Get(Location)
+			turl = rr.HeaderMap.Get(hdr.Location)
 			tries--
 		}
 		if tries < 0 {
@@ -173,7 +174,7 @@ func TestMuxRedirectLeadingSlashes(t *testing.T) {
 
 		srvMx.ServeHTTP(resp, req)
 
-		if loc, expected := resp.Header().Get(Location), "/foo.txt"; loc != expected {
+		if loc, expected := resp.Header().Get(hdr.Location), "/foo.txt"; loc != expected {
 			t.Errorf("Expected Location header set to %q; got %q", expected, loc)
 			return
 		}
@@ -340,8 +341,8 @@ func TestIdentityResponse(t *testing.T) {
 	setParallel(t)
 	defer afterTest(t)
 	handler := HandlerFunc(func(rw ResponseWriter, req *Request) {
-		rw.Header().Set(ContentLength, "3")
-		rw.Header().Set(TransferEncoding, req.FormValue("te"))
+		rw.Header().Set(hdr.ContentLength, "3")
+		rw.Header().Set(hdr.TransferEncoding, req.FormValue("te"))
 		switch {
 		case req.FormValue("overwrite") == "1":
 			_, err := rw.Write([]byte("foo TOO LONG"))
@@ -349,7 +350,7 @@ func TestIdentityResponse(t *testing.T) {
 				t.Errorf("expected ErrContentLength; got %v", err)
 			}
 		case req.FormValue("underwrite") == "1":
-			rw.Header().Set(ContentLength, "500")
+			rw.Header().Set(hdr.ContentLength, "500")
 			rw.Write([]byte("too short"))
 		default:
 			rw.Write([]byte("foo"))
@@ -374,7 +375,7 @@ func TestIdentityResponse(t *testing.T) {
 		if cl, expected := res.ContentLength, int64(3); cl != expected {
 			t.Errorf("for %s expected res.ContentLength of %d; got %d", testUrl, expected, cl)
 		}
-		if cl, expected := res.Header.Get(ContentLength), "3"; cl != expected {
+		if cl, expected := res.Header.Get(hdr.ContentLength), "3"; cl != expected {
 			t.Errorf("for %s expected Content-Length header of %q; got %q", testUrl, expected, cl)
 		}
 		if tl, expected := len(res.TransferEncoding), 0; tl != expected {
@@ -503,13 +504,13 @@ func TestClientCanClose(t *testing.T) {
 // even for HTTP/1.1 requests.
 func TestHandlersCanSetConnectionClose11(t *testing.T) {
 	testTCPConnectionCloses(t, "GET / HTTP/1.1\r\nHost: foo\r\n\r\n\r\n", HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(Connection, DoClose)
+		w.Header().Set(hdr.Connection, DoClose)
 	}))
 }
 
 func TestHandlersCanSetConnectionClose10(t *testing.T) {
 	testTCPConnectionCloses(t, "GET / HTTP/1.0\r\nConnection: keep-alive\r\n\r\n", HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(Connection, DoClose)
+		w.Header().Set(hdr.Connection, DoClose)
 	}))
 }
 
@@ -667,7 +668,7 @@ func TestIdentityResponseHeaders(t *testing.T) {
 	defer log.SetOutput(os.Stderr)
 
 	ts := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(TransferEncoding, DoIdentity)
+		w.Header().Set(hdr.TransferEncoding, DoIdentity)
 		w.(Flusher).Flush()
 		fmt.Fprintf(w, "I am an identity response.")
 	}))
@@ -683,7 +684,7 @@ func TestIdentityResponseHeaders(t *testing.T) {
 	if g, e := res.TransferEncoding, []string(nil); !reflect.DeepEqual(g, e) {
 		t.Errorf("expected TransferEncoding of %v; got %v", e, g)
 	}
-	if _, haveCL := res.Header[ContentLength]; haveCL {
+	if _, haveCL := res.Header[hdr.ContentLength]; haveCL {
 		t.Errorf("Unexpected Content-Length")
 	}
 	if !res.Close {
@@ -716,7 +717,7 @@ func TestHeadResponses(t *testing.T) {
 	if len(res.TransferEncoding) > 0 {
 		t.Errorf("expected no TransferEncoding; got %v", res.TransferEncoding)
 	}
-	if ct := res.Header.Get(ContentType); ct != "text/html; charset=utf-8" {
+	if ct := res.Header.Get(hdr.ContentType); ct != "text/html; charset=utf-8" {
 		t.Errorf("Content-Type: %q; want text/html; charset=utf-8", ct)
 	}
 	if v := res.ContentLength; v != 10 {
@@ -999,7 +1000,7 @@ func TestServerUnreadRequestBodyLittle(t *testing.T) {
 		if g, e := readBufLen(), 0; g != e {
 			t.Errorf("after WriteHeader, read buffer length is %d; want %d", g, e)
 		}
-		if c := rw.Header().Get(Connection); c != "" {
+		if c := rw.Header().Get(hdr.Connection); c != "" {
 			t.Errorf(`Connection header = %q; want ""`, c)
 		}
 	}))
@@ -1359,7 +1360,7 @@ func TestTimeoutHandlerRaceHeaderTimeout(t *testing.T) {
 	sendHi := make(chan bool, 1)
 	writeErrors := make(chan error, 1)
 	sayHi := HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(ContentType, "text/plain")
+		w.Header().Set(hdr.ContentType, "text/plain")
 		<-sendHi
 		_, werr := w.Write([]byte("hi"))
 		writeErrors <- werr
@@ -1513,7 +1514,7 @@ func TestRedirect(t *testing.T) {
 	for _, tt := range tests {
 		rec := th.NewRecorder()
 		Redirect(rec, req, tt.in, 302)
-		if got := rec.Header().Get(Location); got != tt.want {
+		if got := rec.Header().Get(hdr.Location); got != tt.want {
 			t.Errorf("Redirect(%q) generated Location header %q; want %q", tt.in, got, tt.want)
 		}
 	}
@@ -1536,7 +1537,7 @@ func TestZeroLengthPostAndResponse(t *testing.T) {
 		if len(all) != 0 {
 			t.Errorf("handler got %d bytes; expected 0", len(all))
 		}
-		rw.Header().Set(ContentLength, "0")
+		rw.Header().Set(hdr.ContentLength, "0")
 	}))
 	defer cst.close()
 
@@ -1678,9 +1679,9 @@ func TestServerWriteHijackZeroBytes(t *testing.T) {
 	}
 }
 
-func TestServerNoDate(t *testing.T) { testServerNoHeader(t, Date) }
+func TestServerNoDate(t *testing.T) { testServerNoHeader(t, hdr.Date) }
 
-func TestServerNoContentType(t *testing.T) { testServerNoHeader(t, ContentType) }
+func TestServerNoContentType(t *testing.T) { testServerNoHeader(t, hdr.ContentType) }
 
 func testServerNoHeader(t *testing.T, header string) {
 	setParallel(t)
@@ -2265,7 +2266,7 @@ func TestHeaderToWire(t *testing.T) {
 			name: "Header mutation before write",
 			handler: func(rw ResponseWriter, r *Request) {
 				h := rw.Header()
-				h.Set(ContentType, "some/type")
+				h.Set(hdr.ContentType, "some/type")
 				rw.Write([]byte("hello world"))
 				h.Set("Too-Late", "bogus")
 			},
@@ -2315,7 +2316,7 @@ func TestHeaderToWire(t *testing.T) {
 		{
 			name: "header then flush",
 			handler: func(rw ResponseWriter, r *Request) {
-				rw.Header().Set(ContentType, "some/type")
+				rw.Header().Set(hdr.ContentType, "some/type")
 				rw.(Flusher).Flush()
 				rw.Write([]byte("post-flush"))
 				rw.Header().Set("Too-Late", "Write already wrote headers")
@@ -2337,7 +2338,7 @@ func TestHeaderToWire(t *testing.T) {
 			name: "sniff-on-first-write content-type",
 			handler: func(rw ResponseWriter, r *Request) {
 				rw.Write([]byte("<html><head></head><body>some html</body></html>"))
-				rw.Header().Set(ContentType, "x/wrong")
+				rw.Header().Set(hdr.ContentType, "x/wrong")
 			},
 			check: func(got string) error {
 				if !strings.Contains(got, "Content-Type: text/html") {
@@ -2349,7 +2350,7 @@ func TestHeaderToWire(t *testing.T) {
 		{
 			name: "explicit content-type wins",
 			handler: func(rw ResponseWriter, r *Request) {
-				rw.Header().Set(ContentType, "some/type")
+				rw.Header().Set(hdr.ContentType, "some/type")
 				rw.Write([]byte("<html><head></head><body>some html</body></html>"))
 			},
 			check: func(got string) error {
@@ -2537,7 +2538,7 @@ func TestHTTP10ConnectionHeader(t *testing.T) {
 		conn.Close()
 		resp.CloseBody()
 
-		got := resp.Header[Connection]
+		got := resp.Header[hdr.Connection]
 		if !reflect.DeepEqual(got, tt.expect) {
 			t.Errorf("wrong Connection headers for request %q. Got %q expect %q", tt.req, got, tt.expect)
 		}
@@ -2551,7 +2552,7 @@ func TestServerReaderFromOrder(t *testing.T) {
 	pr, pw := io.Pipe()
 	const size = 3 << 20
 	cst := newClientServerTest(t, HandlerFunc(func(rw ResponseWriter, req *Request) {
-		rw.Header().Set(ContentType, "text/plain") // prevent sniffing path
+		rw.Header().Set(hdr.ContentType, "text/plain") // prevent sniffing path
 		done := make(chan bool)
 		go func() {
 			io.Copy(rw, pr)
@@ -2595,7 +2596,7 @@ func TestCodesPreventingContentTypeAndBody(t *testing.T) {
 	for _, code := range []int{StatusNotModified, StatusNoContent, StatusContinue} {
 		ht := newHandlerTest(HandlerFunc(func(w ResponseWriter, r *Request) {
 			if r.URL.Path == "/header" {
-				w.Header().Set(ContentLength, "123")
+				w.Header().Set(hdr.ContentLength, "123")
 			}
 			w.WriteHeader(code)
 			if r.URL.Path == "/more" {
@@ -2614,7 +2615,7 @@ func TestCodesPreventingContentTypeAndBody(t *testing.T) {
 			wantStatus := fmt.Sprintf("%d %s", code, StatusText(code))
 			if !strings.Contains(got, wantStatus) {
 				t.Errorf("Code %d: Wanted %q Modified for %q: %s", code, wantStatus, req, got)
-			} else if strings.Contains(got, ContentLength) {
+			} else if strings.Contains(got, hdr.ContentLength) {
 				t.Errorf("Code %d: Got a Content-Length from %q: %s", code, req, got)
 			} else if strings.Contains(got, "stuff") {
 				t.Errorf("Code %d: Response contains a body from %q: %s", code, req, got)
@@ -2625,8 +2626,8 @@ func TestCodesPreventingContentTypeAndBody(t *testing.T) {
 
 func TestContentTypeOkayOn204(t *testing.T) {
 	ht := newHandlerTest(HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(ContentLength, "123") // suppressed
-		w.Header().Set(ContentType, "foo/bar")
+		w.Header().Set(hdr.ContentLength, "123") // suppressed
+		w.Header().Set(hdr.ContentType, "foo/bar")
 		w.WriteHeader(204)
 	}))
 	got := ht.rawResponse("GET / HTTP/1.1\nHost: foo")
@@ -2822,7 +2823,7 @@ func TestAppendTime(t *testing.T) {
 	var b [len(TimeFormat)]byte
 	t1 := time.Date(2013, 9, 21, 15, 41, 0, 0, time.FixedZone("CEST", 2*60*60))
 	res := AppendTime(b[:0], t1)
-	t2, err := ParseTime(string(res))
+	t2, err := hdr.ParseTime(string(res))
 	if err != nil {
 		t.Fatalf("Error parsing time: %s", err)
 	}
@@ -2839,7 +2840,7 @@ func TestServerConnState(t *testing.T) {
 			fmt.Fprintf(w, "Hello.")
 		},
 		"/close": func(w ResponseWriter, r *Request) {
-			w.Header().Set(Connection, DoClose)
+			w.Header().Set(hdr.Connection, DoClose)
 			fmt.Fprintf(w, "Hello.")
 		},
 		"/hijack": func(w ResponseWriter, r *Request) {
@@ -2907,7 +2908,7 @@ func TestServerConnState(t *testing.T) {
 	mustGet(ts.URL + "/close")
 
 	mustGet(ts.URL + "/")
-	mustGet(ts.URL+"/", Connection, DoClose)
+	mustGet(ts.URL+"/", hdr.Connection, DoClose)
 
 	mustGet(ts.URL + "/hijack")
 	mustGet(ts.URL + "/hijack-panic")
@@ -3178,7 +3179,7 @@ func TestServerKeepAliveAfterWriteError(t *testing.T) {
 func TestNoContentLengthIfTransferEncoding(t *testing.T) {
 	defer afterTest(t)
 	ts := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(TransferEncoding, "foo")
+		w.Header().Set(hdr.TransferEncoding, "foo")
 		io.WriteString(w, "<html>")
 	}))
 	defer ts.Close()
@@ -3202,10 +3203,10 @@ func TestNoContentLengthIfTransferEncoding(t *testing.T) {
 	if err := bs.Err(); err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(got.String(), ContentLength) {
+	if strings.Contains(got.String(), hdr.ContentLength) {
 		t.Errorf("Unexpected Content-Length in response headers: %s", got.String())
 	}
-	if strings.Contains(got.String(), ContentType) {
+	if strings.Contains(got.String(), hdr.ContentType) {
 		t.Errorf("Unexpected Content-Type in response headers: %s", got.String())
 	}
 }
@@ -3254,7 +3255,7 @@ HelloWorld
 	}
 	ln := &oneConnListener{conn: conn}
 	go Serve(ln, HandlerFunc(func(w ResponseWriter, r *Request) {
-		if _, ok := r.Header[Expect]; !ok {
+		if _, ok := r.Header[hdr.Expect]; !ok {
 			t.Error("Expect header should not be filtered out")
 		}
 	}))
@@ -3581,7 +3582,7 @@ func TestHandlerSetTransferEncodingChunked(t *testing.T) {
 	setParallel(t)
 	defer afterTest(t)
 	ht := newHandlerTest(HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(TransferEncoding, DoChunked)
+		w.Header().Set(hdr.TransferEncoding, DoChunked)
 		w.Write([]byte("hello"))
 	}))
 	resp := ht.rawResponse("GET / HTTP/1.1\nHost: foo")
@@ -3596,7 +3597,7 @@ func TestHandlerSetTransferEncodingGzip(t *testing.T) {
 	setParallel(t)
 	defer afterTest(t)
 	ht := newHandlerTest(HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(TransferEncoding, "gzip")
+		w.Header().Set(hdr.TransferEncoding, "gzip")
 		gz := gzip.NewWriter(w)
 		gz.Write([]byte("hello"))
 		gz.Close()

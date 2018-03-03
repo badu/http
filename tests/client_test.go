@@ -24,6 +24,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/url"
 
 	. "github.com/badu/http"
@@ -61,7 +62,7 @@ func TestClientHead(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if _, ok := r.Header[LastModified]; !ok {
+	if _, ok := r.Header[hdr.LastModified]; !ok {
 		t.Error("Last-Modified header not found.")
 	}
 }
@@ -132,7 +133,7 @@ func TestPostFormRequestFormat(t *testing.T) {
 	if tr.req.Header == nil {
 		t.Fatalf("expected non-nil request Header")
 	}
-	if g, e := tr.req.Header.Get(ContentType), "application/x-www-form-urlencoded"; g != e {
+	if g, e := tr.req.Header.Get(hdr.ContentType), "application/x-www-form-urlencoded"; g != e {
 		t.Errorf("got Content-Type %q, want %q", g, e)
 	}
 	if tr.req.Close {
@@ -246,7 +247,7 @@ func TestClientRedirects(t *testing.T) {
 		t.Fatalf("Expected a non-nil Response on CheckRedirect failure (https://golang.org/issue/3795)")
 	}
 	res.CloseBody()
-	if res.Header.Get(Location) == "" {
+	if res.Header.Get(hdr.Location) == "" {
 		t.Errorf("no Location header in Response")
 	}
 }
@@ -372,7 +373,7 @@ func testRedirectsByMethod(t *testing.T, method string, table []redirectTest, wa
 		sLog.Lock()
 		slurp, _ := ioutil.ReadAll(r.Body)
 		fmt.Fprintf(&sLog.Buffer, "%s %s %q", r.Method, r.RequestURI, slurp)
-		if cl := r.Header.Get(ContentLength); r.Method == GET && len(slurp) == 0 && (r.ContentLength != 0 || cl != "") {
+		if cl := r.Header.Get(hdr.ContentLength); r.Method == GET && len(slurp) == 0 && (r.ContentLength != 0 || cl != "") {
 			fmt.Fprintf(&sLog.Buffer, " (but with body=%T, content-length = %v, %q)", r.Body, r.ContentLength, cl)
 		}
 		sLog.WriteByte('\n')
@@ -390,7 +391,7 @@ func testRedirectsByMethod(t *testing.T, method string, table []redirectTest, wa
 			}
 			code, _ := strconv.Atoi(v)
 			if code/100 == 3 {
-				w.Header().Set(Location, location)
+				w.Header().Set(hdr.Location, location)
 			}
 			w.WriteHeader(code)
 		}
@@ -433,7 +434,7 @@ func TestClientRedirectUseResponse(t *testing.T) {
 		if strings.Contains(r.URL.Path, "/other") {
 			io.WriteString(w, "wrong body")
 		} else {
-			w.Header().Set(Location, ts.URL+"/other")
+			w.Header().Set(hdr.Location, ts.URL+"/other")
 			w.WriteHeader(StatusFound)
 			io.WriteString(w, body)
 		}
@@ -494,7 +495,7 @@ func TestClientRedirect308NoGetBody(t *testing.T) {
 	defer afterTest(t)
 	const fakeURL = "https://localhost:1234/" // won't be hit
 	ts := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(Location, fakeURL)
+		w.Header().Set(hdr.Location, fakeURL)
 		w.WriteHeader(308)
 	}))
 	defer ts.Close()
@@ -512,7 +513,7 @@ func TestClientRedirect308NoGetBody(t *testing.T) {
 	if res.StatusCode != 308 {
 		t.Errorf("status = %d; want %d", res.StatusCode, 308)
 	}
-	if got := res.Header.Get(Location); got != fakeURL {
+	if got := res.Header.Get(hdr.Location); got != fakeURL {
 		t.Errorf("Location header = %q; want %q", got, fakeURL)
 	}
 }
@@ -863,7 +864,7 @@ func TestClientHeadContentLength(t *testing.T) {
 	defer afterTest(t)
 	cst := newClientServerTest(t, HandlerFunc(func(w ResponseWriter, r *Request) {
 		if v := r.FormValue("cl"); v != "" {
-			w.Header().Set(ContentLength, v)
+			w.Header().Set(hdr.ContentLength, v)
 		}
 	}))
 	defer cst.close()
@@ -899,7 +900,7 @@ func TestEmptyPasswordAuth(t *testing.T) {
 	defer afterTest(t)
 	gopher := "gopher"
 	ts := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		auth := r.Header.Get(Authorization)
+		auth := r.Header.Get(hdr.Authorization)
 		if strings.HasPrefix(auth, "Basic ") {
 			encoded := auth[6:]
 			decoded, err := base64.StdEncoding.DecodeString(encoded)
@@ -947,7 +948,7 @@ func TestBasicAuth(t *testing.T) {
 	if tr.req.Header == nil {
 		t.Fatalf("expected non-nil request Header")
 	}
-	auth := tr.req.Header.Get(Authorization)
+	auth := tr.req.Header.Get(hdr.Authorization)
 	if strings.HasPrefix(auth, "Basic ") {
 		encoded := auth[6:]
 		decoded, err := base64.StdEncoding.DecodeString(encoded)
@@ -987,7 +988,7 @@ func TestBasicAuthHeadersPreserved(t *testing.T) {
 	if tr.req.Header == nil {
 		t.Fatalf("expected non-nil request Header")
 	}
-	auth := tr.req.Header.Get(Authorization)
+	auth := tr.req.Header.Get(hdr.Authorization)
 	if strings.HasPrefix(auth, "Basic ") {
 		encoded := auth[6:]
 		decoded, err := base64.StdEncoding.DecodeString(encoded)
@@ -1100,11 +1101,11 @@ func TestClientCopyHeadersOnRedirect(t *testing.T) {
 	)
 	var ts2URL string
 	ts1 := th.NewServer(HandlerFunc(func(w ResponseWriter, r *Request) {
-		want := Header{
-			UserAgent:      []string{ua},
-			"X-Foo":        []string{xfoo},
-			Referer:        []string{ts2URL},
-			AcceptEncoding: []string{"gzip"},
+		want := hdr.Header{
+			hdr.UserAgent:      []string{ua},
+			"X-Foo":            []string{xfoo},
+			hdr.Referer:        []string{ts2URL},
+			hdr.AcceptEncoding: []string{"gzip"},
 		}
 		if !reflect.DeepEqual(r.Header, want) {
 			t.Errorf("Request.Header = %#v; want %#v", r.Header, want)
@@ -1124,10 +1125,10 @@ func TestClientCopyHeadersOnRedirect(t *testing.T) {
 
 	c := ts1.Client()
 	c.CheckRedirect = func(r *Request, via []*Request) error {
-		want := Header{
-			UserAgent: []string{ua},
-			"X-Foo":   []string{xfoo},
-			Referer:   []string{ts2URL},
+		want := hdr.Header{
+			hdr.UserAgent: []string{ua},
+			"X-Foo":       []string{xfoo},
+			hdr.Referer:   []string{ts2URL},
 		}
 		if !reflect.DeepEqual(r.Header, want) {
 			t.Errorf("CheckRedirect Request.Header = %#v; want %#v", r.Header, want)
@@ -1136,10 +1137,10 @@ func TestClientCopyHeadersOnRedirect(t *testing.T) {
 	}
 
 	req, _ := NewRequest(GET, ts2.URL, nil)
-	req.Header.Add(UserAgent, ua)
+	req.Header.Add(hdr.UserAgent, ua)
 	req.Header.Add("X-Foo", xfoo)
-	req.Header.Add(CookieHeader, "foo=bar")
-	req.Header.Add(Authorization, "secretpassword")
+	req.Header.Add(hdr.CookieHeader, "foo=bar")
+	req.Header.Add(hdr.Authorization, "secretpassword")
 	res, err := c.Do(req)
 	if err != nil {
 		t.Fatal(err)
@@ -1252,7 +1253,7 @@ func TestShouldCopyHeaderOnRedirect(t *testing.T) {
 		destURL    string
 		want       bool
 	}{
-		{UserAgent, "http://foo.com/", "http://bar.com/", true},
+		{hdr.UserAgent, "http://foo.com/", "http://bar.com/", true},
 		{"X-Foo", "http://foo.com/", "http://bar.com/", true},
 
 		// Sensitive headers:
@@ -1344,7 +1345,7 @@ func TestClientRedirectTypes(t *testing.T) {
 	c := ts.Client()
 	for i, tt := range tests {
 		handlerc <- func(w ResponseWriter, r *Request) {
-			w.Header().Set(Location, ts.URL)
+			w.Header().Set(hdr.Location, ts.URL)
 			w.WriteHeader(tt.serverStatus)
 		}
 

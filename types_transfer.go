@@ -8,13 +8,14 @@ package http
 import (
 	"bufio"
 	"errors"
+	"github.com/badu/http/hdr"
 	"io"
 	"sync"
 )
 
 var (
-	suppressedHeaders304    = []string{ContentType, ContentLength, TransferEncoding}
-	suppressedHeadersNoBody = []string{ContentLength, TransferEncoding}
+	suppressedHeaders304    = []string{hdr.ContentType, hdr.ContentLength, hdr.TransferEncoding}
+	suppressedHeadersNoBody = []string{hdr.ContentLength, hdr.TransferEncoding}
 
 	// ErrBodyReadAfterClose is returned when reading a Request or Response
 	// Body after the body has been closed. This typically happens when the body is
@@ -61,8 +62,8 @@ type (
 		ContentLength    int64 // -1 means unknown, 0 means exactly none
 		Close            bool
 		TransferEncoding []string
-		Header           Header
-		Trailer          Header
+		Header           hdr.Header
+		Trailer          hdr.Header
 		IsResponse       bool
 		bodyReadError    error           // any non-EOF error from reading Body
 		FlushHeaders     bool            // flush headers to network before body
@@ -72,7 +73,7 @@ type (
 	//TODO : @badu - whay all these properties are public?
 	transferReader struct {
 		// Input
-		Header        Header
+		Header        hdr.Header
 		StatusCode    int
 		RequestMethod string
 		ProtoMajor    int
@@ -82,12 +83,11 @@ type (
 		ContentLength    int64
 		TransferEncoding []string
 		Close            bool
-		Trailer          Header
+		Trailer          hdr.Header
 	}
 
 	// body turns a Reader into a ReadCloser.
-	// Close ensures that the body has been fully read
-	// and then reads the trailer if necessary.
+	// Close ensures that the body has been fully read and then reads the trailer if necessary.
 	body struct {
 		mu                    sync.Mutex // guards following, and calls to Read and Close
 		reader                io.Reader
@@ -101,14 +101,12 @@ type (
 		onHitEOF              func() // if non-nil, func to call when EOF is Read
 	}
 
-	// bodyLocked is a io.Reader reading from a *body when its mutex is
-	// already held.
+	// bodyLocked is a io.Reader reading from a *body when its mutex is already held.
 	bodyLocked struct {
 		body *body
 	}
 
-	// finishAsyncByteRead finishes reading the 1-byte sniff
-	// from the ContentLength==0, Body!=nil case.
+	// finishAsyncByteRead finishes reading the 1-byte sniff from the ContentLength==0, Body!=nil case.
 	finishAsyncByteRead struct {
 		transferWriter *transferWriter
 	}

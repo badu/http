@@ -9,10 +9,9 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
+	. "github.com/badu/http/hdr"
 	"io"
 	"sort"
-
-	. "github.com/badu/http"
 )
 
 // Boundary returns the Writer's boundary.
@@ -102,9 +101,8 @@ func (w *Writer) CreatePart(header Header) (io.Writer, error) {
 // a new form-data header with the provided field name and file name.
 func (w *Writer) CreateFormFile(fieldname, filename string) (io.Writer, error) {
 	h := make(Header)
-	h.Set("Content-Disposition",
-		fmt.Sprintf(`form-data; name="%s"; filename="%s"`,
-			escapeQuotes(fieldname), escapeQuotes(filename)))
+	h.Set(ContentDisposition,
+		fmt.Sprintf(`form-data; name="%s"; filename="%s"`, escapeQuotes(fieldname), escapeQuotes(filename)))
 	h.Set(ContentType, "application/octet-stream")
 	return w.CreatePart(h)
 }
@@ -113,7 +111,7 @@ func (w *Writer) CreateFormFile(fieldname, filename string) (io.Writer, error) {
 // given field name.
 func (w *Writer) CreateFormField(fieldname string) (io.Writer, error) {
 	h := make(Header)
-	h.Set("Content-Disposition",
+	h.Set(ContentDisposition,
 		fmt.Sprintf(`form-data; name="%s"`, escapeQuotes(fieldname)))
 	return w.CreatePart(h)
 }

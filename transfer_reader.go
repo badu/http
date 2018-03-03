@@ -5,7 +5,11 @@
 
 package http
 
-import "strings"
+import (
+	"strings"
+
+	"github.com/badu/http/hdr"
+)
 
 func (t *transferReader) protoAtLeast(m, n int) bool {
 	return t.ProtoMajor > m || (t.ProtoMajor == m && t.ProtoMinor >= n)
@@ -13,11 +17,11 @@ func (t *transferReader) protoAtLeast(m, n int) bool {
 
 // fixTransferEncoding sanitizes t.TransferEncoding, if needed.
 func (t *transferReader) fixTransferEncoding() error {
-	raw, present := t.Header[TransferEncoding]
+	raw, present := t.Header[hdr.TransferEncoding]
 	if !present {
 		return nil
 	}
-	delete(t.Header, TransferEncoding)
+	delete(t.Header, hdr.TransferEncoding)
 
 	// Issue 12785; ignore Transfer-Encoding on HTTP/1.0 requests.
 	if !t.protoAtLeast(1, 1) {
@@ -62,7 +66,7 @@ func (t *transferReader) fixTransferEncoding() error {
 		// such a message downstream."
 		//
 		// Reportedly, these appear in the wild.
-		delete(t.Header, ContentLength)
+		delete(t.Header, hdr.ContentLength)
 		t.TransferEncoding = te
 		return nil
 	}

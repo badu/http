@@ -13,7 +13,7 @@ import (
 	"strings"
 	"testing"
 
-	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 )
 
 type canonicalHeaderKeyTest struct {
@@ -45,14 +45,14 @@ var canonicalHeaderKeyTests = []canonicalHeaderKeyTest{
 
 func TestCanonicalMIMEHeaderKey(t *testing.T) {
 	for _, tt := range canonicalHeaderKeyTests {
-		if s := CanonicalHeaderKey(tt.in); s != tt.out {
+		if s := hdr.CanonicalHeaderKey(tt.in); s != tt.out {
 			t.Errorf("CanonicalHeaderKey(%q) = %q, want %q", tt.in, s, tt.out)
 		}
 	}
 }
 
-func reader(s string) *HeaderReader {
-	return NewHeaderReader(bufio.NewReader(strings.NewReader(s)))
+func reader(s string) *hdr.HeaderReader {
+	return hdr.NewHeaderReader(bufio.NewReader(strings.NewReader(s)))
 }
 
 func TestReadLine(t *testing.T) {
@@ -74,7 +74,7 @@ func TestReadLine(t *testing.T) {
 func TestReadMIMEHeader(t *testing.T) {
 	r := reader("my-key: Value 1  \r\nLong-key: Even \n Longer Value\r\nmy-Key: Value 2\r\n\n")
 	m, err := r.ReadHeader()
-	want := Header{
+	want := hdr.Header{
 		"My-Key":   {"Value 1", "Value 2"},
 		"Long-Key": {"Even Longer Value"},
 	}
@@ -86,7 +86,7 @@ func TestReadMIMEHeader(t *testing.T) {
 func TestReadMIMEHeaderSingle(t *testing.T) {
 	r := reader("Foo: bar\n\n")
 	m, err := r.ReadHeader()
-	want := Header{"Foo": {"bar"}}
+	want := hdr.Header{"Foo": {"bar"}}
 	if !reflect.DeepEqual(m, want) || err != nil {
 		t.Fatalf("ReadHeader: %v, %v; want %v", m, err, want)
 	}
@@ -95,7 +95,7 @@ func TestReadMIMEHeaderSingle(t *testing.T) {
 func TestReadMIMEHeaderNoKey(t *testing.T) {
 	r := reader(": bar\ntest-1: 1\n\n")
 	m, err := r.ReadHeader()
-	want := Header{"Test-1": {"1"}}
+	want := hdr.Header{"Test-1": {"1"}}
 	if !reflect.DeepEqual(m, want) || err != nil {
 		t.Fatalf("ReadHeader: %v, %v; want %v", m, err, want)
 	}
@@ -112,7 +112,7 @@ func TestLargeReadMIMEHeader(t *testing.T) {
 	if err != nil {
 		t.Fatalf("ReadHeader: %v", err)
 	}
-	cookie := m.Get(CookieHeader)
+	cookie := m.Get(hdr.CookieHeader)
 	if cookie != sdata {
 		t.Fatalf("ReadHeader: %v bytes, want %v bytes", len(cookie), len(sdata))
 	}
@@ -129,12 +129,12 @@ func TestReadMIMEHeaderNonCompliant(t *testing.T) {
 		"Audio Mode : None\r\n" +
 		"Privilege : 127\r\n\r\n")
 	m, err := r.ReadHeader()
-	want := Header{
-		"Foo":           {"bar"},
-		ContentLanguage: {"en"},
-		"Sid":           {"0"},
-		"Audio Mode":    {"None"},
-		"Privilege":     {"127"},
+	want := hdr.Header{
+		"Foo":               {"bar"},
+		hdr.ContentLanguage: {"en"},
+		"Sid":               {"0"},
+		"Audio Mode":        {"None"},
+		"Privilege":         {"127"},
 	}
 	if !reflect.DeepEqual(m, want) || err != nil {
 		t.Fatalf("ReadHeader =\n%v, %v; want:\n%v", m, err, want)
@@ -175,7 +175,7 @@ func TestReadMIMEHeaderTrimContinued(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	want := Header{
+	want := hdr.Header{
 		"A": {"0"},
 		"B": {"1"},
 		"C": {"2 3 4"},
@@ -269,18 +269,18 @@ func BenchmarkReadMIMEHeader(b *testing.B) {
 	b.ReportAllocs()
 	var buf bytes.Buffer
 	br := bufio.NewReader(&buf)
-	r := NewHeaderReader(br)
+	r := hdr.NewHeaderReader(br)
 	for i := 0; i < b.N; i++ {
 		var want int
 		var find string
 		if (i & 1) == 1 {
 			buf.WriteString(clientHeaders)
 			want = 10
-			find = CookieHeader
+			find = hdr.CookieHeader
 		} else {
 			buf.WriteString(serverHeaders)
 			want = 9
-			find = Via
+			find = hdr.Via
 		}
 		h, err := r.ReadHeader()
 		if err != nil {
@@ -299,7 +299,7 @@ func BenchmarkUncommon(b *testing.B) {
 	b.ReportAllocs()
 	var buf bytes.Buffer
 	br := bufio.NewReader(&buf)
-	r := NewHeaderReader(br)
+	r := hdr.NewHeaderReader(br)
 	for i := 0; i < b.N; i++ {
 		buf.WriteString("uncommon-header-for-benchmark: foo\r\n\r\n")
 		h, err := r.ReadHeader()

@@ -39,6 +39,10 @@ func readChunkLine(b *bufio.Reader) ([]byte, error) {
 	return p, nil
 }
 
+func isASCIISpace(b byte) bool {
+	return b == ' ' || b == '\t' || b == '\n' || b == '\r'
+}
+
 func trimTrailingWhitespace(b []byte) []byte {
 	for len(b) > 0 && isASCIISpace(b[len(b)-1]) {
 		b = b[:len(b)-1]

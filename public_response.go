@@ -7,6 +7,7 @@ package http
 
 import (
 	"bufio"
+	"github.com/badu/http/hdr"
 	"io"
 	"strconv"
 	"strings"
@@ -19,7 +20,7 @@ import (
 // After that call, clients can inspect resp.Trailer to find key/value
 // pairs included in the response trailer.
 func ReadResponse(r *bufio.Reader, req *Request) (*Response, error) {
-	tp := NewHeaderReader(r)
+	tp := hdr.NewHeaderReader(r)
 	resp := &Response{
 		Request: req,
 	}
@@ -62,7 +63,7 @@ func ReadResponse(r *bufio.Reader, req *Request) (*Response, error) {
 		}
 		return nil, err
 	}
-	resp.Header = Header(mimeHeader)
+	resp.Header = hdr.Header(mimeHeader)
 
 	fixPragmaCacheControl(resp.Header)
 

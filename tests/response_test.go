@@ -20,6 +20,7 @@ import (
 	"testing"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/url"
 )
 
@@ -44,8 +45,8 @@ var respTests = []respTest{
 			ProtoMajor: 1,
 			ProtoMinor: 0,
 			Request:    dummyReq(GET),
-			Header: Header{
-				Connection: {DoClose}, // TODO(rsc): Delete?
+			Header: hdr.Header{
+				hdr.Connection: {DoClose}, // TODO(rsc): Delete?
 			},
 			Close:         true,
 			ContentLength: -1,
@@ -67,7 +68,7 @@ var respTests = []respTest{
 			Proto:         HTTP1_1,
 			ProtoMajor:    1,
 			ProtoMinor:    1,
-			Header:        Header{},
+			Header:        hdr.Header{},
 			Request:       dummyReq(GET),
 			Close:         true,
 			ContentLength: -1,
@@ -88,7 +89,7 @@ var respTests = []respTest{
 			Proto:         HTTP1_1,
 			ProtoMajor:    1,
 			ProtoMinor:    1,
-			Header:        Header{},
+			Header:        hdr.Header{},
 			Request:       dummyReq(GET),
 			Close:         false,
 			ContentLength: 0,
@@ -112,9 +113,9 @@ var respTests = []respTest{
 			ProtoMajor: 1,
 			ProtoMinor: 0,
 			Request:    dummyReq(GET),
-			Header: Header{
-				Connection:    {DoClose},
-				ContentLength: {"10"},
+			Header: hdr.Header{
+				hdr.Connection:    {DoClose},
+				hdr.ContentLength: {"10"},
 			},
 			Close:         true,
 			ContentLength: 10,
@@ -142,7 +143,7 @@ var respTests = []respTest{
 			ProtoMajor:       1,
 			ProtoMinor:       1,
 			Request:          dummyReq(GET),
-			Header:           Header{},
+			Header:           hdr.Header{},
 			Close:            false,
 			ContentLength:    -1,
 			TransferEncoding: []string{DoChunked},
@@ -169,7 +170,7 @@ var respTests = []respTest{
 			ProtoMajor:       1,
 			ProtoMinor:       1,
 			Request:          dummyReq(GET),
-			Header:           Header{},
+			Header:           hdr.Header{},
 			Close:            false,
 			ContentLength:    -1,
 			TransferEncoding: []string{DoChunked},
@@ -191,7 +192,7 @@ var respTests = []respTest{
 			ProtoMajor:       1,
 			ProtoMinor:       1,
 			Request:          dummyReq("HEAD"),
-			Header:           Header{},
+			Header:           hdr.Header{},
 			TransferEncoding: []string{DoChunked},
 			Close:            false,
 			ContentLength:    -1,
@@ -213,7 +214,7 @@ var respTests = []respTest{
 			ProtoMajor:       1,
 			ProtoMinor:       0,
 			Request:          dummyReq("HEAD"),
-			Header:           Header{ContentLength: {"256"}},
+			Header:           hdr.Header{hdr.ContentLength: {"256"}},
 			TransferEncoding: nil,
 			Close:            true,
 			ContentLength:    256,
@@ -235,7 +236,7 @@ var respTests = []respTest{
 			ProtoMajor:       1,
 			ProtoMinor:       1,
 			Request:          dummyReq("HEAD"),
-			Header:           Header{ContentLength: {"256"}},
+			Header:           hdr.Header{hdr.ContentLength: {"256"}},
 			TransferEncoding: nil,
 			Close:            false,
 			ContentLength:    256,
@@ -256,7 +257,7 @@ var respTests = []respTest{
 			ProtoMajor:       1,
 			ProtoMinor:       0,
 			Request:          dummyReq("HEAD"),
-			Header:           Header{},
+			Header:           hdr.Header{},
 			TransferEncoding: nil,
 			Close:            true,
 			ContentLength:    -1,
@@ -278,8 +279,8 @@ var respTests = []respTest{
 			ProtoMajor: 1,
 			ProtoMinor: 1,
 			Request:    dummyReq(GET),
-			Header: Header{
-				ContentLength: {"0"},
+			Header: hdr.Header{
+				hdr.ContentLength: {"0"},
 			},
 			Close:         false,
 			ContentLength: 0,
@@ -299,7 +300,7 @@ var respTests = []respTest{
 			ProtoMajor:    1,
 			ProtoMinor:    0,
 			Request:       dummyReq(GET),
-			Header:        Header{},
+			Header:        hdr.Header{},
 			Close:         true,
 			ContentLength: -1,
 		},
@@ -318,7 +319,7 @@ var respTests = []respTest{
 			ProtoMajor:    1,
 			ProtoMinor:    0,
 			Request:       dummyReq(GET),
-			Header:        Header{},
+			Header:        hdr.Header{},
 			Close:         true,
 			ContentLength: -1,
 		},
@@ -340,8 +341,8 @@ some body`,
 			ProtoMajor: 1,
 			ProtoMinor: 1,
 			Request:    dummyReq(GET),
-			Header: Header{
-				ContentType: []string{"multipart/byteranges; boundary=18a75608c8f47cef"},
+			Header: hdr.Header{
+				hdr.ContentType: []string{"multipart/byteranges; boundary=18a75608c8f47cef"},
 			},
 			Close:         true,
 			ContentLength: -1,
@@ -363,8 +364,8 @@ some body`,
 			Proto:      "HTTP/1.0",
 			ProtoMajor: 1,
 			ProtoMinor: 0,
-			Header: Header{
-				Connection: {DoClose}, // TODO(rsc): Delete?
+			Header: hdr.Header{
+				hdr.Connection: {DoClose}, // TODO(rsc): Delete?
 			},
 			Close:         true,
 			ContentLength: -1,
@@ -389,11 +390,11 @@ some body`,
 			ProtoMajor: 1,
 			ProtoMinor: 1,
 			Request:    dummyReq(GET),
-			Header: Header{
-				AcceptRanges:  []string{"bytes"},
-				ContentLength: []string{"6"},
-				ContentType:   []string{"text/plain; charset=utf-8"},
-				ContentRange:  []string{"bytes 0-5/1862"},
+			Header: hdr.Header{
+				hdr.AcceptRanges:  []string{"bytes"},
+				hdr.ContentLength: []string{"6"},
+				hdr.ContentType:   []string{"text/plain; charset=utf-8"},
+				hdr.ContentRange:  []string{"bytes 0-5/1862"},
 			},
 			ContentLength: 6,
 		},
@@ -415,8 +416,8 @@ some body`,
 			ProtoMajor: 1,
 			ProtoMinor: 1,
 			Request:    dummyReq("HEAD"),
-			Header: Header{
-				ContentLength: {"256"},
+			Header: hdr.Header{
+				hdr.ContentLength: {"256"},
 			},
 			TransferEncoding: nil,
 			Close:            true,
@@ -441,8 +442,8 @@ some body`,
 			ProtoMajor: 1,
 			ProtoMinor: 1,
 			Request:    dummyReq("HEAD"),
-			Header: Header{
-				ContentLength: {"256"},
+			Header: hdr.Header{
+				hdr.ContentLength: {"256"},
 			},
 			TransferEncoding: nil,
 			Close:            true,
@@ -467,7 +468,7 @@ some body`,
 			ProtoMajor:    1,
 			ProtoMinor:    0,
 			Request:       dummyReq(GET),
-			Header:        Header{},
+			Header:        hdr.Header{},
 			Close:         true,
 			ContentLength: -1,
 		},
@@ -491,8 +492,8 @@ some body`,
 			ProtoMajor: 1,
 			ProtoMinor: 0,
 			Request:    dummyReq(GET),
-			Header: Header{
-				ContentLength: {"10"},
+			Header: hdr.Header{
+				hdr.ContentLength: {"10"},
 			},
 			Close:         true,
 			ContentLength: 10,
@@ -515,11 +516,11 @@ some body`,
 			ProtoMajor: 1,
 			ProtoMinor: 1,
 			Request:    dummyReq(GET),
-			Header: Header{
-				ContentLength:   {"23"},
-				ContentEncoding: {"gzip"},
-				Connection:      {DoKeepAlive},
-				KeepAlive:       {"timeout=7200"},
+			Header: hdr.Header{
+				hdr.ContentLength:   {"23"},
+				hdr.ContentEncoding: {"gzip"},
+				hdr.Connection:      {DoKeepAlive},
+				KeepAlive:           {"timeout=7200"},
 			},
 			Close:         false,
 			ContentLength: 23,
@@ -540,8 +541,8 @@ some body`,
 			ProtoMajor: 1,
 			ProtoMinor: 0,
 			Request:    dummyReq(GET),
-			Header: Header{
-				ContentType:        {"text/html"},
+			Header: hdr.Header{
+				hdr.ContentType:    {"text/html"},
 				"Www-Authenticate": {`Basic realm=""`},
 			},
 			Close:         true,
@@ -738,8 +739,8 @@ func diff(t *testing.T, prefix string, have, want interface{}) {
 func TestLocationResponse(t *testing.T) {
 	for i, tt := range responseLocationTests {
 		res := new(Response)
-		res.Header = make(Header)
-		res.Header.Set(Location, tt.location)
+		res.Header = make(hdr.Header)
+		res.Header.Set(hdr.Location, tt.location)
 		if tt.requrl != "" {
 			res.Request = &Request{}
 			var err error
@@ -818,7 +819,7 @@ func TestReadResponseErrors(t *testing.T) {
 	type testCase struct {
 		name    string // optional, defaults to in
 		in      string
-		header  Header
+		header  hdr.Header
 		wantErr interface{} // nil, err value, or string substring
 	}
 
@@ -844,7 +845,7 @@ func TestReadResponseErrors(t *testing.T) {
 		}
 	}
 
-	contentLength := func(status, body string, wantErr interface{}, header Header) testCase {
+	contentLength := func(status, body string, wantErr interface{}, header hdr.Header) testCase {
 		return testCase{
 			name:    fmt.Sprintf("status %q %q", status, body),
 			in:      fmt.Sprintf("HTTP/1.1 %s\r\n%s", status, body),
@@ -885,9 +886,9 @@ func TestReadResponseErrors(t *testing.T) {
 		version("http/1.1", true),
 
 		contentLength("200 OK", "Content-Length: 10\r\nContent-Length: 7\r\n\r\nGopher hey\r\n", errMultiCL, nil),
-		contentLength("200 OK", "Content-Length: 7\r\nContent-Length: 7\r\n\r\nGophers\r\n", nil, Header{ContentLength: {"7"}}),
+		contentLength("200 OK", "Content-Length: 7\r\nContent-Length: 7\r\n\r\nGophers\r\n", nil, hdr.Header{hdr.ContentLength: {"7"}}),
 		contentLength("201 OK", "Content-Length: 0\r\nContent-Length: 7\r\n\r\nGophers\r\n", errMultiCL, nil),
-		contentLength("300 OK", "Content-Length: 0\r\nContent-Length: 0 \r\n\r\nGophers\r\n", nil, Header{ContentLength: {"0"}}),
+		contentLength("300 OK", "Content-Length: 0\r\nContent-Length: 0 \r\n\r\nGophers\r\n", nil, hdr.Header{hdr.ContentLength: {"0"}}),
 		contentLength("200 OK", "Content-Length:\r\nContent-Length:\r\n\r\nGophers\r\n", nil, nil),
 		contentLength("206 OK", "Content-Length:\r\nContent-Length: 0 \r\nConnection: close\r\n\r\nGophers\r\n", errMultiCL, nil),
 
@@ -978,7 +979,7 @@ func TestResponseWrite(t *testing.T) {
 				ProtoMajor:    1,
 				ProtoMinor:    0,
 				Request:       dummyReq(GET),
-				Header:        Header{},
+				Header:        hdr.Header{},
 				Body:          ioutil.NopCloser(strings.NewReader("abcdef")),
 				ContentLength: 6,
 			},
@@ -994,7 +995,7 @@ func TestResponseWrite(t *testing.T) {
 				ProtoMajor:    1,
 				ProtoMinor:    0,
 				Request:       dummyReq(GET),
-				Header:        Header{},
+				Header:        hdr.Header{},
 				Body:          ioutil.NopCloser(strings.NewReader("abcdef")),
 				ContentLength: -1,
 			},
@@ -1009,7 +1010,7 @@ func TestResponseWrite(t *testing.T) {
 				ProtoMajor:    1,
 				ProtoMinor:    1,
 				Request:       dummyReq(GET),
-				Header:        Header{},
+				Header:        hdr.Header{},
 				Body:          ioutil.NopCloser(strings.NewReader("abcdef")),
 				ContentLength: -1,
 				Close:         true,
@@ -1026,7 +1027,7 @@ func TestResponseWrite(t *testing.T) {
 				ProtoMajor:    1,
 				ProtoMinor:    1,
 				Request:       dummyReq11(GET),
-				Header:        Header{},
+				Header:        hdr.Header{},
 				Body:          ioutil.NopCloser(strings.NewReader("abcdef")),
 				ContentLength: -1,
 				Close:         false,
@@ -1044,7 +1045,7 @@ func TestResponseWrite(t *testing.T) {
 				ProtoMajor:       1,
 				ProtoMinor:       1,
 				Request:          dummyReq11(GET),
-				Header:           Header{},
+				Header:           hdr.Header{},
 				Body:             ioutil.NopCloser(strings.NewReader("abcdef")),
 				ContentLength:    -1,
 				TransferEncoding: []string{DoChunked},
@@ -1061,7 +1062,7 @@ func TestResponseWrite(t *testing.T) {
 				ProtoMajor:    1,
 				ProtoMinor:    1,
 				Request:       dummyReq11(GET),
-				Header:        Header{},
+				Header:        hdr.Header{},
 				Body:          nil,
 				ContentLength: 0,
 				Close:         false,
@@ -1077,7 +1078,7 @@ func TestResponseWrite(t *testing.T) {
 				ProtoMajor:    1,
 				ProtoMinor:    1,
 				Request:       dummyReq11(GET),
-				Header:        Header{},
+				Header:        hdr.Header{},
 				Body:          ioutil.NopCloser(strings.NewReader("")),
 				ContentLength: 0,
 				Close:         false,
@@ -1093,7 +1094,7 @@ func TestResponseWrite(t *testing.T) {
 				ProtoMajor:    1,
 				ProtoMinor:    1,
 				Request:       dummyReq11(GET),
-				Header:        Header{},
+				Header:        hdr.Header{},
 				Body:          ioutil.NopCloser(strings.NewReader("foo")),
 				ContentLength: 0,
 				Close:         false,
@@ -1109,7 +1110,7 @@ func TestResponseWrite(t *testing.T) {
 				ProtoMajor:       1,
 				ProtoMinor:       1,
 				Request:          dummyReq(GET),
-				Header:           Header{},
+				Header:           hdr.Header{},
 				Body:             ioutil.NopCloser(strings.NewReader("abcdef")),
 				ContentLength:    6,
 				TransferEncoding: []string{DoChunked},
@@ -1130,7 +1131,7 @@ func TestResponseWrite(t *testing.T) {
 				ProtoMajor: 1,
 				ProtoMinor: 1,
 				Request:    dummyReq(GET),
-				Header: Header{
+				Header: hdr.Header{
 					"Foo": []string{" Bar\nBaz "},
 				},
 				Body:             nil,
@@ -1153,7 +1154,7 @@ func TestResponseWrite(t *testing.T) {
 				ProtoMajor:       1,
 				ProtoMinor:       1,
 				Request:          &Request{Method: POST},
-				Header:           Header{},
+				Header:           hdr.Header{},
 				ContentLength:    0,
 				TransferEncoding: nil,
 				Body:             nil,
@@ -1169,7 +1170,7 @@ func TestResponseWrite(t *testing.T) {
 				ProtoMajor:    1,
 				ProtoMinor:    1,
 				Request:       &Request{Method: POST},
-				Header:        Header{},
+				Header:        hdr.Header{},
 				ContentLength: -1,
 				Body:          ioutil.NopCloser(strings.NewReader("abcdef")),
 			},
@@ -1187,7 +1188,7 @@ func TestResponseWrite(t *testing.T) {
 				ProtoMajor: 1,
 				ProtoMinor: 0,
 				Request:    dummyReq(GET),
-				Header:     Header{},
+				Header:     hdr.Header{},
 				Body:       nil,
 			},
 
@@ -1203,7 +1204,7 @@ func TestResponseWrite(t *testing.T) {
 				ProtoMajor: 1,
 				ProtoMinor: 0,
 				Request:    dummyReq(GET),
-				Header:     Header{},
+				Header:     hdr.Header{},
 				Body:       nil,
 			},
 
@@ -1219,7 +1220,7 @@ func TestResponseWrite(t *testing.T) {
 				ProtoMajor: 1,
 				ProtoMinor: 0,
 				Request:    dummyReq(GET),
-				Header:     Header{},
+				Header:     hdr.Header{},
 				Body:       nil,
 			},
 
@@ -1245,15 +1246,15 @@ func TestResponseWrite(t *testing.T) {
 
 func TestReadRequest(t *testing.T) {
 	var (
-		noError          = ""
-		noTrailer Header = nil
-		noBodyStr        = ""
+		noError              = ""
+		noTrailer hdr.Header = nil
+		noBodyStr            = ""
 	)
 	type reqTest struct {
 		Raw     string
 		Req     *Request
 		Body    string
-		Trailer Header
+		Trailer hdr.Header
 		Error   string
 	}
 
@@ -1282,15 +1283,15 @@ func TestReadRequest(t *testing.T) {
 				Proto:      HTTP1_1,
 				ProtoMajor: 1,
 				ProtoMinor: 1,
-				Header: Header{
-					Accept:          {"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"},
-					AcceptLanguage:  {"en-us,en;q=0.5"},
-					AcceptEncoding:  {"gzip,deflate"},
-					AcceptCharset:   {"ISO-8859-1,utf-8;q=0.7,*;q=0.7"},
-					KeepAlive:       {"300"},
-					ProxyConnection: {DoKeepAlive},
-					ContentLength:   {"7"},
-					UserAgent:       {"Fake"},
+				Header: hdr.Header{
+					hdr.Accept:         {"text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8"},
+					hdr.AcceptLanguage: {"en-us,en;q=0.5"},
+					hdr.AcceptEncoding: {"gzip,deflate"},
+					hdr.AcceptCharset:  {"ISO-8859-1,utf-8;q=0.7,*;q=0.7"},
+					KeepAlive:          {"300"},
+					ProxyConnection:    {DoKeepAlive},
+					hdr.ContentLength:  {"7"},
+					hdr.UserAgent:      {"Fake"},
 				},
 				Close:         false,
 				ContentLength: 7,
@@ -1317,7 +1318,7 @@ func TestReadRequest(t *testing.T) {
 				Proto:         HTTP1_1,
 				ProtoMajor:    1,
 				ProtoMinor:    1,
-				Header:        Header{},
+				Header:        hdr.Header{},
 				Close:         false,
 				ContentLength: 0,
 				Host:          "foo.com",
@@ -1343,7 +1344,7 @@ func TestReadRequest(t *testing.T) {
 				Proto:         HTTP1_1,
 				ProtoMajor:    1,
 				ProtoMinor:    1,
-				Header:        Header{},
+				Header:        hdr.Header{},
 				Close:         false,
 				ContentLength: 0,
 				Host:          "test",
@@ -1394,14 +1395,14 @@ func TestReadRequest(t *testing.T) {
 				Proto:            HTTP1_1,
 				ProtoMajor:       1,
 				ProtoMinor:       1,
-				Header:           Header{},
+				Header:           hdr.Header{},
 				ContentLength:    -1,
 				Host:             "foo.com",
 				RequestURI:       "/",
 			},
 
 			"foobar",
-			Header{
+			hdr.Header{
 				"Trailer-Key": {"Trailer-Value"},
 			},
 			noError,
@@ -1426,7 +1427,7 @@ func TestReadRequest(t *testing.T) {
 				Proto:            HTTP1_1,
 				ProtoMajor:       1,
 				ProtoMinor:       1,
-				Header:           Header{},
+				Header:           hdr.Header{},
 				ContentLength:    -1,
 				Host:             "foo.com",
 				RequestURI:       "/",
@@ -1449,7 +1450,7 @@ func TestReadRequest(t *testing.T) {
 				Proto:         HTTP1_1,
 				ProtoMajor:    1,
 				ProtoMinor:    1,
-				Header:        Header{},
+				Header:        hdr.Header{},
 				Close:         false,
 				ContentLength: 0,
 				Host:          "www.google.com:443",
@@ -1473,7 +1474,7 @@ func TestReadRequest(t *testing.T) {
 				Proto:         HTTP1_1,
 				ProtoMajor:    1,
 				ProtoMinor:    1,
-				Header:        Header{},
+				Header:        hdr.Header{},
 				Close:         false,
 				ContentLength: 0,
 				Host:          "127.0.0.1:6060",
@@ -1497,7 +1498,7 @@ func TestReadRequest(t *testing.T) {
 				Proto:         HTTP1_1,
 				ProtoMajor:    1,
 				ProtoMinor:    1,
-				Header:        Header{},
+				Header:        hdr.Header{},
 				Close:         false,
 				ContentLength: 0,
 				Host:          "",
@@ -1520,8 +1521,8 @@ func TestReadRequest(t *testing.T) {
 				Proto:      HTTP1_1,
 				ProtoMajor: 1,
 				ProtoMinor: 1,
-				Header: Header{
-					ServerHeader: []string{"foo"},
+				Header: hdr.Header{
+					hdr.ServerHeader: []string{"foo"},
 				},
 				Close:         false,
 				ContentLength: 0,
@@ -1544,8 +1545,8 @@ func TestReadRequest(t *testing.T) {
 				Proto:      HTTP1_1,
 				ProtoMajor: 1,
 				ProtoMinor: 1,
-				Header: Header{
-					ServerHeader: []string{"foo"},
+				Header: hdr.Header{
+					hdr.ServerHeader: []string{"foo"},
 				},
 				Close:         false,
 				ContentLength: 0,
@@ -1565,11 +1566,11 @@ func TestReadRequest(t *testing.T) {
 				URL: &url.URL{
 					Path: "/",
 				},
-				Header: Header{
+				Header: hdr.Header{
 					// This wasn't removed from Go 1.0 to
 					// Go 1.3, so locking it in that we
 					// keep this:
-					Connection: []string{DoClose},
+					hdr.Connection: []string{DoClose},
 				},
 				Host:       "issue8261.com",
 				Proto:      HTTP1_1,
@@ -1593,9 +1594,9 @@ func TestReadRequest(t *testing.T) {
 				URL: &url.URL{
 					Path: "/",
 				},
-				Header: Header{
-					Connection:    []string{DoClose},
-					ContentLength: []string{"0"},
+				Header: hdr.Header{
+					hdr.Connection:    []string{DoClose},
+					hdr.ContentLength: []string{"0"},
 				},
 				Host:       "issue8261.com",
 				Proto:      HTTP1_1,

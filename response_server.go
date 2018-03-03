@@ -10,17 +10,19 @@ import (
 	"io"
 	"net"
 	"strconv"
+
+	"github.com/badu/http/hdr"
 )
 
 // finalTrailers is called after the Handler exits and returns a non-nil
 // value if the Handler set any trailers.
-func (r *response) finalTrailers() Header {
-	var t Header
+func (r *response) finalTrailers() hdr.Header {
+	var t hdr.Header
 	for k, vv := range r.handlerHeader {
 		//@comment : was `if strings.HasPrefix(k, TrailerPrefix) {`
 		if len(k) >= 8 && k[:8] == TrailerPrefix {
 			if t == nil {
-				t = make(Header)
+				t = make(hdr.Header)
 			}
 			//@comment : was `t[strings.TrimPrefix(k, TrailerPrefix)] = vv`
 			t[k[8:]] = vv
@@ -28,7 +30,7 @@ func (r *response) finalTrailers() Header {
 	}
 	for _, k := range r.trailers {
 		if t == nil {
-			t = make(Header)
+			t = make(hdr.Header)
 		}
 		for _, v := range r.handlerHeader[k] {
 			t.Add(k, v)
@@ -41,9 +43,9 @@ func (r *response) finalTrailers() Header {
 // response header is written. It notes that a header will need to be
 // written in the trailers at the end of the response.
 func (r *response) declareTrailer(k string) {
-	k = CanonicalHeaderKey(k)
+	k = hdr.CanonicalHeaderKey(k)
 	switch k {
-	case TransferEncoding, ContentLength, Trailer:
+	case hdr.TransferEncoding, hdr.ContentLength, hdr.Trailer:
 		// Forbidden by RFC 2616 14.40.
 		return
 	}
@@ -56,13 +58,13 @@ func (r *response) requestTooLarge() {
 	r.closeAfterReply = true
 	r.requestBodyLimitHit = true
 	if !r.wroteHeader {
-		r.Header().Set(Connection, DoClose)
+		r.Header().Set(hdr.Connection, DoClose)
 	}
 }
 
 // needsSniff reports whether a Content-Type still needs to be sniffed.
 func (r *response) needsSniff() bool {
-	_, haveType := r.handlerHeader[ContentType]
+	_, haveType := r.handlerHeader[hdr.ContentType]
 	return !r.chunkWriter.wroteHeader && !haveType && r.written < SniffLen
 }
 
@@ -114,7 +116,7 @@ func (r *response) ReadFrom(src io.Reader) (int64, error) {
 	return n, err
 }
 
-func (r *response) Header() Header {
+func (r *response) Header() hdr.Header {
 	if r.chunkWriter.header == nil && r.wroteHeader && !r.chunkWriter.wroteHeader {
 		// Accessing the header between logically writing it
 		// and physically writing it means we need to allocate
@@ -141,13 +143,13 @@ func (r *response) WriteHeader(code int) {
 		r.chunkWriter.header = r.handlerHeader.Clone()
 	}
 
-	if cl := r.handlerHeader.get(ContentLength); cl != "" {
+	if cl := r.handlerHeader.Get(hdr.ContentLength); cl != "" {
 		v, err := strconv.ParseInt(cl, 10, 64)
 		if err == nil && v >= 0 {
 			r.contentLength = v
 		} else {
 			r.conn.server.logf("http: invalid Content-Length of %q", cl)
-			r.handlerHeader.Del(ContentLength)
+			r.handlerHeader.Del(hdr.ContentLength)
 		}
 	}
 }
@@ -309,7 +311,7 @@ func (r *response) sendExpectationFailed() {
 	// Expect field that includes an expectation-
 	// extension that it does not support, it MUST
 	// respond with a 417 (Expectation Failed) status."
-	r.Header().Set(Connection, DoClose)
+	r.Header().Set(hdr.Connection, DoClose)
 	r.WriteHeader(StatusExpectationFailed)
 	r.finishRequest()
 }

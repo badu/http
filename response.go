@@ -12,6 +12,7 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/url"
 )
 
@@ -20,7 +21,7 @@ import (
 // the Response's Request. ErrNoLocation is returned if no
 // Location header is present.
 func (r *Response) Location() (*url.URL, error) {
-	lv := r.Header.Get(Location)
+	lv := r.Header.Get(hdr.Location)
 	if lv == "" {
 		return nil, ErrNoLocation
 	}

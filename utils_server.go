@@ -15,6 +15,8 @@ import (
 	"strings"
 	"sync"
 	"time"
+
+	"github.com/badu/http/hdr"
 )
 
 func srcIsRegularFile(src io.Reader) (bool, error) {
@@ -126,7 +128,7 @@ func http1ServerSupportsRequest(req *Request) bool {
 // foreachHeaderElement splits v according to the "#rule" construction
 // in RFC 2616 section 2.1 and calls fn for each non-empty element.
 func foreachHeaderElement(v string, fn func(string)) {
-	v = TrimString(v)
+	v = hdr.TrimString(v)
 	if v == "" {
 		return
 	}
@@ -135,7 +137,7 @@ func foreachHeaderElement(v string, fn func(string)) {
 		return
 	}
 	for _, f := range strings.Split(v, ",") {
-		if f = TrimString(f); f != "" {
+		if f = hdr.TrimString(f); f != "" {
 			fn(f)
 		}
 	}

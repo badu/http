@@ -6,13 +6,13 @@
 package tport
 
 import (
-	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 	"time"
 )
 
-func (t *transportRequest) extraHeaders() Header {
+func (t *transportRequest) extraHeaders() hdr.Header {
 	if t.extra == nil {
-		t.extra = make(Header)
+		t.extra = make(hdr.Header)
 	}
 	return t.extra
 }

@@ -10,9 +10,11 @@ import (
 	"crypto/tls"
 	"errors"
 	"io"
-	"mime/multipart"
 	"sync"
 
+	"github.com/badu/http/mime"
+
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/url"
 )
 
@@ -46,11 +48,11 @@ var (
 
 	// Headers that Request.Write handles itself and should be skipped.
 	reqWriteExcludeHeader = map[string]bool{
-		Host:             true, // not in Header map anyway
-		UserAgent:        true,
-		ContentLength:    true,
-		TransferEncoding: true,
-		Trailer:          true,
+		hdr.Host:             true, // not in Header map anyway
+		hdr.UserAgent:        true,
+		hdr.ContentLength:    true,
+		hdr.TransferEncoding: true,
+		hdr.Trailer:          true,
 	}
 
 	// ErrNoCookie is returned by Request's Cookie method when a cookie is not found.
@@ -59,9 +61,9 @@ var (
 	// multipartByReader is a sentinel value.
 	// Its presence in Request.MultipartForm indicates that parsing of the request
 	// body has been handed off to a MultipartReader instead of ParseMultipartFrom.
-	multipartByReader = &multipart.Form{
+	multipartByReader = &mime.Form{
 		Value: make(map[string][]string),
-		File:  make(map[string][]*multipart.FileHeader),
+		File:  make(map[string][]*mime.FileHeader),
 	}
 
 	// ErrMissingHost is returned by Write when there is no Host or URL present in
@@ -142,7 +144,7 @@ type (
 		// and Connection are automatically written when needed and
 		// values in Header may be ignored. See the documentation
 		// for the Request.Write method.
-		Header Header
+		Header hdr.Header
 
 		// Body is the request's body.
 		//
@@ -221,7 +223,7 @@ type (
 		// MultipartForm is the parsed multipart form, including file uploads.
 		// This field is only available after ParseMultipartForm is called.
 		// The HTTP client ignores MultipartForm and uses Body instead.
-		MultipartForm *multipart.Form
+		MultipartForm *mime.Form
 
 		// Trailer specifies additional headers that are sent after the request
 		// body.
@@ -241,7 +243,7 @@ type (
 		// not mutate Trailer.
 		//
 		// Few HTTP clients, servers, or proxies support HTTP trailers.
-		Trailer Header
+		Trailer hdr.Header
 
 		// RemoteAddr allows HTTP servers and other software to record
 		// the network address that sent the request, usually for

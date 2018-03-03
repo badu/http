@@ -7,6 +7,7 @@ package mux
 
 import (
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/url"
 	"strings"
 )
@@ -95,7 +96,7 @@ func (mux *ServeMux) handler(host, path string) (h Handler, pattern string) {
 func (mux *ServeMux) ServeHTTP(w ResponseWriter, r *Request) {
 	if r.RequestURI == "*" {
 		if r.ProtoAtLeast(1, 1) {
-			w.Header().Set(Connection, DoClose)
+			w.Header().Set(hdr.Connection, DoClose)
 		}
 		w.WriteHeader(StatusBadRequest)
 		return

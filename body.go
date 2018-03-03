@@ -10,6 +10,8 @@ import (
 	"errors"
 	"io"
 	"io/ioutil"
+
+	"github.com/badu/http/hdr"
 )
 
 func (b *body) Read(p []byte) (int, error) {
@@ -95,7 +97,7 @@ func (b *body) readTrailer() error {
 		return errors.New("http: suspiciously long trailer after chunked body")
 	}
 
-	hdr, err := NewHeaderReader(b.bufReader).ReadHeader()
+	header, err := hdr.NewHeaderReader(b.bufReader).ReadHeader()
 	if err != nil {
 		if err == io.EOF {
 			return errTrailerEOF
@@ -104,9 +106,9 @@ func (b *body) readTrailer() error {
 	}
 	switch rr := b.responseOrRequestIntf.(type) {
 	case *Request:
-		mergeSetHeader(&rr.Trailer, Header(hdr))
+		mergeSetHeader(&rr.Trailer, hdr.Header(header))
 	case *Response:
-		mergeSetHeader(&rr.Trailer, Header(hdr))
+		mergeSetHeader(&rr.Trailer, hdr.Header(header))
 	}
 	return nil
 }

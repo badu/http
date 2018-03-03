@@ -19,6 +19,7 @@ import (
 	"time"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/trc"
 	"github.com/badu/http/url"
 )
@@ -251,7 +252,7 @@ type (
 
 		// ProxyConnectHeader optionally specifies headers to send to
 		// proxies during CONNECT requests.
-		ProxyConnectHeader Header
+		ProxyConnectHeader hdr.Header
 
 		// MaxResponseHeaderBytes specifies a limit on how many
 		// response bytes are allowed in the server's response
@@ -265,8 +266,8 @@ type (
 	// optional extra headers to write and stores any error to return
 	// from roundTrip.
 	transportRequest struct {
-		*Request        // original request, not to be mutated
-		extra    Header // extra headers to write, or nil
+		*Request            // original request, not to be mutated
+		extra    hdr.Header // extra headers to write, or nil
 		//TODO : @badu - find a better way perhaps
 		trace *trc.ClientTrace // optional
 		mu    sync.Mutex       // guards err
@@ -378,7 +379,7 @@ type (
 		// mutateHeaderFunc is an optional func to modify extra
 		// headers on each outbound request before it's written. (the
 		// original Request given to RoundTrip is not modified)
-		mutateHeaderFunc func(Header)
+		mutateHeaderFunc func(hdr.Header)
 	}
 
 	// nothingWrittenError wraps a write errors which ended up writing zero bytes.

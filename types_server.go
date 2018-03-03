@@ -18,6 +18,8 @@ import (
 	"sync"
 	"sync/atomic"
 	"time"
+
+	"github.com/badu/http/hdr"
 )
 
 const (
@@ -150,9 +152,9 @@ var (
 
 	// Sorted the same as extraHeader.Write's loop.
 	extraHeaderKeys = [][]byte{
-		[]byte(ContentType),
-		[]byte(Connection),
-		[]byte(TransferEncoding),
+		[]byte(hdr.ContentType),
+		[]byte(hdr.Connection),
+		[]byte(hdr.TransferEncoding),
 	}
 
 	headerContentLength = []byte("Content-Length: ")
@@ -275,7 +277,7 @@ type (
 		//
 		// To suppress implicit response headers (such as "Date"), set
 		// their value to nil.
-		Header() Header
+		Header() hdr.Header
 
 		// Write writes the data to the connection as part of an HTTP reply.
 		//
@@ -443,7 +445,7 @@ type (
 		// at the time of res.WriteHeader, if res.WriteHeader is
 		// called and extra buffering is being done to calculate
 		// Content-Type and/or Content-Length.
-		header Header
+		header hdr.Header
 
 		// wroteHeader tells whether the header's been written to "the
 		// wire" (or rather: w.conn.buf). this is unlike
@@ -469,7 +471,7 @@ type (
 		// which may be retained and mutated even after WriteHeader.
 		// handlerHeader is copied into cw.header at WriteHeader
 		// time, and privately mutated thereafter.
-		handlerHeader Header
+		handlerHeader hdr.Header
 
 		written       int64 // number of bytes written in body
 		contentLength int64 // explicitly-declared Content-Length; or -1
@@ -663,7 +665,7 @@ type (
 
 	timeoutWriter struct {
 		w           ResponseWriter
-		h           Header
+		h           hdr.Header
 		wbuf        bytes.Buffer
 		mu          sync.Mutex
 		timedOut    bool

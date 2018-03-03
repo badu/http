@@ -13,6 +13,7 @@ import (
 	"time"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/trc"
 )
 
@@ -313,10 +314,10 @@ func (p *persistConn) readLoop() {
 		}
 
 		resp.Body = body
-		if rc.addedGzip && strings.EqualFold(resp.Header.Get(ContentEncoding), "gzip") {
+		if rc.addedGzip && strings.EqualFold(resp.Header.Get(hdr.ContentEncoding), "gzip") {
 			resp.Body = &gzipReader{body: body}
-			resp.Header.Del(ContentEncoding)
-			resp.Header.Del(ContentLength)
+			resp.Header.Del(hdr.ContentEncoding)
+			resp.Header.Del(hdr.ContentLength)
 			resp.ContentLength = -1
 			resp.Uncompressed = true
 		}
@@ -514,7 +515,7 @@ func (p *persistConn) roundTrip(req *transportRequest) (*Response, error) {
 	// requested it.
 	requestedGzip := false
 	if !p.transport.DisableCompression &&
-		req.Header.Get(AcceptEncoding) == "" &&
+		req.Header.Get(hdr.AcceptEncoding) == "" &&
 		req.Header.Get("Range") == "" &&
 		req.Method != HEAD {
 		// Request gzip only, not deflate. Deflate is ambiguous and
@@ -530,7 +531,7 @@ func (p *persistConn) roundTrip(req *transportRequest) (*Response, error) {
 		// auto-decoding a portion of a gzipped document will just fail
 		// anyway. See https://golang.org/issue/8923
 		requestedGzip = true
-		req.extraHeaders().Set(AcceptEncoding, "gzip")
+		req.extraHeaders().Set(hdr.AcceptEncoding, "gzip")
 	}
 
 	var continueCh chan struct{}
@@ -539,7 +540,7 @@ func (p *persistConn) roundTrip(req *transportRequest) (*Response, error) {
 	}
 
 	if p.transport.DisableKeepAlives {
-		req.extraHeaders().Set(Connection, DoClose)
+		req.extraHeaders().Set(hdr.Connection, DoClose)
 	}
 
 	gone := make(chan struct{})

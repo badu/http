@@ -19,6 +19,7 @@ import (
 	"testing"
 	"time"
 
+	"github.com/badu/http/hdr"
 	"github.com/badu/http/url"
 
 	. "github.com/badu/http"
@@ -29,11 +30,11 @@ import (
 
 func BenchmarkHeaderWriteSubset(b *testing.B) {
 	var buf bytes.Buffer
-	var testHeader = Header{
-		ContentLength: {"123"},
-		ContentType:   {"text/plain"},
-		Date:          {"some date at some time Z"},
-		ServerHeader:  {DefaultUserAgent},
+	var testHeader = hdr.Header{
+		hdr.ContentLength: {"123"},
+		hdr.ContentType:   {"text/plain"},
+		hdr.Date:          {"some date at some time Z"},
+		hdr.ServerHeader:  {DefaultUserAgent},
 	}
 
 	b.ReportAllocs()
@@ -172,7 +173,7 @@ func BenchmarkServer(b *testing.B) {
 	var res = []byte("Hello world.\n")
 	b.StopTimer()
 	ts := th.NewServer(HandlerFunc(func(rw ResponseWriter, r *Request) {
-		rw.Header().Set(ContentType, "text/html; charset=utf-8")
+		rw.Header().Set(hdr.ContentType, "text/html; charset=utf-8")
 		rw.Write(res)
 	}))
 	defer ts.Close()
@@ -207,7 +208,7 @@ Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3
 		closec: make(chan bool, 1),
 	}
 	handler := HandlerFunc(func(rw ResponseWriter, r *Request) {
-		rw.Header().Set(ContentType, "text/html; charset=utf-8")
+		rw.Header().Set(hdr.ContentType, "text/html; charset=utf-8")
 		rw.Write(res)
 	})
 	ln := new(oneConnListener)
@@ -242,7 +243,7 @@ Accept-Charset: ISO-8859-1,utf-8;q=0.7,*;q=0.3
 	handled := 0
 	handler := HandlerFunc(func(rw ResponseWriter, r *Request) {
 		handled++
-		rw.Header().Set(ContentType, "text/html; charset=utf-8")
+		rw.Header().Set(hdr.ContentType, "text/html; charset=utf-8")
 		rw.Write(res)
 	})
 	ln := &oneConnListener{conn: conn}
@@ -284,8 +285,8 @@ Host: golang.org
 // Both Content-Type and Content-Length set. Should be no buffering.
 func BenchmarkServerHandlerTypeLen(b *testing.B) {
 	benchmarkHandler(b, HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(ContentType, "text/html")
-		w.Header().Set(ContentLength, strconv.Itoa(len(response)))
+		w.Header().Set(hdr.ContentType, "text/html")
+		w.Header().Set(hdr.ContentLength, strconv.Itoa(len(response)))
 		w.Write(response)
 	}))
 }
@@ -293,7 +294,7 @@ func BenchmarkServerHandlerTypeLen(b *testing.B) {
 // A Content-Type is set, but no length. No sniffing, but will count the Content-Length.
 func BenchmarkServerHandlerNoLen(b *testing.B) {
 	benchmarkHandler(b, HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(ContentType, "text/html")
+		w.Header().Set(hdr.ContentType, "text/html")
 		w.Write(response)
 	}))
 }
@@ -301,7 +302,7 @@ func BenchmarkServerHandlerNoLen(b *testing.B) {
 // A Content-Length is set, but the Content-Type will be sniffed.
 func BenchmarkServerHandlerNoType(b *testing.B) {
 	benchmarkHandler(b, HandlerFunc(func(w ResponseWriter, r *Request) {
-		w.Header().Set(ContentLength, strconv.Itoa(len(response)))
+		w.Header().Set(hdr.ContentLength, strconv.Itoa(len(response)))
 		w.Write(response)
 	}))
 }
@@ -419,7 +420,7 @@ func BenchmarkClient(b *testing.B) {
 			if r.Form.Get("stop") != "" {
 				os.Exit(0)
 			}
-			w.Header().Set(ContentType, "text/html; charset=utf-8")
+			w.Header().Set(hdr.ContentType, "text/html; charset=utf-8")
 			w.Write(data)
 		})
 		var srv Server

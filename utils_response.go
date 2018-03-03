@@ -5,14 +5,16 @@
 
 package http
 
+import "github.com/badu/http/hdr"
+
 // RFC 2616: Should treat
 //	Pragma: no-cache
 // like
 //	Cache-Control: no-cache
-func fixPragmaCacheControl(header Header) {
-	if hp, ok := header[Pragma]; ok && len(hp) > 0 && hp[0] == "no-cache" {
-		if _, presentcc := header[CacheControl]; !presentcc {
-			header[CacheControl] = []string{"no-cache"}
+func fixPragmaCacheControl(header hdr.Header) {
+	if hp, ok := header[hdr.Pragma]; ok && len(hp) > 0 && hp[0] == "no-cache" {
+		if _, presentcc := header[hdr.CacheControl]; !presentcc {
+			header[hdr.CacheControl] = []string{"no-cache"}
 		}
 	}
 }

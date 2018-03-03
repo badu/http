@@ -13,13 +13,14 @@ import (
 	"testing"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 )
 
 var (
 	// hostPortHandler writes back the client's "host:port".
 	hostPortHandler = HandlerFunc(func(w ResponseWriter, r *Request) {
 		if r.FormValue(DoClose) == "true" {
-			w.Header().Set(Connection, DoClose)
+			w.Header().Set(hdr.Connection, DoClose)
 		}
 		w.Header().Set("X-Saw-Close", fmt.Sprint(r.Close))
 		w.Write([]byte(r.RemoteAddr))
