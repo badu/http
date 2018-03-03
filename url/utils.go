@@ -287,14 +287,16 @@ func parse(rawurl string, viaRequest bool) (*URL, error) {
 	}
 	url.Scheme = strings.ToLower(url.Scheme)
 
-	if strings.HasSuffix(rest, "?") && strings.Count(rest, "?") == 1 {
+	//@comment : was `if strings.HasSuffix(rest, "?") && strings.Count(rest, "?") == 1 {`
+	if len(rest) >= 1 && rest[len(rest)-1:] == "?" && strings.Count(rest, "?") == 1 {
 		url.ForceQuery = true
 		rest = rest[:len(rest)-1]
 	} else {
 		rest, url.RawQuery = split(rest, "?", true)
 	}
 
-	if !strings.HasPrefix(rest, "/") {
+	//@comment : was `if !strings.HasPrefix(rest, "/") {`
+	if len(rest) < 1 || rest[:1] != "/" {
 		if url.Scheme != "" {
 			// We consider rootless paths per RFC 3986 as opaque.
 			url.Opaque = rest
@@ -310,16 +312,16 @@ func parse(rawurl string, viaRequest bool) (*URL, error) {
 		// RFC 3986, §3.3:
 		// In addition, a URI reference (Section 4.1) may be a relative-path reference,
 		// in which case the first path segment cannot contain a colon (":") character.
-		// TODO : use strings.IndexByte instead of strings.Index - it's only one char
-		colon := strings.Index(rest, ":")
-		slash := strings.Index(rest, "/")
+		colon := strings.IndexByte(rest, ':') // @comment : was strings.Index
+		slash := strings.IndexByte(rest, '/') // @comment : was strings.Index
 		if colon >= 0 && (slash < 0 || colon < slash) {
 			// First path segment has colon. Not allowed in relative URL.
 			return nil, errors.New("first path segment in URL cannot contain colon")
 		}
 	}
 
-	if (url.Scheme != "" || !viaRequest && !strings.HasPrefix(rest, "///")) && strings.HasPrefix(rest, "//") {
+	//@comment : was `if (url.Scheme != "" || !viaRequest && !strings.HasPrefix(rest, "///")) && strings.HasPrefix(rest, "//") {`
+	if (url.Scheme != "" || !viaRequest && (len(rest) < 3 || rest[:3] != "///")) && (len(rest) >= 2 && rest[:2] == "//") {
 		var authority string
 		authority, rest = split(rest[2:], "/", false)
 		url.User, url.Host, err = parseAuthority(authority)
@@ -338,7 +340,7 @@ func parse(rawurl string, viaRequest bool) (*URL, error) {
 }
 
 func parseAuthority(authority string) (user *Userinfo, host string, err error) {
-	i := strings.LastIndex(authority, "@")
+	i := strings.LastIndexByte(authority, '@')
 	if i < 0 {
 		host, err = parseHost(authority)
 	} else {
@@ -376,10 +378,10 @@ func parseAuthority(authority string) (user *Userinfo, host string, err error) {
 // information. That is, as host[:port].
 func parseHost(host string) (string, error) {
 	//@comment : was `if strings.HasPrefix(host, "[") {`
-	if len(host) >= len("[") && host[0:len("[")] == "[" {
+	if len(host) >= 1 && host[:1] == "[" {
 		// Parse an IP-Literal in RFC 3986 and RFC 6874.
 		// E.g., "[fe80::1]", "[fe80::1%25en0]", "[fe80::1]:80".
-		i := strings.LastIndex(host, "]")
+		i := strings.LastIndexByte(host, ']')
 		if i < 0 {
 			return "", errors.New("missing ']' in host")
 		}
@@ -473,8 +475,7 @@ func parseQuery(m Values, query string) (err error) {
 			continue
 		}
 		value := ""
-		// TODO : use strings.IndexByte instead of strings.Index - it's only one char
-		if i := strings.Index(key, "="); i >= 0 {
+		if i := strings.IndexByte(key, '='); i >= 0 {
 			key, value = key[:i], key[i+1:]
 		}
 		key, err1 := QueryUnescape(key)
@@ -503,7 +504,7 @@ func resolvePath(base, ref string) string {
 	if ref == "" {
 		full = base
 	} else if ref[0] != '/' {
-		i := strings.LastIndex(base, "/")
+		i := strings.LastIndexByte(base, '/')
 		full = base[:i+1] + ref
 	} else {
 		full = ref

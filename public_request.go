@@ -62,11 +62,12 @@ func ParseHTTPVersion(vers string) (int, int, bool) {
 	case HTTP1_0:
 		return 1, 0, true
 	}
-	if !strings.HasPrefix(vers, "HTTP/") {
+	// @comment was : `if !strings.HasPrefix(vers, "HTTP/") {`
+	if len(vers) < 5 || vers[:5] != "HTTP/" {
 		return 0, 0, false
 	}
-	// TODO : use strings.IndexByte instead of strings.Index - it's only one char
-	dot := strings.Index(vers, ".")
+	//@comment : was `dot := strings.Index(vers, ".")`
+	dot := strings.IndexByte(vers, '.')
 	if dot < 0 {
 		return 0, 0, false
 	}

@@ -7,14 +7,14 @@ package filetransport
 
 import (
 	"path"
-	"strings"
 
 	. "github.com/badu/http"
 )
 
 func (f *fileHandler) ServeHTTP(w ResponseWriter, r *Request) {
 	upath := r.URL.Path
-	if !strings.HasPrefix(upath, "/") {
+	//@comment : was `if !strings.HasPrefix(upath, "/") {`
+	if len(upath) < 1 || upath[:1] != "/" {
 		upath = "/" + upath
 		r.URL.Path = upath
 	}

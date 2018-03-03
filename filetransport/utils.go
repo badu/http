@@ -246,7 +246,7 @@ func scanETag(s string) (etag string, remain string) {
 	s = TrimString(s)
 	start := 0
 	//@comment : was `if strings.HasPrefix(s, "W/") {`
-	if len(s) >= len("W/") && s[0:len("W/")] == "W/" {
+	if len(s) >= 2 && s[:2] == wSlash {
 		start = 2
 	}
 	if len(s[start:]) < 2 || s[start] != '"' {
@@ -483,7 +483,8 @@ func serveFile(w ResponseWriter, r *Request, fs FileSystem, name string, redirec
 	// redirect .../index.html to .../
 	// can't use Redirect() because that would make the path absolute,
 	// which would be a problem running under StripPrefix
-	if strings.HasSuffix(r.URL.Path, indexPage) {
+	//@comment : was `if strings.HasSuffix(r.URL.Path, indexPage) {`
+	if len(r.URL.Path) >= len(indexPage) && r.URL.Path[len(r.URL.Path)-len(indexPage):] == indexPage {
 		localRedirect(w, r, "./")
 		return
 	}
@@ -653,19 +654,18 @@ func parseRange(s string, size int64) ([]httpRange, error) {
 	if s == "" {
 		return nil, nil // header not present
 	}
-	const b = "bytes="
-	if !strings.HasPrefix(s, b) {
+	//@comment : was `if !strings.HasPrefix(s, b) {`
+	if len(s) < 6 || s[0:6] != "bytes=" {
 		return nil, errors.New("invalid range")
 	}
 	var ranges []httpRange
 	noOverlap := false
-	for _, ra := range strings.Split(s[len(b):], ",") {
+	for _, ra := range strings.Split(s[6:], ",") {
 		ra = strings.TrimSpace(ra)
 		if ra == "" {
 			continue
 		}
-		// TODO : use strings.IndexByte instead of strings.Index - it's only one char
-		i := strings.Index(ra, "-")
+		i := strings.IndexByte(ra, '-') // @comment : was strings.Index
 		if i < 0 {
 			return nil, errors.New("invalid range")
 		}

@@ -217,7 +217,8 @@ func isDomainOrSubdomain(sub, parent string) bool {
 	// If sub is "foo.example.com" and parent is "example.com",
 	// that means sub must end in "."+parent.
 	// Do it without allocating.
-	if !strings.HasSuffix(sub, parent) {
+	//@comment : was `if !strings.HasSuffix(sub, parent) {`
+	if len(sub) < len(parent) || sub[len(sub)-len(parent):] != parent {
 		return false
 	}
 	return sub[len(sub)-len(parent)-1] == '.'
@@ -243,7 +244,8 @@ func canonicalHost(host string) (string, error) {
 			return "", err
 		}
 	}
-	if strings.HasSuffix(host, ".") {
+	//@comment : was `if strings.HasSuffix(host, ".") {`
+	if len(host) >= 1 && host[len(host)-1:] == "." {
 		// Strip trailing dot from fully qualified domain names.
 		host = host[:len(host)-1]
 	}
@@ -271,7 +273,7 @@ func jarKey(host string, psl PublicSuffixList) string {
 
 	var i int
 	if psl == nil {
-		i = strings.LastIndex(host, ".")
+		i = strings.LastIndexByte(host, '.')
 		if i <= 0 {
 			return host
 		}
@@ -290,7 +292,7 @@ func jarKey(host string, psl PublicSuffixList) string {
 		// here on, so it is okay if psl.PublicSuffix("www.buggy.psl")
 		// returns "com" as the jar key is generated from host.
 	}
-	prevDot := strings.LastIndex(host[:i-1], ".")
+	prevDot := strings.LastIndexByte(host[:i-1], '.')
 	return host[prevDot+1:]
 }
 
@@ -306,7 +308,7 @@ func defaultPath(path string) string {
 		return "/" // Path is empty or malformed.
 	}
 
-	i := strings.LastIndex(path, "/") // Path starts with "/", so i != -1.
+	i := strings.LastIndexByte(path, '/') // Path starts with "/", so i != -1.
 	if i == 0 {
 		return "/" // Path has the form "/abc".
 	}
@@ -467,8 +469,7 @@ func readCookies(h Header, filter string) []*Cookie {
 				continue
 			}
 			name, val := parts[i], ""
-			// TODO : use strings.IndexByte instead of strings.Index - it's only one char
-			if j := strings.Index(name, "="); j >= 0 {
+			if j := strings.IndexByte(name, '='); j >= 0 { // @comment : was strings.Index
 				name, val = name[:j], name[j+1:]
 			}
 			if !isCookieNameValid(name) {
@@ -502,8 +503,7 @@ func readSetCookies(h Header) []*Cookie {
 			continue
 		}
 		parts[0] = strings.TrimSpace(parts[0])
-		// TODO : use strings.IndexByte instead of strings.Index - it's only one char
-		j := strings.Index(parts[0], "=")
+		j := strings.IndexByte(parts[0], '=') // @comment : was strings.Index
 		if j < 0 {
 			continue
 		}
@@ -527,8 +527,7 @@ func readSetCookies(h Header) []*Cookie {
 			}
 
 			attr, val := parts[i], ""
-			// TODO : use strings.IndexByte instead of strings.Index - it's only one char
-			if j := strings.Index(attr, "="); j >= 0 {
+			if j := strings.IndexByte(attr, '='); j >= 0 { // @comment : was strings.Index
 				attr, val = attr[:j], attr[j+1:]
 			}
 			lowerAttr := strings.ToLower(attr)

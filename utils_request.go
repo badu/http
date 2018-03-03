@@ -110,14 +110,15 @@ func cleanHost(in string) string {
 // removeZone removes IPv6 zone identifier from host.
 // E.g., "[fe80::1%en0]:8080" to "[fe80::1]:8080"
 func removeZone(host string) string {
-	if !strings.HasPrefix(host, "[") {
+	//@comment: was `if !strings.HasPrefix(host, "[") {`
+	if len(host) < 1 || host[:1] != "[" {
 		return host
 	}
-	i := strings.LastIndex(host, "]")
+	i := strings.LastIndexByte(host, ']')
 	if i < 0 {
 		return host
 	}
-	j := strings.LastIndex(host[:i], "%")
+	j := strings.LastIndexByte(host[:i], '%')
 	if j < 0 {
 		return host
 	}
@@ -127,11 +128,11 @@ func removeZone(host string) string {
 // parseBasicAuth parses an HTTP Basic Authentication string.
 // "Basic QWxhZGRpbjpvcGVuIHNlc2FtZQ==" returns ("Aladdin", "open sesame", true).
 func parseBasicAuth(auth string) (string, string, bool) {
-	const prefix = "Basic "
-	if !strings.HasPrefix(auth, prefix) {
+	//@comment : was `if !strings.HasPrefix(auth, prefix) {`
+	if len(auth) < 6 || auth[:6] != "Basic " {
 		return "", "", false
 	}
-	c, err := base64.StdEncoding.DecodeString(auth[len(prefix):])
+	c, err := base64.StdEncoding.DecodeString(auth[6:])
 	if err != nil {
 		return "", "", false
 	}
@@ -146,9 +147,8 @@ func parseBasicAuth(auth string) (string, string, bool) {
 // parseRequestLine parses "GET /foo HTTP/1.1" into its three parts.
 // returns method, requestURI, proto string, ok bool
 func parseRequestLine(line string) (string, string, string, bool) {
-	// TODO : use strings.IndexByte instead of strings.Index - it's only one char
-	s1 := strings.Index(line, " ")
-	s2 := strings.Index(line[s1+1:], " ")
+	s1 := strings.IndexByte(line, ' ')        // @comment : was strings.Index
+	s2 := strings.IndexByte(line[s1+1:], ' ') // @comment : was strings.Index
 	if s1 < 0 || s2 < 0 {
 		return "", "", "", false
 	}
@@ -212,7 +212,7 @@ func readRequest(b *bufio.Reader, deleteHostHeader bool) (*Request, error) {
 	// that starts with a slash. It can be parsed with the regular URL parser,
 	// and the path will end up in req.URL.Path, where it needs to be in order for
 	// RPC to work.
-	justAuthority := req.Method == CONNECT && !strings.HasPrefix(rawurl, "/")
+	justAuthority := req.Method == CONNECT && (len(rawurl) < 1 || rawurl[:1] != "/") //@comment : was `!strings.HasPrefix(rawurl, "/")`
 	if justAuthority {
 		rawurl = HttpUrlPrefix + rawurl
 	}

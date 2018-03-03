@@ -49,7 +49,7 @@ func useProxy(addr string) bool {
 
 	addr = strings.ToLower(strings.TrimSpace(addr))
 	if hasPort(addr) {
-		addr = addr[:strings.LastIndex(addr, ":")]
+		addr = addr[:strings.LastIndexByte(addr, ':')]
 	}
 
 	for _, p := range strings.Split(noProxy, ",") {
@@ -58,7 +58,7 @@ func useProxy(addr string) bool {
 			continue
 		}
 		if hasPort(p) {
-			p = p[:strings.LastIndex(p, ":")]
+			p = p[:strings.LastIndexByte(p, ':')]
 		}
 		if addr == p {
 			return false
@@ -67,11 +67,11 @@ func useProxy(addr string) bool {
 			// There is no host part, likely the entry is malformed; ignore.
 			continue
 		}
-		if p[0] == '.' && (strings.HasSuffix(addr, p) || addr == p[1:]) {
+		if p[0] == '.' && ((len(addr) >= len(p) && addr[len(addr)-len(p):] == p) || addr == p[1:]) {
 			// no_proxy ".foo.com" matches "bar.foo.com" or "foo.com"
 			return false
 		}
-		if p[0] != '.' && strings.HasSuffix(addr, p) && addr[len(addr)-len(p)-1] == '.' {
+		if p[0] != '.' && (len(addr) >= len(p) && addr[len(addr)-len(p):] == p) && addr[len(addr)-len(p)-1] == '.' {
 			// no_proxy "foo.com" matches "bar.foo.com"
 			return false
 		}
@@ -117,7 +117,7 @@ func validPort(p string) bool {
 //@ comment : duplicated from utils_http.go
 // Given a string of the form "host", "host:port", or "[ipv6::address]:port",
 // return true if the string includes a port.
-func hasPort(s string) bool { return strings.LastIndex(s, ":") > strings.LastIndex(s, "]") }
+func hasPort(s string) bool { return strings.LastIndexByte(s, ':') > strings.LastIndexByte(s, ']') }
 
 func isReplayable(r *Request) bool {
 	if r.Body == nil || r.Body == NoBody || r.GetBody != nil {

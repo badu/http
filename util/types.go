@@ -136,4 +136,5 @@ var (
 		TransferEncoding,
 		UpgradeHeader,
 	}
+	doubleCRLF = []byte("\r\n\r\n")
 )

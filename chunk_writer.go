@@ -113,7 +113,7 @@ func (w *chunkWriter) writeHeader(p []byte) {
 	trailers := false
 	for k := range w.header {
 		//@comment : was `if strings.HasPrefix(k, TrailerPrefix) {`
-		if len(k) >= len(TrailerPrefix) && k[0:len(TrailerPrefix)] == TrailerPrefix {
+		if len(k) >= 8 && k[:8] == TrailerPrefix {
 			if excludeHeader == nil {
 				excludeHeader = make(map[string]bool)
 			}

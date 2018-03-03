@@ -67,7 +67,7 @@ const (
 	SEARCH   = "SEARCH"
 	PATCH    = "PATCH"
 	TRACE    = "TRACE"
-	HTTP     = "http"
+	HTTP     = "http" // ATTN : do not change - will break
 	HTTPS    = "https"
 	SOCK5    = "socks5"
 	HTTP1_1  = "HTTP/1.1"
@@ -94,10 +94,10 @@ const (
 	// is preferred:
 	//    https://golang.org/pkg/net/http/#ResponseWriter
 	//    https://golang.org/pkg/net/http/#example_ResponseWriter_trailers
-	TrailerPrefix = "Trailer:"
+	TrailerPrefix = "Trailer:" // ATTN : do not change - will break
 
-	HttpUrlPrefix  = "http://"
-	HttpsUrlPrefix = "https://"
+	HttpUrlPrefix  = "http://"  // ATTN : do not change - will break
+	HttpsUrlPrefix = "https://" // ATTN : do not change - will break
 
 	FormData    = "multipart/form-data"
 	OctetStream = "application/octet-stream"

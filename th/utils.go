@@ -84,7 +84,7 @@ func NewTRequest(method, target string, body io.Reader) *Request {
 	}
 
 	//@comment : was `if strings.HasPrefix(target, HttpsUrlPrefix) {`
-	if len(target) >= len(HttpsUrlPrefix) && target[0:len(HttpsUrlPrefix)] == HttpsUrlPrefix {
+	if len(target) >= 8 && target[:8] == HttpsUrlPrefix {
 		req.TLS = &tls.ConnectionState{
 			Version:           tls.VersionTLS12,
 			HandshakeComplete: true,

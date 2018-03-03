@@ -197,7 +197,7 @@ func (u *URL) RequestURI() string {
 		}
 	} else {
 		//@comment : was `if strings.HasPrefix(result, "//") {`
-		if len(result) >= len("//") && result[0:len("//")] == "//" {
+		if len(result) >= 2 && result[:2] == dblSlash {
 			result = u.Scheme + ":" + result
 		}
 	}

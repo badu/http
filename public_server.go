@@ -104,15 +104,16 @@ func Redirect(w ResponseWriter, r *Request, toURL string, code int) {
 			}
 
 			var query string
-			// TODO : use strings.IndexByte instead of strings.Index - it's only one char
-			if i := strings.Index(toURL, "?"); i != -1 {
+			//@comment : was `if i := strings.Index(toURL, "?"); i != -1 {`
+			if i := strings.IndexByte(toURL, '?'); i != -1 {
 				toURL, query = toURL[:i], toURL[i:]
 			}
 
 			// clean up but preserve trailing slash
-			trailing := strings.HasSuffix(toURL, "/")
+			trailing := len(toURL) >= 1 && toURL[len(toURL)-1:] == "/" //@comment : was `strings.HasSuffix(toURL, "/")`
 			toURL = path.Clean(toURL)
-			if trailing && !strings.HasSuffix(toURL, "/") {
+			//@comment was : `if trailing && !strings.HasSuffix(toURL, "/") {`
+			if trailing && (len(toURL) < 1 || toURL[len(toURL)-1:] != "/") {
 				toURL += "/"
 			}
 			toURL += query

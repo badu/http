@@ -13,7 +13,7 @@ import (
 
 // Given a string of the form "host", "host:port", or "[ipv6::address]:port",
 // return true if the string includes a port.
-func hasPort(s string) bool { return strings.LastIndex(s, ":") > strings.LastIndex(s, "]") }
+func hasPort(s string) bool { return strings.LastIndexByte(s, ':') > strings.LastIndexByte(s, ']') }
 
 // removeEmptyPort strips the empty port in ":port" to ""
 // as mandated by RFC 3986 Section 6.2.3.

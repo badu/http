@@ -425,7 +425,8 @@ func seeUpcomingDoubleCRLF(r *bufio.Reader) bool {
 		// This loop stops when Peek returns an error,
 		// which it does when r's buffer has been filled.
 		buf, err := r.Peek(peekSize)
-		if bytes.HasSuffix(buf, doubleCRLF) {
+		//@comment : was `if bytes.HasSuffix(buf, doubleCRLF) {`
+		if len(buf) >= 4 && bytes.Equal(buf[len(buf)-4:], doubleCRLF) {
 			return true
 		}
 		if err != nil {

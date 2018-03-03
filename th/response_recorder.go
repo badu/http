@@ -152,7 +152,8 @@ func (rw *ResponseRecorder) Result() *Response {
 		}
 	}
 	for k, vv := range rw.HeaderMap {
-		if !strings.HasPrefix(k, TrailerPrefix) {
+		//@comment : was `if !strings.HasPrefix(k, TrailerPrefix) {`
+		if len(k) < 8 || k[:8] != TrailerPrefix {
 			continue
 		}
 		if res.Trailer == nil {

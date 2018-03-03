@@ -81,4 +81,6 @@ const (
 	encodeUserPassword
 	encodeQueryComponent
 	encodeFragment
+
+	dblSlash = "//" // ATTN : do not change - will break
 )

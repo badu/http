@@ -140,8 +140,7 @@ func (mux *ServeMux) Handle(pattern string, handler Handler) {
 		if pattern[0] != '/' {
 			// In pattern, at least the last character is a '/', so
 			// strings.Index can't be -1.
-			// TODO : use strings.IndexByte instead of strings.Index - it's only one char
-			path = pattern[strings.Index(pattern, "/"):]
+			path = pattern[strings.IndexByte(pattern, '/'):] // @comment : was strings.Index
 		}
 		pathUrl := &url.URL{Path: path}
 		mux.m[pattern[0:n-1]] = muxEntry{h: RedirectHandler(pathUrl.String(), StatusMovedPermanently), pattern: pattern}

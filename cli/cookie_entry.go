@@ -35,7 +35,8 @@ func (e *cookieEntry) pathMatch(requestPath string) bool {
 		return true
 	}
 	//@comment : was `if strings.HasPrefix(requestPath, e.Path) {`
-	if len(requestPath) >= len(e.Path) && requestPath[0:len(e.Path)] == e.Path {
+	le := len(e.Path)
+	if len(requestPath) >= le && requestPath[:le] == e.Path {
 		if e.Path[len(e.Path)-1] == '/' {
 			return true // The "/any/" matches "/any/path" case.
 		} else if requestPath[len(e.Path)] == '/' {

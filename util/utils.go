@@ -117,7 +117,7 @@ func DumpRequestOut(req *Request, body bool) ([]byte, error) {
 	// a debug function, so this is acceptable for now. We could
 	// discard the body earlier if this matters.
 	if dummyBody {
-		if i := bytes.Index(dump, []byte("\r\n\r\n")); i >= 0 {
+		if i := bytes.Index(dump, doubleCRLF); i >= 0 {
 			dump = dump[:i+4]
 		}
 	}
@@ -168,7 +168,8 @@ func DumpRequest(req *Request, body bool) ([]byte, error) {
 
 	fmt.Fprintf(&b, "%s %s HTTP/%d.%d\r\n", ValueOrDefault(req.Method, GET), reqURI, req.ProtoMajor, req.ProtoMinor)
 
-	absRequestURI := strings.HasPrefix(req.RequestURI, HttpUrlPrefix) || strings.HasPrefix(req.RequestURI, HttpsUrlPrefix)
+	//@comment : was `absRequestURI := strings.HasPrefix(req.RequestURI, HttpUrlPrefix) || strings.HasPrefix(req.RequestURI, HttpsUrlPrefix)`
+	absRequestURI := (len(req.RequestURI) >= 7 && req.RequestURI[:7] == HttpUrlPrefix) || (len(req.RequestURI) >= 8 && req.RequestURI[:8] == HttpsUrlPrefix)
 	if !absRequestURI {
 		host := req.Host
 		if host == "" && req.URL != nil {
@@ -249,8 +250,8 @@ func DumpResponse(resp *Response, body bool) ([]byte, error) {
 }
 
 func singleJoiningSlash(a, b string) string {
-	aslash := strings.HasSuffix(a, "/")
-	bslash := len(b) >= len("/") && b[0:len("/")] == "/" //@comment : was `strings.HasPrefix(b, "/")`
+	aslash := len(a) >= 1 && a[len(a)-1:] == "/" // @comment : was `strings.HasSuffix(a, "/")`
+	bslash := len(b) >= 1 && b[:1] == "/"        //@comment : was `strings.HasPrefix(b, "/")`
 	switch {
 	case aslash && bslash:
 		return a + b[1:]

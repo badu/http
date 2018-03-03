@@ -8,7 +8,8 @@ package sniff
 import "bytes"
 
 func (e *exactSig) match(data []byte, firstNonWS int) string {
-	if bytes.HasPrefix(data, e.sig) {
+	//@comment : was `if bytes.HasPrefix(data, e.sig) {`
+	if len(data) >= len(e.sig) && bytes.Equal(data[0:len(e.sig)], e.sig) {
 		return e.ct
 	}
 	return ""

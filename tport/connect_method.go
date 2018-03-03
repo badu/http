@@ -32,7 +32,7 @@ func (m *connectMethod) key() connectMethodKey {
 	if m.proxyURL != nil {
 		proxyStr = m.proxyURL.String()
 		//@comment : was `if strings.HasPrefix(m.proxyURL.Scheme, HTTP) && m.targetScheme == HTTP {`
-		if len(m.proxyURL.Scheme) >= len(HTTP) && m.proxyURL.Scheme[0:len(HTTP)] == HTTP && m.targetScheme == HTTP {
+		if len(m.proxyURL.Scheme) >= 4 && m.proxyURL.Scheme[:4] == HTTP && m.targetScheme == HTTP {
 			targetAddr = ""
 		}
 	}
@@ -66,7 +66,7 @@ func (m *connectMethod) addr() string {
 func (m *connectMethod) tlsHost() string {
 	h := m.targetAddr
 	if hasPort(h) {
-		h = h[:strings.LastIndex(h, ":")]
+		h = h[:strings.LastIndexByte(h, ':')]
 	}
 	return h
 }

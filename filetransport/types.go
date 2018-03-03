@@ -21,6 +21,10 @@ const (
 	condFalse
 )
 
+const (
+	wSlash = "W/" // ATTN : do not change - will break
+)
+
 type (
 	// fileTransport implements RoundTripper for the 'file' protocol.
 	fileTransport struct {

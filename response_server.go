@@ -18,12 +18,12 @@ func (r *response) finalTrailers() Header {
 	var t Header
 	for k, vv := range r.handlerHeader {
 		//@comment : was `if strings.HasPrefix(k, TrailerPrefix) {`
-		if len(k) >= len(TrailerPrefix) && k[0:len(TrailerPrefix)] == TrailerPrefix {
+		if len(k) >= 8 && k[:8] == TrailerPrefix {
 			if t == nil {
 				t = make(Header)
 			}
 			//@comment : was `t[strings.TrimPrefix(k, TrailerPrefix)] = vv`
-			t[k[len(TrailerPrefix):]] = vv
+			t[k[8:]] = vv
 		}
 	}
 	for _, k := range r.trailers {
