@@ -125,10 +125,6 @@ var (
 	// ErrMessageTooLarge is returned by ReadForm if the message form
 	// data is too large to be processed.
 	ErrMessageTooLarge = errors.New("multipart: message too large")
-	// ErrInvalidMediaParameter is returned by ParseMediaType if
-	// the media type value was found but there was an error parsing
-	// the optional parameters
-	ErrInvalidMediaParameter = errors.New("mime: invalid media parameter")
 
 	crlf       = []byte("\r\n")
 	lf         = []byte("\n")

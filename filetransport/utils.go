@@ -203,7 +203,7 @@ func serveContent(w ResponseWriter, r *Request, name string, modtime time.Time, 
 			code = StatusPartialContent
 
 			pr, pw := io.Pipe()
-			mw := mime.NewWriter(pw)
+			mw := mime.NewMultipartWriter(pw)
 			w.Header().Set(hdr.ContentType, "multipart/byteranges; boundary="+mw.Boundary())
 			sendContent = pr
 			defer pr.Close() // cause writing goroutine to fail and exit if CopyN doesn't finish.
@@ -724,7 +724,7 @@ func parseRange(s string, size int64) ([]httpRange, error) {
 // provided ranges as a multipart response.
 func rangesMIMESize(ranges []httpRange, contentType string, contentSize int64) (encSize int64) {
 	var w countingWriter
-	mw := mime.NewWriter(&w)
+	mw := mime.NewMultipartWriter(&w)
 	for _, ra := range ranges {
 		mw.CreatePart(ra.mimeHeader(contentType, contentSize))
 		encSize += ra.length

@@ -111,7 +111,7 @@ func (r *Request) multipartReader() (*mime.MultipartReader, error) {
 	if !ok {
 		return nil, ErrMissingBoundary
 	}
-	return mime.NewReader(r.Body, boundary), nil
+	return mime.NewMultipartReader(r.Body, boundary), nil
 }
 
 // Write writes an HTTP/1.1 request, which is the header and body, in wire format.

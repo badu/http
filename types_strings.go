@@ -23,7 +23,6 @@ const (
 	HTTP1_1  = "HTTP/1.1"
 	HTTP1_0  = "HTTP/1.0"
 
-	ContentDisposition = "Content-Disposition"
 	ProxyConnection    = "Proxy-Connection" // non-standard but still sent by libcurl and rejected by e.g. google
 	KeepAlive          = "Keep-Alive"
 	ProxyAuthenticate  = "Proxy-Authenticate"

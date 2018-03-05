@@ -9,9 +9,10 @@ import (
 	"bytes"
 	"errors"
 	"fmt"
-	. "github.com/badu/http/hdr"
 	"io"
 	"sort"
+
+	. "github.com/badu/http/hdr"
 )
 
 // Boundary returns the Writer's boundary.

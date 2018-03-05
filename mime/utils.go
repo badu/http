@@ -6,57 +6,15 @@
 package mime
 
 import (
-	"bufio"
 	"bytes"
-	"crypto/rand"
 	"fmt"
 	"io"
-	"mime"
 
 	. "github.com/badu/http/hdr"
 )
 
-// NewWriter returns a new multipart Writer with a random boundary,
-// writing to w.
-func NewWriter(w io.Writer) *MultipartWriter {
-	var buf [30]byte
-	_, err := io.ReadFull(rand.Reader, buf[:])
-	if err != nil {
-		panic(err)
-	}
-	return &MultipartWriter{
-		w:        w,
-		boundary: fmt.Sprintf("%x", buf[:]),
-	}
-}
-
 func escapeQuotes(s string) string {
 	return quoteEscaper.Replace(s)
-}
-
-func MIMETypeByExtension(ext string) string {
-	return mime.TypeByExtension(ext)
-}
-
-func MIMEParseMediaType(v string) (string, map[string]string, error) {
-	return mime.ParseMediaType(v)
-}
-
-// NewReader creates a new multipart Reader reading from r using the
-// given MIME boundary.
-//
-// The boundary is usually obtained from the "boundary" parameter of
-// the message's "Content-Type" header. Use ParseMediaType to
-// parse such headers.
-func NewReader(r io.Reader, boundary string) *MultipartReader {
-	b := []byte("\r\n--" + boundary + "--")
-	return &MultipartReader{
-		bufReader:        bufio.NewReaderSize(&stickyErrorReader{r: r}, peekBufferSize),
-		newLine:          b[:2],
-		nlDashBoundary:   b[:len(b)-2],
-		dashBoundaryDash: b[2:],
-		dashBoundary:     b[2 : len(b)-2],
-	}
 }
 
 func newPart(mr *MultipartReader) (*SinglePart, error) {
@@ -166,13 +124,6 @@ func skipLWSPChar(b []byte) []byte {
 		b = b[1:]
 	}
 	return b
-}
-
-// NewReader returns a quoted-printable reader, decoding from r.
-func NewQuotedReader(r io.Reader) *QuotedReader {
-	return &QuotedReader{
-		br: bufio.NewReader(r),
-	}
 }
 
 func fromHex(b byte) (byte, error) {

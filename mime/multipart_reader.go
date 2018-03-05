@@ -8,10 +8,11 @@ package mime
 import (
 	"bytes"
 	"fmt"
-	. "github.com/badu/http/hdr"
 	"io"
 	"io/ioutil"
 	"os"
+
+	. "github.com/badu/http/hdr"
 )
 
 // ReadForm parses an entire multipart message whose parts have
@@ -127,7 +128,7 @@ func (r *MultipartReader) NextPart() (*SinglePart, error) {
 			return nil, fmt.Errorf("multipart: NextPart: %v", err)
 		}
 
-		if r.isBoundaryDelimiterLine(line) {
+		if r.IsBoundaryDelimiterLine(line) {
 			r.partsRead++
 			bp, err := newPart(r)
 			if err != nil {
@@ -168,17 +169,17 @@ func (r *MultipartReader) NextPart() (*SinglePart, error) {
 // indicating that all parts are over.
 // It matches `^--boundary--[ \t]*(\r\n)?$`
 //len(s) < len(prefix) || !bytes.Equal(s[0:len(prefix)], prefix)
-func (mr *MultipartReader) isFinalBoundary(line []byte) bool {
+func (r *MultipartReader) isFinalBoundary(line []byte) bool {
 	//@comment : was `if !bytes.HasPrefix(line, reader.dashBoundaryDash) {`
-	if len(line) < len(mr.dashBoundaryDash) || !bytes.Equal(line[0:len(mr.dashBoundaryDash)], mr.dashBoundaryDash) {
+	if len(line) < len(r.dashBoundaryDash) || !bytes.Equal(line[0:len(r.dashBoundaryDash)], r.dashBoundaryDash) {
 		return false
 	}
-	rest := line[len(mr.dashBoundaryDash):]
+	rest := line[len(r.dashBoundaryDash):]
 	rest = skipLWSPChar(rest)
-	return len(rest) == 0 || bytes.Equal(rest, mr.newLine)
+	return len(rest) == 0 || bytes.Equal(rest, r.newLine)
 }
 
-func (mr *MultipartReader) isBoundaryDelimiterLine(line []byte) (ret bool) {
+func (r *MultipartReader) IsBoundaryDelimiterLine(line []byte) (ret bool) {
 	// http://tools.ietf.org/html/rfc2046#section-5.1
 	//   The boundary delimiter line is then defined as a line
 	//   consisting entirely of two hyphen characters ("-",
@@ -186,18 +187,18 @@ func (mr *MultipartReader) isBoundaryDelimiterLine(line []byte) (ret bool) {
 	//   value from the Content-Type header field, optional linear
 	//   whitespace, and a terminating CRLF.
 	//@comment : was `if !bytes.HasPrefix(line, reader.dashBoundary) {`
-	if len(line) < len(mr.dashBoundary) || !bytes.Equal(line[0:len(mr.dashBoundary)], mr.dashBoundary) {
+	if len(line) < len(r.dashBoundary) || !bytes.Equal(line[0:len(r.dashBoundary)], r.dashBoundary) {
 		return false
 	}
-	rest := line[len(mr.dashBoundary):]
+	rest := line[len(r.dashBoundary):]
 	rest = skipLWSPChar(rest)
 
 	// On the first part, see our lines are ending in \n instead of \r\n
 	// and switch into that mode if so. This is a violation of the spec,
 	// but occurs in practice.
-	if mr.partsRead == 0 && len(rest) == 1 && rest[0] == '\n' {
-		mr.newLine = mr.newLine[1:]
-		mr.nlDashBoundary = mr.nlDashBoundary[1:]
+	if r.partsRead == 0 && len(rest) == 1 && rest[0] == '\n' {
+		r.newLine = r.newLine[1:]
+		r.nlDashBoundary = r.nlDashBoundary[1:]
 	}
-	return bytes.Equal(rest, mr.newLine)
+	return bytes.Equal(rest, r.newLine)
 }

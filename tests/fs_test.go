@@ -146,7 +146,7 @@ Cases:
 				t.Errorf("range=%q Content-Length = %d; want %d", rt.r, g, w)
 				continue
 			}
-			mr := mime.NewReader(bytes.NewReader(body), params["boundary"])
+			mr := mime.NewMultipartReader(bytes.NewReader(body), params["boundary"])
 			for ri, rng := range rt.ranges {
 				part, err := mr.NextPart()
 				if err != nil {
