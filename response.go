@@ -9,17 +9,15 @@ import (
 	"bytes"
 	"fmt"
 	"io"
-	"strconv"
+	"strconv" // TODO : get rid of it
 	"strings"
 
 	"github.com/badu/http/hdr"
 	"github.com/badu/http/url"
 )
 
-// Location returns the URL of the response's Location header,
-// if present. Relative redirects are resolved relative to
-// the Response's Request. ErrNoLocation is returned if no
-// Location header is present.
+// Location returns the URL of the response's Location header if present. Relative redirects are resolved relative to
+// the Response's Request. ErrNoLocation is returned if no Location header is present.
 func (r *Response) Location() (*url.URL, error) {
 	lv := r.Header.Get(hdr.Location)
 	if lv == "" {
@@ -31,8 +29,7 @@ func (r *Response) Location() (*url.URL, error) {
 	return url.Parse(lv)
 }
 
-// ProtoAtLeast reports whether the HTTP protocol used
-// in the response is at least major.minor.
+// ProtoAtLeast reports whether the HTTP protocol used in the response is at least major.minor.
 func (r *Response) ProtoAtLeast(major, minor int) bool {
 	return r.ProtoMajor > major ||
 		r.ProtoMajor == major && r.ProtoMinor >= minor
@@ -135,6 +132,7 @@ func (r *Response) Write(w io.Writer) error {
 	}
 
 	// End-of-header
+	//TODO : maybe ? w.Write(CrLf) - If w implements a WriteString method, it is invoked directly. Otherwise, w.Write is called exactly once.
 	if _, err := io.WriteString(w, "\r\n"); err != nil {
 		return err
 	}

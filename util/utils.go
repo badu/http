@@ -44,18 +44,18 @@ func drainBody(b io.ReadCloser) (r1, r2 io.ReadCloser, err error) {
 // DumpRequestOut is like DumpRequest but for outgoing client requests. It
 // includes any headers that the standard Transport adds, such as
 // User-Agent.
-func DumpRequestOut(req *Request, body bool) ([]byte, error) {
-	save := req.Body
+func DumpRequestOut(r *Request, body bool) ([]byte, error) {
+	save := r.Body
 	dummyBody := false
-	if !body || req.Body == nil {
-		req.Body = nil
-		if req.ContentLength != 0 {
-			req.Body = ioutil.NopCloser(io.LimitReader(neverEnding('x'), req.ContentLength))
+	if !body || r.Body == nil {
+		r.Body = nil
+		if r.ContentLength != 0 {
+			r.Body = ioutil.NopCloser(io.LimitReader(neverEnding('x'), r.ContentLength))
 			dummyBody = true
 		}
 	} else {
 		var err error
-		save, req.Body, err = drainBody(req.Body)
+		save, r.Body, err = drainBody(r.Body)
 		if err != nil {
 			return nil, err
 		}
@@ -65,12 +65,12 @@ func DumpRequestOut(req *Request, body bool) ([]byte, error) {
 	// switch to http so the Transport doesn't try to do an SSL
 	// negotiation with our dumpConn and its bytes.Buffer & pipe.
 	// The wire format for https and http are the same, anyway.
-	reqSend := req
-	if req.URL.Scheme == HTTPS {
+	reqSend := r
+	if r.URL.Scheme == HTTPS {
 		reqSend = new(Request)
-		*reqSend = *req
+		*reqSend = *r
 		reqSend.URL = new(url.URL)
-		*reqSend.URL = *req.URL
+		*reqSend.URL = *r.URL
 		reqSend.URL.Scheme = HTTP
 	}
 
@@ -106,14 +106,14 @@ func DumpRequestOut(req *Request, body bool) ([]byte, error) {
 
 	_, err := t.RoundTrip(reqSend)
 
-	req.Body = save
+	r.Body = save
 	if err != nil {
 		return nil, err
 	}
 	dump := buf.Bytes()
 
 	// If we used a dummy body above, remove it now.
-	// TODO: if the req.ContentLength is large, we allocate memory
+	// TODO: if the r.ContentLength is large, we allocate memory
 	// unnecessarily just to slice it off here. But this is just
 	// a debug function, so this is acceptable for now. We could
 	// discard the body earlier if this matters.
@@ -194,7 +194,7 @@ func DumpRequest(req *Request, body bool) ([]byte, error) {
 		return nil, err
 	}
 
-	io.WriteString(&b, "\r\n")
+	io.WriteString(&b, "\r\n") //TODO : maybe ? w.Write(CrLf) - If w implements a WriteString method, it is invoked directly. Otherwise, w.Write is called exactly once.
 
 	if req.Body != nil {
 		var dest io.Writer = &b
@@ -204,7 +204,7 @@ func DumpRequest(req *Request, body bool) ([]byte, error) {
 		_, err = io.Copy(dest, req.Body)
 		if chunked {
 			dest.(io.Closer).Close()
-			io.WriteString(&b, "\r\n")
+			io.WriteString(&b, "\r\n") //TODO : maybe ? w.Write(CrLf) - If w implements a WriteString method, it is invoked directly. Otherwise, w.Write is called exactly once.
 		}
 	}
 

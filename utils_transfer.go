@@ -7,10 +7,9 @@ package http
 
 import (
 	"bufio"
-	"bytes"
 	"fmt"
 	"io"
-	"strconv"
+	"strconv" // TODO : get rid of it
 	"strings"
 	"unicode/utf8"
 
@@ -341,7 +340,7 @@ func headersValuesContainsToken(values []string, token string) bool {
 
 func headerValueContainsToken(v string, token string) bool {
 	v = trimOWS(v)
-	if comma := strings.IndexByte(v, ','); comma != -1 {
+	if comma := byteIndex(v, ','); comma != -1 {
 		return tokenEqual(trimOWS(v[:comma]), token) || headerValueContainsToken(v[comma+1:], token)
 	}
 	return tokenEqual(v, token)
@@ -428,7 +427,7 @@ func seeUpcomingDoubleCRLF(r *bufio.Reader) bool {
 		// which it does when r's buffer has been filled.
 		buf, err := r.Peek(peekSize)
 		//@comment : was `if bytes.HasSuffix(buf, doubleCRLF) {`
-		if len(buf) >= 4 && bytes.Equal(buf[len(buf)-4:], doubleCRLF) {
+		if len(buf) >= 4 && equal(buf[len(buf)-4:], DoubleCrLf) {
 			return true
 		}
 		if err != nil {

@@ -9,7 +9,6 @@ import (
 	. "github.com/badu/http"
 	"github.com/badu/http/hdr"
 	"github.com/badu/http/url"
-	"strings"
 )
 
 // Find a handler on a handler map given a path string.
@@ -141,7 +140,7 @@ func (mux *ServeMux) Handle(pattern string, handler Handler) {
 		if pattern[0] != '/' {
 			// In pattern, at least the last character is a '/', so
 			// strings.Index can't be -1.
-			path = pattern[strings.IndexByte(pattern, '/'):] // @comment : was strings.Index
+			path = pattern[byteIndex(pattern, '/'):] // @comment : was strings.Index
 		}
 		pathUrl := &url.URL{Path: path}
 		mux.m[pattern[0:n-1]] = muxEntry{h: RedirectHandler(pathUrl.String(), StatusMovedPermanently), pattern: pattern}

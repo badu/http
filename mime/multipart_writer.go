@@ -15,7 +15,7 @@ import (
 )
 
 // Boundary returns the Writer's boundary.
-func (w *Writer) Boundary() string {
+func (w *MultipartWriter) Boundary() string {
 	return w.boundary
 }
 
@@ -25,7 +25,7 @@ func (w *Writer) Boundary() string {
 // SetBoundary must be called before any parts are created, may only
 // contain certain ASCII characters, and must be non-empty and
 // at most 70 bytes long.
-func (w *Writer) SetBoundary(boundary string) error {
+func (w *MultipartWriter) SetBoundary(boundary string) error {
 	if w.lastpart != nil {
 		return errors.New("mime: SetBoundary called after write")
 	}
@@ -54,7 +54,7 @@ func (w *Writer) SetBoundary(boundary string) error {
 
 // FormDataContentType returns the Content-Type for an HTTP
 // multipart/form-data with this Writer's Boundary.
-func (w *Writer) FormDataContentType() string {
+func (w *MultipartWriter) FormDataContentType() string {
 	return "multipart/form-data; boundary=" + w.boundary
 }
 
@@ -62,7 +62,7 @@ func (w *Writer) FormDataContentType() string {
 // header. The body of the part should be written to the returned
 // Writer. After calling CreatePart, any previous part may no longer
 // be written to.
-func (w *Writer) CreatePart(header Header) (io.Writer, error) {
+func (w *MultipartWriter) CreatePart(header Header) (io.Writer, error) {
 	if w.lastpart != nil {
 		if err := w.lastpart.close(); err != nil {
 			return nil, err
@@ -91,7 +91,7 @@ func (w *Writer) CreatePart(header Header) (io.Writer, error) {
 		return nil, err
 	}
 	p := &part{
-		mw: w,
+		writer: w,
 	}
 	w.lastpart = p
 	return p, nil
@@ -99,7 +99,7 @@ func (w *Writer) CreatePart(header Header) (io.Writer, error) {
 
 // CreateFormFile is a convenience wrapper around CreatePart. It creates
 // a new form-data header with the provided field name and file name.
-func (w *Writer) CreateFormFile(fieldname, filename string) (io.Writer, error) {
+func (w *MultipartWriter) CreateFormFile(fieldname, filename string) (io.Writer, error) {
 	h := make(Header)
 	h.Set(ContentDisposition,
 		fmt.Sprintf(`form-data; name="%s"; filename="%s"`, escapeQuotes(fieldname), escapeQuotes(filename)))
@@ -109,7 +109,7 @@ func (w *Writer) CreateFormFile(fieldname, filename string) (io.Writer, error) {
 
 // CreateFormField calls CreatePart with a header using the
 // given field name.
-func (w *Writer) CreateFormField(fieldname string) (io.Writer, error) {
+func (w *MultipartWriter) CreateFormField(fieldname string) (io.Writer, error) {
 	h := make(Header)
 	h.Set(ContentDisposition,
 		fmt.Sprintf(`form-data; name="%s"`, escapeQuotes(fieldname)))
@@ -117,7 +117,7 @@ func (w *Writer) CreateFormField(fieldname string) (io.Writer, error) {
 }
 
 // WriteField calls CreateFormField and then writes the given value.
-func (w *Writer) WriteField(fieldname, value string) error {
+func (w *MultipartWriter) WriteField(fieldname, value string) error {
 	p, err := w.CreateFormField(fieldname)
 	if err != nil {
 		return err
@@ -128,7 +128,7 @@ func (w *Writer) WriteField(fieldname, value string) error {
 
 // Close finishes the multipart message and writes the trailing
 // boundary end line to the output.
-func (w *Writer) Close() error {
+func (w *MultipartWriter) Close() error {
 	if w.lastpart != nil {
 		if err := w.lastpart.close(); err != nil {
 			return err

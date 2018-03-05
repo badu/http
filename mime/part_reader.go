@@ -3,14 +3,14 @@ package mime
 import "io"
 
 func (pr partReader) Read(d []byte) (int, error) {
-	p := pr.p
-	br := p.mr.bufReader
+	p := pr.part
+	br := p.reader.bufReader
 
 	// Read into buffer until we identify some data to return,
 	// or we find a reason to stop (boundary or read error).
 	for p.n == 0 && p.err == nil {
 		peek, _ := br.Peek(br.Buffered())
-		p.n, p.err = scanUntilBoundary(peek, p.mr.dashBoundary, p.mr.nlDashBoundary, p.total, p.readErr)
+		p.n, p.err = scanUntilBoundary(peek, p.reader.dashBoundary, p.reader.nlDashBoundary, p.total, p.readErr)
 		if p.n == 0 && p.err == nil {
 			// Force buffered I/O to read more into buffer.
 			_, p.readErr = br.Peek(len(peek) + 1)

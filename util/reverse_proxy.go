@@ -17,14 +17,14 @@ import (
 	. "github.com/badu/http/tport"
 )
 
-func (p *ReverseProxy) ServeHTTP(rw ResponseWriter, req *Request) {
+func (p *ReverseProxy) ServeHTTP(w ResponseWriter, r *Request) {
 	trns := p.Transport
 	if trns == nil {
 		trns = DefaultTransport
 	}
 
-	ctx := req.Context()
-	if cn, ok := rw.(CloseNotifier); ok {
+	ctx := r.Context()
+	if cn, ok := w.(CloseNotifier); ok {
 		var cancel context.CancelFunc
 		ctx, cancel = context.WithCancel(ctx)
 		defer cancel()
@@ -38,12 +38,12 @@ func (p *ReverseProxy) ServeHTTP(rw ResponseWriter, req *Request) {
 		}()
 	}
 
-	outreq := req.WithContext(ctx) // includes shallow copies of maps, but okay
-	if req.ContentLength == 0 {
+	outreq := r.WithContext(ctx) // includes shallow copies of maps, but okay
+	if r.ContentLength == 0 {
 		outreq.Body = nil // Issue 16036: nil Body for http.Transport retries
 	}
 
-	outreq.Header = req.Header.Clone()
+	outreq.Header = r.Header.Clone()
 
 	p.Director(outreq)
 	outreq.Close = false
@@ -67,7 +67,7 @@ func (p *ReverseProxy) ServeHTTP(rw ResponseWriter, req *Request) {
 		}
 	}
 
-	if clientIP, _, err := net.SplitHostPort(req.RemoteAddr); err == nil {
+	if clientIP, _, err := net.SplitHostPort(r.RemoteAddr); err == nil {
 		// If we aren't the first proxy retain prior
 		// X-Forwarded-For information as a comma+space
 		// separated list and fold multiple headers into one.
@@ -80,7 +80,7 @@ func (p *ReverseProxy) ServeHTTP(rw ResponseWriter, req *Request) {
 	res, err := trns.RoundTrip(outreq)
 	if err != nil {
 		p.logf("http: proxy error: %v", err)
-		rw.WriteHeader(StatusBadGateway)
+		w.WriteHeader(StatusBadGateway)
 		return
 	}
 
@@ -101,12 +101,12 @@ func (p *ReverseProxy) ServeHTTP(rw ResponseWriter, req *Request) {
 	if p.ModifyResponse != nil {
 		if err := p.ModifyResponse(res); err != nil {
 			p.logf("http: proxy error: %v", err)
-			rw.WriteHeader(StatusBadGateway)
+			w.WriteHeader(StatusBadGateway)
 			return
 		}
 	}
 
-	rw.Header().CopyFromHeader(res.Header)
+	w.Header().CopyFromHeader(res.Header)
 
 	// The "Trailer" header isn't included in the Transport's response,
 	// at least for *http.Transport. Build it up from Trailer.
@@ -116,30 +116,30 @@ func (p *ReverseProxy) ServeHTTP(rw ResponseWriter, req *Request) {
 		for k := range res.Trailer {
 			trailerKeys = append(trailerKeys, k)
 		}
-		rw.Header().Add(hdr.Trailer, strings.Join(trailerKeys, ", "))
+		w.Header().Add(hdr.Trailer, strings.Join(trailerKeys, ", "))
 	}
 
-	rw.WriteHeader(res.StatusCode)
+	w.WriteHeader(res.StatusCode)
 	if len(res.Trailer) > 0 {
 		// Force chunking if we saw a response trailer.
 		// This prevents net/http from calculating the length for short
 		// bodies and adding a Content-Length.
-		if fl, ok := rw.(Flusher); ok {
+		if fl, ok := w.(Flusher); ok {
 			fl.Flush()
 		}
 	}
-	p.copyResponse(rw, res.Body)
+	p.copyResponse(w, res.Body)
 	res.CloseBody() // close now, instead of defer, to populate res.Trailer
 
 	if len(res.Trailer) == announcedTrailers {
-		rw.Header().CopyFromHeader(res.Trailer)
+		w.Header().CopyFromHeader(res.Trailer)
 		return
 	}
 
 	for k, vv := range res.Trailer {
 		k = TrailerPrefix + k
 		for _, v := range vv {
-			rw.Header().Add(k, v)
+			w.Header().Add(k, v)
 		}
 	}
 }

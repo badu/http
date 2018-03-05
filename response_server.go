@@ -9,7 +9,7 @@ import (
 	"bufio"
 	"io"
 	"net"
-	"strconv"
+	"strconv" // TODO : get rid of it
 
 	"github.com/badu/http/hdr"
 )
@@ -158,7 +158,7 @@ func (r *response) WriteHeader(code int) {
 // It's illegal to call this before the header has been flushed.
 func (r *response) bodyAllowed() bool {
 	if !r.wroteHeader {
-		panic("")
+		panic("header not written")
 	}
 	return bodyAllowedForStatus(r.status)
 }

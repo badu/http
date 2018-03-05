@@ -106,7 +106,7 @@ func Redirect(w ResponseWriter, r *Request, toURL string, code int) {
 
 			var query string
 			//@comment : was `if i := strings.Index(toURL, "?"); i != -1 {`
-			if i := strings.IndexByte(toURL, '?'); i != -1 {
+			if i := byteIndex(toURL, '?'); i != -1 {
 				toURL, query = toURL[:i], toURL[i:]
 			}
 

@@ -75,10 +75,12 @@ var (
 		time.ANSIC,
 	}
 
-	headerNewlineToSpace = strings.NewReplacer("\n", " ", "\r", " ")
+	HeaderNewlineToSpace = strings.NewReplacer("\n", " ", "\r", " ")
 
 	headerSorterPool = sync.Pool{
-		New: func() interface{} { return new(headerSorter) },
+		New: func() interface{} {
+			return new(headerSorter)
+		},
 	}
 
 	// commonHeader interns common header strings.

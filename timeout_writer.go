@@ -7,7 +7,7 @@ package http
 
 import "github.com/badu/http/hdr"
 
-func (t *timeoutWriter) Header() hdr.Header { return t.h }
+func (t *timeoutWriter) Header() hdr.Header { return t.header }
 
 func (t *timeoutWriter) Write(p []byte) (int, error) {
 	t.mu.Lock()

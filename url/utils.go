@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"strings"
+	_ "unsafe"
 )
 
 func ishex(c byte) bool {
@@ -312,8 +313,8 @@ func parse(rawurl string, viaRequest bool) (*URL, error) {
 		// RFC 3986, §3.3:
 		// In addition, a URI reference (Section 4.1) may be a relative-path reference,
 		// in which case the first path segment cannot contain a colon (":") character.
-		colon := strings.IndexByte(rest, ':') // @comment : was strings.Index
-		slash := strings.IndexByte(rest, '/') // @comment : was strings.Index
+		colon := byteIndex(rest, ':') // @comment : was strings.Index
+		slash := byteIndex(rest, '/') // @comment : was strings.Index
 		if colon >= 0 && (slash < 0 || colon < slash) {
 			// First path segment has colon. Not allowed in relative URL.
 			return nil, errors.New("first path segment in URL cannot contain colon")
@@ -475,7 +476,7 @@ func parseQuery(m Values, query string) (err error) {
 			continue
 		}
 		value := ""
-		if i := strings.IndexByte(key, '='); i >= 0 {
+		if i := byteIndex(key, '='); i >= 0 {
 			key, value = key[:i], key[i+1:]
 		}
 		key, err1 := QueryUnescape(key)
@@ -534,18 +535,18 @@ func resolvePath(base, ref string) string {
 }
 
 func stripPort(hostport string) string {
-	colon := strings.IndexByte(hostport, ':')
+	colon := byteIndex(hostport, ':')
 	if colon == -1 {
 		return hostport
 	}
-	if i := strings.IndexByte(hostport, ']'); i != -1 {
+	if i := byteIndex(hostport, ']'); i != -1 {
 		return strings.TrimPrefix(hostport[:i], "[")
 	}
 	return hostport[:colon]
 }
 
 func portOnly(hostport string) string {
-	colon := strings.IndexByte(hostport, ':')
+	colon := byteIndex(hostport, ':')
 	if colon == -1 {
 		return ""
 	}
@@ -587,3 +588,6 @@ func validUserinfo(s string) bool {
 	}
 	return true
 }
+
+//go:linkname byteIndex strings.IndexByte
+func byteIndex(s string, c byte) int

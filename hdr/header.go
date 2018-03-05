@@ -109,7 +109,7 @@ func (h Header) WriteSubset(w io.Writer, exclude map[string]bool) error {
 	kvs, sorter := h.sortedKeyValues(exclude)
 	for _, kv := range kvs {
 		for _, v := range kv.values {
-			v = headerNewlineToSpace.Replace(v)
+			v = HeaderNewlineToSpace.Replace(v)
 			v = TrimString(v)
 			for _, s := range []string{kv.key, ": ", v, "\r\n"} {
 				if _, err := ws.WriteString(s); err != nil {

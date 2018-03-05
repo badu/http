@@ -58,7 +58,7 @@ func (c *connReader) backgroundRead() {
 	c.aborted = false
 	c.inRead = false
 	c.unlock()
-	//@comment : wake all goroutines waiting on condition.
+	// @comment : wake all goroutines waiting on condition.
 	c.cond.Broadcast()
 }
 

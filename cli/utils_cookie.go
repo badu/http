@@ -12,6 +12,7 @@ import (
 	"time"
 
 	. "github.com/badu/http"
+	"github.com/badu/http/hdr"
 )
 
 // validCookieDomain returns whether v is a valid cookie domain-value.
@@ -87,7 +88,7 @@ func isCookieDomainName(s string) bool {
 }
 
 func sanitizeCookieName(n string) string {
-	return cookieNameSanitizer.Replace(n)
+	return hdr.HeaderNewlineToSpace.Replace(n)
 }
 
 // http://tools.ietf.org/html/rfc6265#section-4.1.1
@@ -105,7 +106,7 @@ func sanitizeCookieValue(v string) string {
 	if len(v) == 0 {
 		return v
 	}
-	if strings.IndexByte(v, ' ') >= 0 || strings.IndexByte(v, ',') >= 0 {
+	if byteIndex(v, ' ') >= 0 || byteIndex(v, ',') >= 0 {
 		return `"` + v + `"`
 	}
 	return v

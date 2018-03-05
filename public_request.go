@@ -11,7 +11,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"strconv"
+	"strconv" // TODO : get rid of it
 	"strings"
 
 	"github.com/badu/http/hdr"
@@ -68,7 +68,7 @@ func ParseHTTPVersion(vers string) (int, int, bool) {
 		return 0, 0, false
 	}
 	//@comment : was `dot := strings.Index(vers, ".")`
-	dot := strings.IndexByte(vers, '.')
+	dot := byteIndex(vers, '.')
 	if dot < 0 {
 		return 0, 0, false
 	}

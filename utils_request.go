@@ -138,7 +138,7 @@ func parseBasicAuth(auth string) (string, string, bool) {
 		return "", "", false
 	}
 	cs := string(c)
-	s := strings.IndexByte(cs, ':')
+	s := byteIndex(cs, ':')
 	if s < 0 {
 		return "", "", false
 	}
@@ -148,8 +148,8 @@ func parseBasicAuth(auth string) (string, string, bool) {
 // parseRequestLine parses "GET /foo HTTP/1.1" into its three parts.
 // returns method, requestURI, proto string, ok bool
 func parseRequestLine(line string) (string, string, string, bool) {
-	s1 := strings.IndexByte(line, ' ')        // @comment : was strings.Index
-	s2 := strings.IndexByte(line[s1+1:], ' ') // @comment : was strings.Index
+	s1 := byteIndex(line, ' ')        // @comment : was strings.Index
+	s2 := byteIndex(line[s1+1:], ' ') // @comment : was strings.Index
 	if s1 < 0 || s2 < 0 {
 		return "", "", "", false
 	}

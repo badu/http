@@ -28,8 +28,8 @@ func (h *timeoutHandler) ServeHTTP(w ResponseWriter, r *Request) {
 	}
 	done := make(chan struct{})
 	timeOutWriter := &timeoutWriter{
-		w: w,
-		h: make(hdr.Header),
+		respWriter: w,
+		header:     make(hdr.Header),
 	}
 	go func() {
 		h.handler.ServeHTTP(timeOutWriter, r)
@@ -40,7 +40,7 @@ func (h *timeoutHandler) ServeHTTP(w ResponseWriter, r *Request) {
 		timeOutWriter.mu.Lock()
 		defer timeOutWriter.mu.Unlock()
 		dst := w.Header()
-		for k, vv := range timeOutWriter.h {
+		for k, vv := range timeOutWriter.header {
 			dst[k] = vv
 		}
 		if !timeOutWriter.wroteHeader {

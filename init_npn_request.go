@@ -7,16 +7,16 @@ package http
 
 import "crypto/tls"
 
-func (h initNPNRequest) ServeHTTP(rw ResponseWriter, req *Request) {
-	if req.TLS == nil {
-		req.TLS = &tls.ConnectionState{}
-		*req.TLS = h.tlsConn.ConnectionState()
+func (h initNPNRequest) ServeHTTP(w ResponseWriter, r *Request) {
+	if r.TLS == nil {
+		r.TLS = &tls.ConnectionState{}
+		*r.TLS = h.tlsConn.ConnectionState()
 	}
-	if req.Body == nil {
-		req.Body = NoBody
+	if r.Body == nil {
+		r.Body = NoBody
 	}
-	if req.RemoteAddr == "" {
-		req.RemoteAddr = h.tlsConn.RemoteAddr().String()
+	if r.RemoteAddr == "" {
+		r.RemoteAddr = h.tlsConn.RemoteAddr().String()
 	}
-	h.handler.ServeHTTP(rw, req)
+	h.handler.ServeHTTP(w, r)
 }

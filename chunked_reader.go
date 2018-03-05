@@ -6,7 +6,6 @@
 package http
 
 import (
-	"bytes"
 	"errors"
 	"io"
 )
@@ -31,7 +30,7 @@ func (cr *chunkedReader) chunkHeaderAvailable() bool {
 	n := cr.r.Buffered()
 	if n > 0 {
 		peek, _ := cr.r.Peek(n)
-		return bytes.IndexByte(peek, '\n') >= 0
+		return index(peek, '\n') >= 0
 	}
 	return false
 }
@@ -46,7 +45,7 @@ func (cr *chunkedReader) Read(b []uint8) (n int, err error) {
 				break
 			}
 			if _, cr.err = io.ReadFull(cr.r, cr.buf[:2]); cr.err == nil {
-				if string(cr.buf[:]) != "\r\n" {
+				if !equal(cr.buf[:], CrLf) { // @comment : was `if string(cr.buf[:]) != "\r\n" {`
 					cr.err = errors.New("malformed chunked encoding")
 					break
 				}

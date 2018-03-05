@@ -87,7 +87,7 @@ func (r *Request) Referer() string {
 // mime/form-data POST request, else returns nil and an error.
 // Use this function instead of ParseMultipartForm to
 // process the request body as a stream.
-func (r *Request) MultipartReader() (*mime.Reader, error) {
+func (r *Request) MultipartReader() (*mime.MultipartReader, error) {
 	if r.MultipartForm == multipartByReader {
 		return nil, errors.New("http: MultipartReader called twice")
 	}
@@ -98,7 +98,7 @@ func (r *Request) MultipartReader() (*mime.Reader, error) {
 	return r.multipartReader()
 }
 
-func (r *Request) multipartReader() (*mime.Reader, error) {
+func (r *Request) multipartReader() (*mime.MultipartReader, error) {
 	v := r.Header.Get(hdr.ContentType)
 	if v == "" {
 		return nil, ErrNotMultipart
@@ -240,8 +240,8 @@ func (r *Request) write(w io.Writer, usingProxy bool, extraHeaders hdr.Header, w
 			return err
 		}
 	}
+	_, err = io.WriteString(w, "\r\n") //TODO : maybe ? w.Write(CrLf) - If w implements a WriteString method, it is invoked directly. Otherwise, w.Write is called exactly once.
 
-	_, err = io.WriteString(w, "\r\n")
 	if err != nil {
 		return err
 	}

@@ -21,11 +21,11 @@ import (
 // disk in temporary files.
 // It returns ErrMessageTooLarge if all non-file parts can't be stored in
 // memory.
-func (r *Reader) ReadForm(maxMemory int64) (*Form, error) {
+func (r *MultipartReader) ReadForm(maxMemory int64) (*Form, error) {
 	return r.readForm(maxMemory)
 }
 
-func (r *Reader) readForm(maxMemory int64) (_ *Form, err error) {
+func (r *MultipartReader) readForm(maxMemory int64) (_ *Form, err error) {
 	form := &Form{make(map[string][]string), make(map[string][]*FileHeader)}
 	defer func() {
 		if err != nil {
@@ -106,7 +106,7 @@ func (r *Reader) readForm(maxMemory int64) (_ *Form, err error) {
 
 // NextPart returns the next part in the multipart or an error.
 // When there are no more parts, the error io.EOF is returned.
-func (r *Reader) NextPart() (*Part, error) {
+func (r *MultipartReader) NextPart() (*SinglePart, error) {
 	if r.currentPart != nil {
 		r.currentPart.Close()
 	}
@@ -155,7 +155,7 @@ func (r *Reader) NextPart() (*Part, error) {
 		// body of the previous part and the boundary line we
 		// now expect will follow. (either a new part or the
 		// end boundary)
-		if bytes.Equal(line, r.nl) {
+		if bytes.Equal(line, r.newLine) {
 			expectNewPart = true
 			continue
 		}
@@ -168,24 +168,24 @@ func (r *Reader) NextPart() (*Part, error) {
 // indicating that all parts are over.
 // It matches `^--boundary--[ \t]*(\r\n)?$`
 //len(s) < len(prefix) || !bytes.Equal(s[0:len(prefix)], prefix)
-func (mr *Reader) isFinalBoundary(line []byte) bool {
-	//@comment : was `if !bytes.HasPrefix(line, mr.dashBoundaryDash) {`
+func (mr *MultipartReader) isFinalBoundary(line []byte) bool {
+	//@comment : was `if !bytes.HasPrefix(line, reader.dashBoundaryDash) {`
 	if len(line) < len(mr.dashBoundaryDash) || !bytes.Equal(line[0:len(mr.dashBoundaryDash)], mr.dashBoundaryDash) {
 		return false
 	}
 	rest := line[len(mr.dashBoundaryDash):]
 	rest = skipLWSPChar(rest)
-	return len(rest) == 0 || bytes.Equal(rest, mr.nl)
+	return len(rest) == 0 || bytes.Equal(rest, mr.newLine)
 }
 
-func (mr *Reader) isBoundaryDelimiterLine(line []byte) (ret bool) {
+func (mr *MultipartReader) isBoundaryDelimiterLine(line []byte) (ret bool) {
 	// http://tools.ietf.org/html/rfc2046#section-5.1
 	//   The boundary delimiter line is then defined as a line
 	//   consisting entirely of two hyphen characters ("-",
 	//   decimal value 45) followed by the boundary parameter
 	//   value from the Content-Type header field, optional linear
 	//   whitespace, and a terminating CRLF.
-	//@comment : was `if !bytes.HasPrefix(line, mr.dashBoundary) {`
+	//@comment : was `if !bytes.HasPrefix(line, reader.dashBoundary) {`
 	if len(line) < len(mr.dashBoundary) || !bytes.Equal(line[0:len(mr.dashBoundary)], mr.dashBoundary) {
 		return false
 	}
@@ -196,8 +196,8 @@ func (mr *Reader) isBoundaryDelimiterLine(line []byte) (ret bool) {
 	// and switch into that mode if so. This is a violation of the spec,
 	// but occurs in practice.
 	if mr.partsRead == 0 && len(rest) == 1 && rest[0] == '\n' {
-		mr.nl = mr.nl[1:]
+		mr.newLine = mr.newLine[1:]
 		mr.nlDashBoundary = mr.nlDashBoundary[1:]
 	}
-	return bytes.Equal(rest, mr.nl)
+	return bytes.Equal(rest, mr.newLine)
 }

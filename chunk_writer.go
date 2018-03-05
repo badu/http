@@ -9,7 +9,7 @@ import (
 	"fmt"
 	"io"
 	"io/ioutil"
-	"strconv"
+	"strconv" // TODO : get rid of it
 	"time"
 
 	"github.com/badu/http/hdr"
@@ -33,7 +33,7 @@ func (w *chunkWriter) Write(p []byte) (int, error) {
 	}
 	n, err := w.res.conn.bufWriter.Write(p)
 	if w.chunking && err == nil {
-		_, err = w.res.conn.bufWriter.Write(crlf)
+		_, err = w.res.conn.bufWriter.Write(CrLf)
 	}
 	if err != nil {
 		w.res.conn.netConIface.Close()
@@ -61,7 +61,7 @@ func (w *chunkWriter) close() {
 		}
 		// final blank line after the trailers (whether
 		// present or not)
-		bw.WriteString("\r\n")
+		bw.Write(CrLf)
 	}
 }
 
@@ -328,5 +328,5 @@ func (w *chunkWriter) writeHeader(p []byte) {
 	writeStatusLine(res.conn.bufWriter, res.req.ProtoAtLeast(1, 1), code, res.statusBuf[:])
 	w.header.WriteSubset(res.conn.bufWriter, excludeHeader)
 	setHeader.Write(res.conn.bufWriter)
-	res.conn.bufWriter.Write(crlf)
+	res.conn.bufWriter.Write(CrLf)
 }

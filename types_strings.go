@@ -56,3 +56,10 @@ const (
 
 	errorHeaders = "\r\nContent-Type: text/plain; charset=utf-8\r\nConnection: close\r\n\r\n"
 )
+
+var (
+	CrLf       = []byte("\r\n")
+	Lf         = []byte("\n")
+	Cr         = []byte("\n")
+	DoubleCrLf = []byte("\r\n\r\n")
+)

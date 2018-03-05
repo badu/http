@@ -16,6 +16,7 @@ import (
 	"strconv"
 	"strings"
 	"time"
+	_ "unsafe"
 
 	. "github.com/badu/http"
 	"github.com/badu/http/hdr"
@@ -101,7 +102,7 @@ func dirList(w ResponseWriter, f File) {
 // ServeContent uses it to handle requests using If-Match, If-None-Match, or If-Range.
 //
 // Note that *os.File implements the io.ReadSeeker interface.
-func ServeContent(w ResponseWriter, req *Request, name string, modtime time.Time, content io.ReadSeeker) {
+func ServeContent(w ResponseWriter, r *Request, name string, modtime time.Time, content io.ReadSeeker) {
 	sizeFunc := func() (int64, error) {
 		size, err := content.Seek(0, io.SeekEnd)
 		if err != nil {
@@ -113,7 +114,7 @@ func ServeContent(w ResponseWriter, req *Request, name string, modtime time.Time
 		}
 		return size, nil
 	}
-	serveContent(w, req, name, modtime, sizeFunc, content)
+	serveContent(w, r, name, modtime, sizeFunc, content)
 }
 
 // if name is empty, filename is unknown. (used for mime type, before sniffing)
@@ -666,7 +667,7 @@ func parseRange(s string, size int64) ([]httpRange, error) {
 		if ra == "" {
 			continue
 		}
-		i := strings.IndexByte(ra, '-') // @comment : was strings.Index
+		i := byteIndex(ra, '-') // @comment : was strings.Index
 		if i < 0 {
 			return nil, errors.New("invalid range")
 		}
@@ -772,3 +773,6 @@ func newPopulateResponseWriter() (*populateResponse, <-chan *Response) {
 	}
 	return rw, rw.ch
 }
+
+//go:linkname byteIndex strings.IndexByte
+func byteIndex(s string, c byte) int

@@ -18,13 +18,13 @@ import (
 
 // NewWriter returns a new multipart Writer with a random boundary,
 // writing to w.
-func NewWriter(w io.Writer) *Writer {
+func NewWriter(w io.Writer) *MultipartWriter {
 	var buf [30]byte
 	_, err := io.ReadFull(rand.Reader, buf[:])
 	if err != nil {
 		panic(err)
 	}
-	return &Writer{
+	return &MultipartWriter{
 		w:        w,
 		boundary: fmt.Sprintf("%x", buf[:]),
 	}
@@ -48,21 +48,21 @@ func MIMEParseMediaType(v string) (string, map[string]string, error) {
 // The boundary is usually obtained from the "boundary" parameter of
 // the message's "Content-Type" header. Use ParseMediaType to
 // parse such headers.
-func NewReader(r io.Reader, boundary string) *Reader {
+func NewReader(r io.Reader, boundary string) *MultipartReader {
 	b := []byte("\r\n--" + boundary + "--")
-	return &Reader{
+	return &MultipartReader{
 		bufReader:        bufio.NewReaderSize(&stickyErrorReader{r: r}, peekBufferSize),
-		nl:               b[:2],
+		newLine:          b[:2],
 		nlDashBoundary:   b[:len(b)-2],
 		dashBoundaryDash: b[2:],
 		dashBoundary:     b[2 : len(b)-2],
 	}
 }
 
-func newPart(mr *Reader) (*Part, error) {
-	bp := &Part{
+func newPart(mr *MultipartReader) (*SinglePart, error) {
+	bp := &SinglePart{
 		Header: make(map[string][]string),
-		mr:     mr,
+		reader: mr,
 	}
 	if err := bp.populateHeaders(); err != nil {
 		return nil, err

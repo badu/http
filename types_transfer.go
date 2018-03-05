@@ -8,9 +8,10 @@ package http
 import (
 	"bufio"
 	"errors"
-	"github.com/badu/http/hdr"
 	"io"
 	"sync"
+
+	"github.com/badu/http/hdr"
 )
 
 var (
@@ -22,9 +23,6 @@ var (
 	// read after an HTTP Handler calls WriteHeader or Write on its
 	// ResponseWriter.
 	ErrBodyReadAfterClose = errors.New("http: invalid Read on closed Body")
-
-	singleCRLF = []byte("\r\n")
-	doubleCRLF = []byte("\r\n\r\n")
 
 	errTrailerEOF = errors.New("http: unexpected EOF reading trailer")
 )

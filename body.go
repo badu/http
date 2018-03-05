@@ -6,7 +6,6 @@
 package http
 
 import (
-	"bytes"
 	"errors"
 	"io"
 	"io/ioutil"
@@ -74,7 +73,7 @@ func (b *body) readLocked(p []byte) (int, error) {
 func (b *body) readTrailer() error {
 	// The common case, since nobody uses trailers.
 	buf, err := b.bufReader.Peek(2)
-	if bytes.Equal(buf, singleCRLF) {
+	if equal(buf, CrLf) {
 		b.bufReader.Discard(2)
 		return nil
 	}

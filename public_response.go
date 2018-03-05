@@ -7,10 +7,11 @@ package http
 
 import (
 	"bufio"
-	"github.com/badu/http/hdr"
 	"io"
-	"strconv"
+	"strconv" // TODO : get rid of it
 	"strings"
+
+	"github.com/badu/http/hdr"
 )
 
 // ReadResponse reads and returns an HTTP response from r.
@@ -33,14 +34,14 @@ func ReadResponse(r *bufio.Reader, req *Request) (*Response, error) {
 		}
 		return nil, err
 	}
-	if i := strings.IndexByte(line, ' '); i == -1 {
+	if i := byteIndex(line, ' '); i == -1 {
 		return nil, &badStringError{"malformed HTTP response", line}
 	} else {
 		resp.Proto = line[:i]
 		resp.Status = strings.TrimLeft(line[i+1:], " ")
 	}
 	statusCode := resp.Status
-	if i := strings.IndexByte(resp.Status, ' '); i != -1 {
+	if i := byteIndex(resp.Status, ' '); i != -1 {
 		statusCode = resp.Status[:i]
 	}
 	if len(statusCode) != 3 {

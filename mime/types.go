@@ -15,17 +15,10 @@ import (
 )
 
 type (
-	// A Writer generates multipart messages.
-	Writer struct {
-		w        io.Writer
-		boundary string
-		lastpart *part
-	}
-
 	part struct {
-		mw     *Writer
+		writer *MultipartWriter
 		closed bool
-		we     error // last error that occurred writing
+		wErr   error // last error that occurred writing
 	}
 	// Form is a parsed multipart form.
 	// Its File parts are stored either in memory or on disk,
@@ -42,9 +35,8 @@ type (
 		Filename string
 		Header   Header
 		Size     int64
-
-		content []byte
-		tmpfile string
+		content  []byte
+		tmpfile  string
 	}
 
 	// File is an interface to access the file part of a multipart message.
@@ -61,34 +53,6 @@ type (
 		*io.SectionReader
 	}
 
-	// A Part represents a single part in a multipart body.
-	Part struct {
-		// The headers of the body, if any, with the keys canonicalized
-		// in the same fashion that the Go http.Request headers are.
-		// For example, "foo-bar" changes case to "Foo-Bar"
-		//
-		// As a special case, if the "Content-Transfer-Encoding" header
-		// has a value of "quoted-printable", that header is instead
-		// hidden from this map and the body is transparently decoded
-		// during Read calls.
-		Header Header
-
-		mr *Reader
-
-		disposition       string
-		dispositionParams map[string]string
-
-		// r is either a reader directly reading from mr, or it's a
-		// wrapper around such a reader, decoding the
-		// Content-Transfer-Encoding
-		r io.Reader
-
-		n       int   // known data bytes waiting in mr.bufReader
-		total   int64 // total data bytes read already
-		err     error // error to return when n == 0
-		readErr error // read error observed from mr.bufReader
-	}
-
 	// stickyErrorReader is an io.Reader which never calls Read on its
 	// underlying Reader once an error has been seen. (the io.Reader
 	// interface's contract promises nothing about the return values of
@@ -102,22 +66,46 @@ type (
 	// partReader implements io.Reader by reading raw bytes directly from the
 	// wrapped *Part, without doing any Transfer-Encoding decoding.
 	partReader struct {
-		p *Part
+		part *SinglePart
 	}
-
+	// A Part represents a single part in a multipart body.
+	SinglePart struct {
+		// The headers of the body, if any, with the keys canonicalized
+		// in the same fashion that the Go http.Request headers are.
+		// For example, "foo-bar" changes case to "Foo-Bar"
+		//
+		// As a special case, if the "Content-Transfer-Encoding" header
+		// has a value of "quoted-printable", that header is instead
+		// hidden from this map and the body is transparently decoded
+		// during Read calls.
+		Header            Header
+		reader            *MultipartReader
+		disposition       string
+		dispositionParams map[string]string
+		r                 io.Reader // r is either a reader directly reading from reader, or it's a wrapper around such a reader, decoding the Content-Transfer-Encoding
+		n                 int       // known data bytes waiting in reader.bufReader
+		total             int64     // total data bytes read already
+		err               error     // error to return when n == 0
+		readErr           error     // read error observed from reader.bufReader
+	}
 	// Reader is an iterator over parts in a MIME multipart body.
 	// Reader's underlying parser consumes its input as needed. Seeking
 	// isn't supported.
-	Reader struct {
-		bufReader *bufio.Reader
-
-		currentPart *Part
-		partsRead   int
-
-		nl               []byte // "\r\n" or "\n" (set after seeing first boundary line)
-		nlDashBoundary   []byte // nl + "--boundary"
+	MultipartReader struct {
+		bufReader        *bufio.Reader
+		currentPart      *SinglePart
+		partsRead        int
+		newLine          []byte // "\r\n" or "\n" (set after seeing first boundary line)
+		nlDashBoundary   []byte // newLine + "--boundary"
 		dashBoundaryDash []byte // "--boundary--"
 		dashBoundary     []byte // "--boundary"
+	}
+
+	// A Writer generates multipart messages.
+	MultipartWriter struct {
+		w        io.Writer
+		boundary string
+		lastpart *part
 	}
 	// A WordEncoder is an RFC 2047 encoded-word encoder.
 	WordEncoder byte
@@ -149,12 +137,7 @@ var (
 
 const (
 	// This constant needs to be at least 76 for this package to work correctly.
-	// This is because \r\n--separator_of_len_70- would fill the buffer and it
-	// wouldn't be safe to consume a single byte from it.
-	peekBufferSize = 4096
-	// maxContentLen is how much content can be encoded, ignoring the header and
-	// 2-byte footer.
-	upperhex           = "0123456789ABCDEF"
-	lineMaxLen         = 76
+	// This is because \r\n--separator_of_len_70- would fill the buffer and it wouldn't be safe to consume a single byte from it.
+	peekBufferSize     = 4096
 	ContentDisposition = "Content-Disposition"
 )

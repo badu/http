@@ -30,6 +30,7 @@ func (cw *chunkedWriter) Write(data []byte) (n int, err error) {
 		err = io.ErrShortWrite
 		return
 	}
+	//TODO : maybe ? w.Write(CrLf) - If w implements a WriteString method, it is invoked directly. Otherwise, w.Write is called exactly once.
 	if _, err = io.WriteString(cw.Wire, "\r\n"); err != nil {
 		return
 	}

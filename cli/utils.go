@@ -16,6 +16,7 @@ import (
 	"strings"
 	"time"
 	"unicode/utf8"
+	_ "unsafe"
 
 	. "github.com/badu/http"
 	"github.com/badu/http/hdr"
@@ -470,7 +471,7 @@ func readCookies(h hdr.Header, filter string) []*Cookie {
 				continue
 			}
 			name, val := parts[i], ""
-			if j := strings.IndexByte(name, '='); j >= 0 { // @comment : was strings.Index
+			if j := byteIndex(name, '='); j >= 0 { // @comment : was strings.Index
 				name, val = name[:j], name[j+1:]
 			}
 			if !isCookieNameValid(name) {
@@ -504,7 +505,7 @@ func readSetCookies(h hdr.Header) []*Cookie {
 			continue
 		}
 		parts[0] = strings.TrimSpace(parts[0])
-		j := strings.IndexByte(parts[0], '=') // @comment : was strings.Index
+		j := byteIndex(parts[0], '=') // @comment : was strings.Index
 		if j < 0 {
 			continue
 		}
@@ -528,7 +529,7 @@ func readSetCookies(h hdr.Header) []*Cookie {
 			}
 
 			attr, val := parts[i], ""
-			if j := strings.IndexByte(attr, '='); j >= 0 { // @comment : was strings.Index
+			if j := byteIndex(attr, '='); j >= 0 { // @comment : was strings.Index
 				attr, val = attr[:j], attr[j+1:]
 			}
 			lowerAttr := strings.ToLower(attr)
@@ -592,3 +593,6 @@ func parseCookieValue(raw string, allowDoubleQuote bool) (string, bool) {
 	}
 	return raw, true
 }
+
+//go:linkname byteIndex strings.IndexByte
+func byteIndex(s string, c byte) int

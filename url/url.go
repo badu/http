@@ -7,7 +7,6 @@ package url
 
 import (
 	"bytes"
-	"strings"
 )
 
 // setPath sets the Path and RawPath fields of the URL based on the provided
@@ -107,7 +106,7 @@ func (u *URL) String() string {
 			// it would be mistaken for a scheme name. Such a segment must be
 			// preceded by a dot-segment (e.g., "./this:that") to make a relative-
 			// path reference.
-			if i := strings.IndexByte(path, ':'); i > -1 && strings.IndexByte(path[:i], '/') == -1 {
+			if i := byteIndex(path, ':'); i > -1 && byteIndex(path[:i], '/') == -1 {
 				buf.WriteString("./")
 			}
 		}

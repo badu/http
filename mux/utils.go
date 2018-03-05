@@ -6,11 +6,10 @@
 package mux
 
 import (
+	. "github.com/badu/http"
 	"net"
 	"path"
-	"strings"
-
-	. "github.com/badu/http"
+	_ "unsafe"
 )
 
 // NewServeMux allocates and returns a new ServeMux.
@@ -44,7 +43,7 @@ func pathMatch(pattern, path string) bool {
 // stripHostPort returns h without any trailing ":<port>".
 func stripHostPort(h string) string {
 	// If no port on host, return unchanged
-	if strings.IndexByte(h, ':') == -1 {
+	if byteIndex(h, ':') == -1 {
 		return h
 	}
 	host, _, err := net.SplitHostPort(h)
@@ -70,3 +69,6 @@ func cleanPath(p string) string {
 	}
 	return np
 }
+
+//go:linkname byteIndex strings.IndexByte
+func byteIndex(s string, c byte) int

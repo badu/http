@@ -6,7 +6,6 @@
 package cli
 
 import (
-	"strings"
 	"time"
 )
 
@@ -32,5 +31,3 @@ type Cookie struct {
 	Raw      string
 	Unparsed []string // Raw text of unparsed attribute-value pairs
 }
-
-var cookieNameSanitizer = strings.NewReplacer("\n", "-", "\r", "-")

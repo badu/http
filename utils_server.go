@@ -11,7 +11,7 @@ import (
 	"io"
 	"net"
 	"os"
-	"strconv"
+	"strconv" // TODO : get rid of it
 	"strings"
 	"sync"
 	"time"
@@ -162,7 +162,7 @@ func writeStatusLine(bw *bufio.Writer, is11 bool, code int, scratch []byte) {
 		bw.Write(strconv.AppendInt(scratch[:0], int64(code), 10))
 		bw.WriteByte(' ')
 		bw.WriteString(text)
-		bw.WriteString("\r\n")
+		bw.Write(CrLf)
 	} else {
 		// don't worry about performance
 		fmt.Fprintf(bw, "%03d status code %d\r\n", code, code)

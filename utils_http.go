@@ -6,9 +6,10 @@
 package http
 
 import (
-	"strconv"
+	"strconv" // TODO : get rid of it
 	"strings"
 	"unicode/utf8"
+	_ "unsafe"
 
 	"github.com/badu/http/hdr"
 )
@@ -62,3 +63,12 @@ func hexEscapeNonASCII(s string) string {
 	}
 	return string(b)
 }
+
+//go:linkname byteIndex strings.IndexByte
+func byteIndex(s string, c byte) int
+
+//go:linkname equal bytes.Equal
+func equal(x, y []byte) bool
+
+//go:linkname index bytes.IndexByte
+func index(s []byte, c byte) int

@@ -16,19 +16,19 @@ func (h extraHeader) Write(w *bufio.Writer) {
 	if h.date != nil {
 		w.Write(headerDate)
 		w.Write(h.date)
-		w.Write(crlf)
+		w.Write(CrLf)
 	}
 	if h.contentLength != nil {
 		w.Write(headerContentLength)
 		w.Write(h.contentLength)
-		w.Write(crlf)
+		w.Write(CrLf)
 	}
 	for i, v := range []string{h.contentType, h.connection, h.transferEncoding} {
 		if v != "" {
 			w.Write(extraHeaderKeys[i])
 			w.Write(colonSpace)
 			w.WriteString(v)
-			w.Write(crlf)
+			w.Write(CrLf)
 		}
 	}
 }

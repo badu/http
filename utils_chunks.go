@@ -7,7 +7,6 @@ package http
 
 import (
 	"bufio"
-	"bytes"
 	"errors"
 	"io"
 )
@@ -57,7 +56,7 @@ func trimTrailingWhitespace(b []byte) []byte {
 //     "0;token=val" => "0"
 //     `0;token="quoted string"` => "0"
 func removeChunkExtension(p []byte) ([]byte, error) {
-	semi := bytes.IndexByte(p, ';')
+	semi := index(p, ';')
 	if semi == -1 {
 		return p, nil
 	}
