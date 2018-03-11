@@ -130,7 +130,7 @@ func (c *conn) readRequest(ctx context.Context) (*response, error) {
 
 	ctx, cancelCtx := context.WithCancel(ctx)
 	req.ctx = ctx
-	req.RemoteAddr = c.remoteAddr
+	req.RemoteAddr = c.netConIface.RemoteAddr().String()
 	req.TLS = c.tlsState
 	if body, ok := req.Body.(*body); ok {
 		body.doEarlyClose = true
@@ -202,7 +202,7 @@ func (c *conn) closeWriteAndWait() {
 // Serve a new connection.
 //TODO : @badu - maybe this should return error???
 func (c *conn) serve(ctx context.Context) {
-	c.remoteAddr = c.netConIface.RemoteAddr().String()
+
 	// TODO : @badu - what if nil?
 	srv := ctx.Value(SrvCtxtKey).(*Server)
 	ctx = context.WithValue(ctx, LocalAddrContextKey, c.netConIface.LocalAddr())
@@ -212,7 +212,7 @@ func (c *conn) serve(ctx context.Context) {
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			srv.logf("http: panic serving %v: %v\n%s", c.remoteAddr, err, buf)
+			srv.logf("http: panic serving %v: %v\n%s", c.netConIface.RemoteAddr().String(), err, buf)
 		}
 		// @comment :close non hijacked
 		if !c.hijacked() {

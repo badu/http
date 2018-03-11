@@ -380,10 +380,6 @@ type (
 
 	// A conn represents the server side of an HTTP connection.
 	conn struct {
-		// server is the server on which the connection arrived.
-		// Immutable; never nil.
-		//server *Server
-
 		// cancelCtx cancels the connection-level context.
 		cancelCtx context.CancelFunc
 
@@ -391,12 +387,6 @@ type (
 		// This is never wrapped by other types and is the value given out
 		// to CloseNotifier callers. It is usually of type *net.TCPConn or *tls.Conn.
 		netConIface net.Conn
-
-		// remoteAddr is netConIface.RemoteAddr().String(). It is not populated synchronously
-		// inside the Listener's Accept goroutine, as some implementations block.
-		// It is populated immediately inside the (*conn).serve goroutine.
-		// This is the value of a Handler's (*Request).RemoteAddr.
-		remoteAddr string
 
 		// tlsState is the TLS connection state when using TLS.
 		// nil means not TLS.
@@ -421,8 +411,7 @@ type (
 		// on this connection, if any.
 		lastMethod string
 
-		curReq atomic.Value // of *response (which has a Request in it)
-
+		curReq   atomic.Value // of *response (which has a Request in it)
 		curState atomic.Value // of ConnState
 
 		// mu guards wasHijacked
