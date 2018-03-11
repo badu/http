@@ -25,7 +25,7 @@ func (c *conn) hijacked() bool {
 }
 
 // c.mu must be held.
-func (c *conn) hijackLocked() (net.Conn, *bufio.ReadWriter, error) {
+func (c *conn) hijackLocked(ctx context.Context) (net.Conn, *bufio.ReadWriter, error) {
 	if c.wasHijacked {
 		return nil, nil, ErrHijacked
 	}
@@ -43,7 +43,8 @@ func (c *conn) hijackLocked() (net.Conn, *bufio.ReadWriter, error) {
 			return nil, nil, fmt.Errorf("unexpected Peek failure reading buffered byte: %v", err)
 		}
 	}
-	c.setState(netConn, StateHijacked)
+	srv := ctx.Value(SrvCtxtKey).(*Server)
+	srv.setState(c, StateHijacked)
 	return netConn, buf, nil
 }
 
@@ -55,24 +56,27 @@ func (c *conn) readRequest(ctx context.Context) (*response, error) {
 
 	var hdrDeadline time.Time // or zero if none
 	t0 := time.Now()
-	if d := c.server.readHeaderTimeout(); d != 0 {
+
+	srv := ctx.Value(SrvCtxtKey).(*Server)
+
+	if d := srv.readHeaderTimeout(); d != 0 {
 		hdrDeadline = t0.Add(d)
 	}
 
 	var wholeReqDeadline time.Time // or zero if none
-	if d := c.server.ReadTimeout; d != 0 {
+	if d := srv.ReadTimeout; d != 0 {
 		wholeReqDeadline = t0.Add(d)
 	}
 
 	c.netConIface.SetReadDeadline(hdrDeadline)
 
-	if d := c.server.WriteTimeout; d != 0 {
+	if d := srv.WriteTimeout; d != 0 {
 		defer func() {
 			c.netConIface.SetWriteDeadline(time.Now().Add(d))
 		}()
 	}
 
-	c.reader.setReadLimit(c.server.initialReadLimitSize())
+	c.reader.setReadLimit(srv.initialReadLimitSize())
 
 	// RFC 2616 section 4.1 tolerance for old buggy clients.
 	if c.lastMethod == POST {
@@ -139,6 +143,7 @@ func (c *conn) readRequest(ctx context.Context) (*response, error) {
 
 	w := &response{
 		conn:          c,
+		ctx:           ctx,
 		cancelCtx:     cancelCtx,
 		req:           req,
 		reqBody:       req.Body,
@@ -194,58 +199,45 @@ func (c *conn) closeWriteAndWait() {
 	time.Sleep(rstAvoidanceDelay)
 }
 
-func (c *conn) setState(nc net.Conn, state ConnState) {
-	srv := c.server
-	switch state {
-	case StateNew:
-		srv.trackConn(c, true)
-	case StateHijacked, StateClosed:
-		srv.trackConn(c, false)
-	}
-	c.curState.Store(connStateInterface[state])
-	if hook := srv.ConnState; hook != nil {
-		hook(nc, state)
-	}
-}
-
 // Serve a new connection.
 //TODO : @badu - maybe this should return error???
 func (c *conn) serve(ctx context.Context) {
 	c.remoteAddr = c.netConIface.RemoteAddr().String()
+	// TODO : @badu - what if nil?
+	srv := ctx.Value(SrvCtxtKey).(*Server)
 	ctx = context.WithValue(ctx, LocalAddrContextKey, c.netConIface.LocalAddr())
-
 	defer func() {
 		// @comment : recovering from panic
 		if err := recover(); err != nil && err != ErrAbortHandler {
 			const size = 64 << 10
 			buf := make([]byte, size)
 			buf = buf[:runtime.Stack(buf, false)]
-			c.server.logf("http: panic serving %v: %v\n%s", c.remoteAddr, err, buf)
+			srv.logf("http: panic serving %v: %v\n%s", c.remoteAddr, err, buf)
 		}
 		// @comment :close non hijacked
 		if !c.hijacked() {
 			c.close()
-			c.setState(c.netConIface, StateClosed)
+			srv.setState(c, StateClosed)
 		}
 	}()
 
 	if tlsConn, ok := c.netConIface.(*tls.Conn); ok {
-		if d := c.server.ReadTimeout; d != 0 {
+		if d := srv.ReadTimeout; d != 0 {
 			c.netConIface.SetReadDeadline(time.Now().Add(d))
 		}
-		if d := c.server.WriteTimeout; d != 0 {
+		if d := srv.WriteTimeout; d != 0 {
 			c.netConIface.SetWriteDeadline(time.Now().Add(d))
 		}
 		if err := tlsConn.Handshake(); err != nil {
-			c.server.logf("http: TLS handshake error from %s: %v", c.netConIface.RemoteAddr(), err)
+			srv.logf("http: TLS handshake error from %s: %v", c.netConIface.RemoteAddr(), err)
 			return
 		}
 		// TODO : @badu - what an ugly way to clone
 		c.tlsState = new(tls.ConnectionState)
 		*c.tlsState = tlsConn.ConnectionState()
 		if proto := c.tlsState.NegotiatedProtocol; validNPN(proto) {
-			if fn := c.server.TLSNextProto[proto]; fn != nil {
-				h := initNPNRequest{tlsConn, serverHandler{c.server}}
+			if fn := srv.TLSNextProto[proto]; fn != nil {
+				h := initNPNRequest{tlsConn, serverHandler{srv}}
 				fn(tlsConn, h)
 			}
 			return
@@ -264,9 +256,9 @@ func (c *conn) serve(ctx context.Context) {
 	for {
 		// @comment : starts to read request
 		resp, err := c.readRequest(ctx)
-		if c.reader.remain != c.server.initialReadLimitSize() {
+		if c.reader.remain != srv.initialReadLimitSize() {
 			// If we read any bytes off the wire, we're active.
-			c.setState(c.netConIface, StateActive)
+			srv.setState(c, StateActive)
 		}
 		if err != nil {
 			if err == errTooLarge {
@@ -327,7 +319,7 @@ func (c *conn) serve(ctx context.Context) {
 
 		// TODO : @badu - good place for metrics
 		// @comment : calls the Handler ServeHTTP(rw ResponseWriter, req *Request)
-		serverHandler{c.server}.ServeHTTP(resp, resp.req)
+		serverHandler{srv}.ServeHTTP(resp, resp.req)
 
 		resp.cancelCtx()
 		if c.hijacked() {
@@ -344,11 +336,12 @@ func (c *conn) serve(ctx context.Context) {
 			return
 		}
 
-		c.setState(c.netConIface, StateIdle)
+		srv.setState(c, StateIdle)
 		// @comment : store it in atomic.Value
 		c.curReq.Store((*response)(nil))
 
-		if !resp.conn.server.doKeepAlives() {
+		//if !resp.conn.server.doKeepAlives() {
+		if !srv.doKeepAlives() {
 			// We're in shutdown mode. We might've replied
 			// to the user without "Connection: close" and
 			// they might think they can send another
@@ -357,7 +350,7 @@ func (c *conn) serve(ctx context.Context) {
 		}
 
 		// @comment :
-		if d := c.server.idleTimeout(); d != 0 {
+		if d := srv.idleTimeout(); d != 0 {
 			c.netConIface.SetReadDeadline(time.Now().Add(d))
 			if _, err := c.bufReader.Peek(4); err != nil {
 				return

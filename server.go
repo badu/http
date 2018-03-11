@@ -18,7 +18,7 @@ import (
 // @comment : called only form Server.Serve, but also exposed for tests
 func (s *Server) newConn(rwc net.Conn) *conn {
 	c := &conn{
-		server:      s,
+		//server:      s,
 		netConIface: rwc,
 	}
 	// @comment : replaces the underlying network connection with a fake one that traces everything (all tests will fail)
@@ -241,9 +241,22 @@ func (s *Server) Serve(lsn net.Listener) error {
 		// @comment : init internal connection
 		newConn := s.newConn(conn)
 		// @comment :  set it's state
-		newConn.setState(newConn.netConIface, StateNew) // before Serve can return
+		s.setState(newConn, StateNew) // before Serve can return
 		// @comment : perform in a different goroutine + passing the context built here
 		go newConn.serve(ctx)
+	}
+}
+
+func (s *Server) setState(c *conn, state ConnState) {
+	switch state {
+	case StateNew:
+		s.trackConn(c, true)
+	case StateHijacked, StateClosed:
+		s.trackConn(c, false)
+	}
+	c.curState.Store(connStateInterface[state])
+	if hook := s.ConnState; hook != nil {
+		hook(c.netConIface, state)
 	}
 }
 

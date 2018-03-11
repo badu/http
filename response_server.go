@@ -129,11 +129,13 @@ func (r *response) Header() hdr.Header {
 
 func (r *response) WriteHeader(code int) {
 	if r.conn.hijacked() {
-		r.conn.server.logf("http: response.WriteHeader on hijacked connection")
+		srv := r.ctx.Value(SrvCtxtKey).(*Server)
+		srv.logf("http: response.WriteHeader on hijacked connection")
 		return
 	}
 	if r.wroteHeader {
-		r.conn.server.logf("http: multiple response.WriteHeader calls")
+		srv := r.ctx.Value(SrvCtxtKey).(*Server)
+		srv.logf("http: multiple response.WriteHeader calls")
 		return
 	}
 	r.wroteHeader = true
@@ -148,7 +150,8 @@ func (r *response) WriteHeader(code int) {
 		if err == nil && v >= 0 {
 			r.contentLength = v
 		} else {
-			r.conn.server.logf("http: invalid Content-Length of %q", cl)
+			srv := r.ctx.Value(SrvCtxtKey).(*Server)
+			srv.logf("http: invalid Content-Length of %q", cl)
 			r.handlerHeader.Del(hdr.ContentLength)
 		}
 	}
@@ -193,7 +196,8 @@ func (r *response) Write(data []byte) (int, error) {
 	lenData := len(data)
 	if r.conn.hijacked() {
 		if lenData > 0 {
-			r.conn.server.logf("http: response.Write on hijacked connection")
+			srv := r.ctx.Value(SrvCtxtKey).(*Server)
+			srv.logf("http: response.Write on hijacked connection")
 		}
 		return 0, ErrHijacked
 	}
@@ -218,7 +222,8 @@ func (r *response) WriteString(data string) (int, error) {
 	lenData := len(data)
 	if r.conn.hijacked() {
 		if lenData > 0 {
-			r.conn.server.logf("http: response.Write on hijacked connection")
+			srv := r.ctx.Value(SrvCtxtKey).(*Server)
+			srv.logf("http: response.Write on hijacked connection")
 		}
 		return 0, ErrHijacked
 	}
@@ -332,7 +337,7 @@ func (r *response) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 
 	// Release the bufioWriter that writes to the chunk writer, it is not
 	// used after a connection has been hijacked.
-	rwc, buf, err := c.hijackLocked()
+	rwc, buf, err := c.hijackLocked(r.ctx)
 	if err == nil {
 		putBufioWriter(r.bufWriter)
 		r.bufWriter = nil

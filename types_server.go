@@ -217,7 +217,13 @@ var (
 	uniqNameNext = make(map[string]int)
 
 	//TODO : @badu - both exported for tests
-	//TODO : @badu - speak about this technique
+	//@comment : this technique is called Method expression
+	/**
+	type T struct {}
+	func (T) Foo(s string) { println(s) }
+
+	var fn func(T, string) = T.Foo
+	*/
 	ExportServerNewConn     = (*Server).newConn
 	ExportCloseWriteAndWait = (*conn).closeWriteAndWait
 )
@@ -376,7 +382,7 @@ type (
 	conn struct {
 		// server is the server on which the connection arrived.
 		// Immutable; never nil.
-		server *Server
+		//server *Server
 
 		// cancelCtx cancels the connection-level context.
 		cancelCtx context.CancelFunc
@@ -459,6 +465,7 @@ type (
 	// A response represents the server side of an HTTP response.
 	response struct {
 		conn      *conn
+		ctx       context.Context
 		req       *Request // request for this response
 		reqBody   io.ReadCloser
 		cancelCtx context.CancelFunc // when ServeHTTP exits

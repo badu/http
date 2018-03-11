@@ -81,7 +81,8 @@ func (w *chunkWriter) writeHeader(p []byte) {
 	w.wroteHeader = true
 
 	res := w.res
-	keepAlivesEnabled := res.conn.server.doKeepAlives()
+	srv := res.ctx.Value(SrvCtxtKey).(*Server)
+	keepAlivesEnabled := srv.doKeepAlives()
 	isHEAD := res.req.Method == HEAD
 
 	// header is written out to w.conn.buf below. Depending on the
@@ -272,7 +273,8 @@ func (w *chunkWriter) writeHeader(p []byte) {
 	if hasCL && hasTE && te != DoIdentity {
 		// TODO: return an error if WriteHeader gets a return parameter
 		// For now just ignore the Content-Length.
-		res.conn.server.logf("http: WriteHeader called with both Transfer-Encoding of %q and a Content-Length of %d", te, res.contentLength)
+		srv := res.ctx.Value(SrvCtxtKey).(*Server)
+		srv.logf("http: WriteHeader called with both Transfer-Encoding of %q and a Content-Length of %d", te, res.contentLength)
 		delHeader(hdr.ContentLength)
 		hasCL = false
 	}
