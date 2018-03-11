@@ -629,8 +629,9 @@ type (
 		disableKeepAlives int32 // accessed atomically.
 		inShutdown        int32 // accessed atomically (non-zero means we're in Shutdown)
 
-		mu         sync.Mutex
-		listeners  map[net.Listener]struct{}
+		mu       sync.Mutex
+		listener net.Listener
+
 		activeConn map[*conn]struct{}
 		doneChan   chan struct{}
 		onShutdown []func()

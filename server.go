@@ -157,14 +157,12 @@ func (s *Server) closeIdleConns() bool {
 }
 
 func (s *Server) closeListenersLocked() error {
-	var err error
-	for ln := range s.listeners {
-		if cerr := ln.Close(); cerr != nil && err == nil {
-			err = cerr
+	if s.listener != nil {
+		if cerr := s.listener.Close(); cerr != nil {
+			return cerr
 		}
-		delete(s.listeners, ln)
 	}
-	return err
+	return nil
 }
 
 // ListenAndServe listens on the TCP network address srv.Addr and then
@@ -307,18 +305,10 @@ func (s *Server) ServeTLS(lsn net.Listener, certFile, keyFile string) error {
 func (s *Server) trackListener(ln net.Listener, add bool) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	if s.listeners == nil {
-		s.listeners = make(map[net.Listener]struct{})
-	}
 	if add {
-		// If the *Server is being reused after a previous
-		// Close or Shutdown, reset its doneChan:
-		if len(s.listeners) == 0 && len(s.activeConn) == 0 {
-			s.doneChan = nil
-		}
-		s.listeners[ln] = struct{}{}
+		s.listener = ln
 	} else {
-		delete(s.listeners, ln)
+		s.listener = nil
 	}
 }
 

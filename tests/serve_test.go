@@ -3572,6 +3572,7 @@ func TestServerContext_LocalAddrContextKey(t *testing.T) {
 		} else if fmt.Sprint(addr) != host {
 			t.Errorf("local addr = %v; want %v", addr, host)
 		}
+		t.Logf("Got Local Addr Context Key : %v", got)
 	case <-time.After(5 * time.Second):
 		t.Error("timed out")
 	}
