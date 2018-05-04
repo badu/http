@@ -221,6 +221,7 @@ func (c *conn) serve(ctx context.Context) {
 		}
 	}()
 
+	// TODO : @badu - we should know earlier to handle tls.Conn
 	if tlsConn, ok := c.netConIface.(*tls.Conn); ok {
 		if d := srv.ReadTimeout; d != 0 {
 			c.netConIface.SetReadDeadline(time.Now().Add(d))
@@ -276,6 +277,8 @@ func (c *conn) serve(ctx context.Context) {
 			}
 
 			publicErr := "400 Bad Request"
+
+			//TODO : @badu -Don’t assert errors for type, assert for behaviour.
 			if v, ok := err.(badRequestError); ok {
 				// //TODO : @badu - document - if conn.readRequest returned an error, it's typed badRequestError
 				publicErr = publicErr + ": " + string(v)

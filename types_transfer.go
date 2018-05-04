@@ -53,19 +53,19 @@ type (
 	// sanitizes them without changing the user object and provides methods for
 	// writing the respective header, body and trailer in wire format.
 	transferWriter struct {
-		Method           string
 		Body             io.Reader
 		BodyCloser       io.Closer
-		ResponseToHEAD   bool
-		ContentLength    int64 // -1 means unknown, 0 means exactly none
-		Close            bool
-		TransferEncoding []string
 		Header           hdr.Header
 		Trailer          hdr.Header
-		IsResponse       bool
 		bodyReadError    error           // any non-EOF error from reading Body
-		FlushHeaders     bool            // flush headers to network before body
 		ByteReadCh       chan readResult // non-nil if probeRequestBody called
+		Method           string
+		TransferEncoding []string
+		ContentLength    int64 // -1 means unknown, 0 means exactly none
+		ResponseToHEAD   bool
+		Close            bool
+		IsResponse       bool
+		FlushHeaders     bool // flush headers to network before body
 	}
 
 	//TODO : @badu - whay all these properties are public?

@@ -454,24 +454,33 @@ type (
 	// A response represents the server side of an HTTP response.
 	response struct {
 		conn      *conn
-		ctx       context.Context
-		req       *Request // request for this response
+		req       *Request      // request for this response
+		bufWriter *bufio.Writer // buffers output in chunks to chunkWriter
 		reqBody   io.ReadCloser
+		ctx       context.Context
 		cancelCtx context.CancelFunc // when ServeHTTP exits
-		bufWriter *bufio.Writer      // buffers output in chunks to chunkWriter
-		// TODO : @badu - maybe this is chunked_writer after all ?
-		chunkWriter chunkWriter
 
 		// handlerHeader is the Header that Handlers get access to,
 		// which may be retained and mutated even after WriteHeader.
 		// handlerHeader is copied into cw.header at WriteHeader
 		// time, and privately mutated thereafter.
 		handlerHeader hdr.Header
+		// trailers are the headers to be sent after the handler finishes writing the body. This field is initialized from
+		// the Trailer response header when the response header is written.
+		trailers []string
 
-		written       int64 // number of bytes written in body
-		contentLength int64 // explicitly-declared Content-Length; or -1
-		status        int   // status code passed to WriteHeader
+		written        int64 // number of bytes written in body
+		contentLength  int64 // explicitly-declared Content-Length; or -1
+		status         int   // status code passed to WriteHeader
+		didCloseNotify int32 // atomic (only 0->1 winner should send)
 
+		handlerDone atomicBool // set true when the handler exits
+		chunkWriter chunkWriter
+
+		// Buffers for Date, Content-Length, and status code
+		dateBuf   [len(TimeFormat)]byte
+		clenBuf   [10]byte
+		statusBuf [3]byte
 		//TODO : @badu - too much booleans (state / bitflag?)
 		wroteHeader         bool // reply header has been (logically) written
 		wroteContinue       bool // 100 Continue response was written
@@ -483,18 +492,6 @@ type (
 		// closeNotifyCh is the channel returned by CloseNotify.
 		// TODO(bradfitz): this is currently (for Go 1.8) always non-nil. Make this lazily-created again as it used to be?
 		closeNotifyCh chan bool
-		// trailers are the headers to be sent after the handler finishes writing the body. This field is initialized from
-		// the Trailer response header when the response header is written.
-		trailers []string
-
-		handlerDone atomicBool // set true when the handler exits
-
-		// Buffers for Date, Content-Length, and status code
-		dateBuf   [len(TimeFormat)]byte
-		clenBuf   [10]byte
-		statusBuf [3]byte
-
-		didCloseNotify int32 // atomic (only 0->1 winner should send)
 	}
 
 	atomicBool int32
@@ -511,14 +508,14 @@ type (
 	// call blocked in a background goroutine to wait for activity and
 	// trigger a CloseNotifier channel.
 	connReader struct {
+		cond    *sync.Cond
 		mu      sync.Mutex // guards following
 		conn    *conn
+		remain  int64 // bytes remaining
 		byteBuf [1]byte
-		cond    *sync.Cond
 		hasByte bool
 		inRead  bool
-		aborted bool  // set true before conn.netConIface deadline is set to past
-		remain  int64 // bytes remaining
+		aborted bool // set true before conn.netConIface deadline is set to past
 	}
 
 	// wrapper around io.ReadCloser which on first read, sends an

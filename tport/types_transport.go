@@ -145,7 +145,6 @@ type (
 	// for HTTPS URLs.
 	Transport struct {
 		idleMu     sync.Mutex
-		wantIdle   bool                                // user has requested to close all idle conns
 		idleConn   map[connectMethodKey][]*persistConn // most recently used at end
 		idleConnCh map[connectMethodKey]chan *persistConn
 		idleLRU    connLRU
@@ -192,20 +191,6 @@ type (
 		// TLSHandshakeTimeout specifies the maximum amount of time waiting to
 		// wait for a TLS handshake. Zero means no timeout.
 		TLSHandshakeTimeout time.Duration
-
-		// DisableKeepAlives, if true, prevents re-use of TCP connections
-		// between different HTTP requests.
-		DisableKeepAlives bool
-
-		// DisableCompression, if true, prevents the Transport from
-		// requesting compression with an "Accept-Encoding: gzip"
-		// request header when the Request contains no existing
-		// Accept-Encoding value. If the Transport requests gzip on
-		// its own and gets a gzipped response, it's transparently
-		// decoded in the Response.Body. However, if the user
-		// explicitly requested gzip it is not automatically
-		// uncompressed.
-		DisableCompression bool
 
 		// MaxIdleConns controls the maximum number of idle (keep-alive)
 		// connections across all hosts. Zero means no limit.
@@ -260,6 +245,20 @@ type (
 		//
 		// Zero means to use a default limit.
 		MaxResponseHeaderBytes int64
+		// DisableKeepAlives, if true, prevents re-use of TCP connections
+		// between different HTTP requests.
+		DisableKeepAlives bool
+		wantIdle          bool // user has requested to close all idle conns
+
+		// DisableCompression, if true, prevents the Transport from
+		// requesting compression with an "Accept-Encoding: gzip"
+		// request header when the Request contains no existing
+		// Accept-Encoding value. If the Transport requests gzip on
+		// its own and gets a gzipped response, it's transparently
+		// decoded in the Response.Body. However, if the user
+		// explicitly requested gzip it is not automatically
+		// uncompressed.
+		DisableCompression bool
 	}
 
 	// transportRequest is a wrapper around a *Request that adds
@@ -346,7 +345,6 @@ type (
 		//alt RoundTripper
 
 		transport *Transport
-		cacheKey  connectMethodKey
 		conn      net.Conn
 		tlsState  *tls.ConnectionState
 		br        *bufio.Reader       // from conn
@@ -355,9 +353,7 @@ type (
 		reqch     chan requestAndChan // written by roundTrip; read by readLoop
 		writech   chan writeRequest   // written by roundTrip; read by writeLoop
 		closech   chan struct{}       // closed when conn closed
-		isProxy   bool
-		sawEOF    bool  // whether we've seen EOF from conn; owned by readLoop
-		readLimit int64 // bytes allowed to be read; owned by readLoop
+		readLimit int64               // bytes allowed to be read; owned by readLoop
 		// writeErrCh passes the request write error (usually nil)
 		// from the writeLoop goroutine to the readLoop which passes
 		// it off to the res.Body reader, which then uses it to decide
@@ -366,20 +362,24 @@ type (
 
 		writeLoopDone chan struct{} // closed when write loop ends
 
-		// Both guarded by Transport.idleMu:
-		idleAt    time.Time   // time it last become idle
+		// guarded by Transport.idleMu:
 		idleTimer *time.Timer // holding an AfterFunc to close it
 
 		mu                   sync.Mutex // guards following fields
 		numExpectedResponses int
 		closed               error // set non-nil when conn is closed, before closech is closed
 		canceledErr          error // set non-nil if conn is canceled
-		broken               bool  // an error has happened on this connection; marked broken so it's not reused.
-		reused               bool  // whether conn has had successful request/response and is being reused.
 		// mutateHeaderFunc is an optional func to modify extra
 		// headers on each outbound request before it's written. (the
 		// original Request given to RoundTrip is not modified)
 		mutateHeaderFunc func(hdr.Header)
+		cacheKey         connectMethodKey
+		// guarded by Transport.idleMu:
+		idleAt  time.Time // time it last become idle
+		isProxy bool
+		sawEOF  bool // whether we've seen EOF from conn; owned by readLoop
+		broken  bool // an error has happened on this connection; marked broken so it's not reused.
+		reused  bool // whether conn has had successful request/response and is being reused.
 	}
 
 	// nothingWrittenError wraps a write errors which ended up writing zero bytes.

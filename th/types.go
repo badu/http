@@ -71,12 +71,12 @@ type (
 		// If nil, the Writes are silently discarded.
 		Body *bytes.Buffer
 
-		// Flushed is whether the Handler called Flush.
-		Flushed bool
-
 		result      *Response  // cache of Result's return value
 		snapHeader  hdr.Header // snapshot of HeaderMap at first Write
 		wroteHeader bool
+
+		// Flushed is whether the Handler called Flush.
+		Flushed bool
 	}
 
 	closeIdleTransport interface {
